@@ -11,6 +11,7 @@ class ReadFile:
         self.q = self.manager.Queue()
         self.pool = mp.Pool(mp.cpu_count() + 2)
         self.jobs = []
+        self.multiprocess = False
 
     def run_file_reader(self):
         start_time = datetime.datetime.now()
@@ -24,23 +25,32 @@ class ReadFile:
     def read_directory(self, directory):
         for filename in os.listdir(directory):
             if os.path.isdir(filename):
-                job = self.pool.apply_async(self.read_directory, filename)
-                self.jobs.append(job)
+                if self.multiprocess:
+                    job = self.pool.apply_async(self.read_directory, directory + '\\' + filename)
+                    self.jobs.append(job)
+                else:
+                    self.read_directory(directory + '\\' + filename)
             else:
-                job = self.pool.apply_async(self.read_file, filename)
-                self.jobs.append(job)
+                if self.multiprocess:
+                    job = self.pool.apply_async(self.read_file, directory + '\\' + filename)
+                    self.jobs.append(job)
+                else:
+                    self.read_file(directory + '\\' + filename)
 
     def read_file(self, file_path):
         with open(file_path) as file:
             doc = []
             for line in file:
                 if "<DOC>" in line:
-                    line
                     doc = []
                 elif "</DOC>" in line:
-                    job = self.pool.apply_async(Document.__init__, doc) # Need to make sure this line works
-                    self.jobs.append(job)
-                else:
+                    if self.multiprocess:
+                        job = self.pool.apply_async(Document.__init__, doc) # Need to make sure this line works
+                        self.jobs.append(job)
+                    else:
+                        Document(doc)
+                elif line is not '\n':
+                    line = line.replace('\n', '')
                     doc.append(line)
 
     # def parse_file(self, doc):
@@ -49,18 +59,26 @@ class ReadFile:
 class Document:
     def __init__(self, data):
         print(data)
-        self.doc_num = self.get_doc_parameter(data[1], 'DOCNO')
-        self.HT = self.get_doc_parameter(data[2], 'HT')
+        self.doc_num = self.get_doc_parameter(data[0], 'DOCNO')
+        self.HT = self.get_doc_parameter(data[1], 'HT')
 
 
     def get_doc_parameter(self, line, label):
-        print(line)
-        line.replace('<' + label + '>', '')
-        line.replace('</' + label + '>', '')
-        line.replace(' ', '')
-        print(line)
+        line = line.replace('<' + label + '>', '')
+        line = line.replace('</' + label + '>', '')
+        line = line.replace(' ', '')
         return line
 
 if __name__ == '__main__':
+    # list = []
+    # with open('C:\\Chen\\BGU\\2019\\2018 - Semester A\\3. Information Retrival\\Engine\\test directory\\testfile.txt') as file_test:
+    #     for line in fiC>" in line:
+    #         #     print(line)
+    #         if line is not '\n':
+    #             line = line.replace('\n', '')
+    #             list.append(line)
+    # for line in list:le_test:
+    #         # if "<DO
+    #     print(list)
     file = ReadFile('C:\\Chen\\BGU\\2019\\2018 - Semester A\\3. Information Retrival\\Engine\\test directory')
     file.run_file_reader()
