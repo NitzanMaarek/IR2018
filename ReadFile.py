@@ -57,17 +57,61 @@ class ReadFile:
 
 
 class Document:
+    # TODO: need to check if in every document those tags are in the same position
     def __init__(self, data):
-        print(data)
-        self.doc_num = self.get_doc_parameter(data[0], 'DOCNO')
-        self.HT = self.get_doc_parameter(data[1], 'HT')
+        self.doc_num = self.get_doc_parameter(data[0], 'DOCNO') # in the same location
+        self.HT = self.get_doc_parameter(data[1], 'HT') # in the same location
+
+        start = -1
+        finish = -1
+        for i in range(0, len(data)):
+            if 'DATE1' in data[i]:
+                self.date = self.get_doc_parameter(data[i], 'DATE1')
+            if (start == -1 and '<TEXT>' in data[i]) or ('[Text]' in data[i]):
+                start = i + 1
+            if '</TEXT>' in data[i]:
+                finish = i
+                break
+        data[i] = data[i].replace('[Text]', '')
+        data[i] = data[i].replace('<TEXT>', '')
+        self.text = data[start:finish]
+
+
+        # self.AU = self.get_doc_parameter(data[3], 'AU') # not in the same location
+        # self.Header = data[4] # not in the same location
+        # self.date = self.get_doc_parameter(data[5], 'DATE1') # not in the same location
+        # self.text = ''
+        # self.set_text(data) # Not actual text, need to add language as parameter
+
+
+
+
+
+        print(self.text)
 
 
     def get_doc_parameter(self, line, label):
-        line = line.replace('<' + label + '>', '')
-        line = line.replace('</' + label + '>', '')
-        line = line.replace(' ', '')
-        return line
+        start_label = '<' + label + '>'
+        start_index = line.find('<' + label + '>')
+        end_index = line.find('</' + label + '>')
+        return line[start_index + len(start_label):end_index].rstrip().lstrip()
+        # line = line.replace('<' + label + '>', '')
+        # line = line.replace('</' + label + '>', '')
+        # line = line.replace(' ', '')
+        # return line
+
+    def set_text(self, data):
+        start = -1
+        finish = -1
+        for i in range(0, len(data)):
+            if (start == -1 and '<TEXT>' in data[i]) or ('[Text]' in data[i]):
+                start = i + 1
+            if '</TEXT>' in data[i]:
+                finish = i
+                break
+        data[i] = data[i].replace('[Text]', '')
+        data[i] = data[i].replace('<TEXT>', '')
+        self.text = data[start:finish]
 
 if __name__ == '__main__':
     # list = []
