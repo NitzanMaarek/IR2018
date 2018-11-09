@@ -3,6 +3,11 @@ import numpy as np
 import os
 import multiprocessing as mp
 import datetime
+from nltk.tokenize import word_tokenize
+from nltk.stem.porter import *
+from collections import Counter
+import itertools
+
 
 class ReadFile:
     def __init__(self, directory):
@@ -58,15 +63,18 @@ class ReadFile:
 
 class Document:
     # TODO: need to check if in every document those tags are in the same position
-    def __init__(self, data):
+    def __init__(self, data, stem):
+        self.stem = stem
         self.doc_num = self.get_doc_parameter(data[0], 'DOCNO') # in the same location
         self.HT = self.get_doc_parameter(data[1], 'HT') # in the same location
 
         start = -1
         finish = -1
         for i in range(0, len(data)):
-            if 'DATE1' in data[i]:
+            if '<DATE1>' in data[i]:
                 self.date = self.get_doc_parameter(data[i], 'DATE1')
+            elif '<TI>' in data[i]:
+                self.title = self.get_doc_parameter(data[i], 'TI')
             if (start == -1 and '<TEXT>' in data[i]) or ('[Text]' in data[i]):
                 start = i + 1
             if '</TEXT>' in data[i]:
@@ -74,7 +82,7 @@ class Document:
                 break
         data[i] = data[i].replace('[Text]', '')
         data[i] = data[i].replace('<TEXT>', '')
-        self.text = data[start:finish]
+        self.text = list(itertools.chain.from_iterable(data[start:finish]))
 
 
         # self.AU = self.get_doc_parameter(data[3], 'AU') # not in the same location
@@ -82,11 +90,6 @@ class Document:
         # self.date = self.get_doc_parameter(data[5], 'DATE1') # not in the same location
         # self.text = ''
         # self.set_text(data) # Not actual text, need to add language as parameter
-
-
-
-
-
         print(self.text)
 
 
@@ -95,10 +98,6 @@ class Document:
         start_index = line.find('<' + label + '>')
         end_index = line.find('</' + label + '>')
         return line[start_index + len(start_label):end_index].rstrip().lstrip()
-        # line = line.replace('<' + label + '>', '')
-        # line = line.replace('</' + label + '>', '')
-        # line = line.replace(' ', '')
-        # return line
 
     def set_text(self, data):
         start = -1
@@ -113,6 +112,12 @@ class Document:
         data[i] = data[i].replace('<TEXT>', '')
         self.text = data[start:finish]
 
+    def create_terms(self):
+        if self.stem:
+            self.terms = set(word_tokenize(self.text))
+        else:
+            self.terms = set(word_tokenize(self.text))
+
 if __name__ == '__main__':
     # list = []
     # with open('C:\\Chen\\BGU\\2019\\2018 - Semester A\\3. Information Retrival\\Engine\\test directory\\testfile.txt') as file_test:
@@ -126,3 +131,5 @@ if __name__ == '__main__':
     #     print(list)
     file = ReadFile('C:\\Chen\\BGU\\2019\\2018 - Semester A\\3. Information Retrival\\Engine\\test directory')
     file.run_file_reader()
+
+    # Counter([stemmer.stem(word) for word in word_tokenize(data)])
