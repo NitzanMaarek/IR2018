@@ -3,6 +3,7 @@ import numpy as np
 import os
 import multiprocessing as mp
 import datetime
+from RegexTest import RegexTest
 from nltk.tokenize import word_tokenize
 from nltk.stem.porter import *
 import json
@@ -40,7 +41,6 @@ class ReadFile:
         pool.close()
         pool.join()
 
-
     def read_file_lines(self, file_path, q):
         # with open(file_path, 'r') as lines:
         try:
@@ -50,11 +50,12 @@ class ReadFile:
                 if "<DOC>" in line:
                     start = i
                 elif "</DOC>" in line:
-                    if False:
-                        job = self.pool.apply_async(Document.__init__, doc, self.stem)  # Need to make sure this line works
-                        self.jobs.append(job)
-                    else:
-                        Document(lines[start + 1 : i - 1], self.stem ,q)
+                    Document(lines[start + 1: i - 1], self.stem, q)
+                    # if False:
+                    #     job = self.pool.apply_async(Document.__init__, doc, self.stem)  # Need to make sure this line works
+                    #     self.jobs.append(job)
+                    # else:
+                    #     Document(lines[start + 1 : i - 1], self.stem ,q)
             # q.put(file_path)
         except:
             print(file_path)
@@ -87,10 +88,16 @@ class Document:
         dict_to_json['doc_num'] = self.doc_num
         dict_to_json['HT'] = self.HT
         dict_to_json['orig_data'] = data
+
         # q.put(self.doc_num)
         # print(self.doc_num)
         # with open('C:\\Chen\\BGU\\2019\\2018 - Semester A\\3. Information Retrival\\Engine\\jsons\\' + self.doc_num + '.txt', 'w') as outfile:
         #     json.dump(dict_to_json, outfile)
+
+    def doc_pipeline(self):
+        regex = RegexTest()
+        self.text = regex.regex_pipeline(self.text)
+
 
     def set_text(self, data): # No usage
         start = -1
@@ -113,7 +120,9 @@ class Document:
 
     def create_terms(self):
         if self.stem:
-            self.terms = set(word_tokenize(self.text))
+            stemmer = PorterStemmer()
+            tmp_terms = word_tokenize(self.text)
+            self.terms = [stemmer.stem(term) for term in tmp_terms]
         else:
             self.terms = set(word_tokenize(self.text))
 

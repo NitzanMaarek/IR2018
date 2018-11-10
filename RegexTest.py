@@ -12,6 +12,10 @@ class RegexTest:
                           'November', 'December']
         locale.setlocale(locale.LC_ALL, 'en_US.UTF-8')
 
+    def regex_pipeline(self, data):
+        # TODO: need to write method
+        new_data = data
+        return new_data
 
 
     def parseAndSubNumbers(self):
