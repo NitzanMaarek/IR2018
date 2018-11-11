@@ -31,7 +31,8 @@ class Parse:
             token_str = str(token)
             if token in self.percent_key_words:                                 # If percent
                 if token is 'percent' or token is 'percentage':
-                    self.sub_percent_in_line((tokens[i-1], tokens[1]))
+                    tokens[i-1] = self.sub_percent_in_line((tokens[i-1], tokens[i]))
+                    list(token).remove(i)
                 else:
                     self.sub_percent_in_line(token)
             elif token_str in self.dollar_key_words:                            # If currency
