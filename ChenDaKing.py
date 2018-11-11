@@ -16,8 +16,8 @@ class ChenDaKing:
 
         self.percent_key_words = ('%', 'percent', 'percentage')
         self.dollar_key_words = ('$', 'Dollars')
-        self.month_list = ('January','February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December')
-        self.month_list_capital = ('JANUARY', 'FEBRUARY', 'MARCH', 'APRIL', 'MAY', 'JUNE', 'JULY', 'AUGUST', 'SEPTEMBER',' OCTOBER', 'NOVEMBER', 'DECEMBER')
+        self.month_list = ('January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December')
+        self.month_list_capital = ('JANUARY', 'FEBRUARY', 'MARCH', 'APRIL', 'MAY', 'JUNE', 'JULY', 'AUGUST', 'SEPTEMBER', ' OCTOBER', 'NOVEMBER', 'DECEMBER')
         # self.text = '12,000,404,390 and 596 Billion'
         # print(re.findall('([1-9]\d{0,2},\d{3},\d{3},\d{3})|([1-9]\d{9,11}\.\d{1,9})|([1-9]\d{0,2}\sBillion)', self.text))
 
@@ -54,16 +54,20 @@ class ChenDaKing:
         """
         for i, token in enumerate(tokens, start=0):
             token_str = str(token)
-            if token_str[0] == '$':
+            if token_str[0] == '$':     # if tokens contain sign $
                 if len(tokens) > i+1 and (tokens[i+1] == 'million' or tokens[i+1] == 'billion' or tokens[i+1] == 'trillion'):
                     tokens[i] = self.sub_currency_in_line((tokens[i], tokens[i+1]))         # parse $price
                     list(tokens).remove(i+1)
                 else:
                     tokens[i] = self.sub_currency_in_line(tokens[i])           # parse $price
-            if token_str == 'Dollars' or token_str == 'dollars':
+            if token_str == 'Dollars' or token_str == 'dollars':        # if tokens contain word Dollars or dollars
                 if tokens[i-1] == 'U.S':
-
-                else:
+                    new_string_to_parse = '$' + token[i-3]
+                    tokens[i-3] = self.sub_currency_in_line((new_string_to_parse, token[i-2]))
+                    list(tokens).remove(i)
+                    list(tokens).remove(i-1)
+                    list(tokens).remove(i-2)
+                else:       # if it's "price m Dollars" or "price bn Dollars" change to $priceM  or $priceB and send to same function for parse.
                     if str(tokens[i-1]).__contains__('m'):
                         new_string_to_parse = '$' + token[i-1][0:len(token[i-1])-2] + 'M'
                     elif str(tokens[i-1]).__contains__('bn'):
@@ -91,14 +95,17 @@ class ChenDaKing:
                 first_token_str = self.sub_currency_k(first_token_str)    #if 450K Dollars or 12.1K Dollars, returns 450,000 Dollars etc.
             tokens[0] = first_token_str         # Save new token.
             return tokens[0]                    # return fixed token
-
-
-        if tokens[0][0] == '$':
+        else:
             self.sub_currency_sign_dollar(tokens)   # *** NEED TO SEND ONLY $PRICE TOKENS LIST***
 
 
 
     def sub_currency_sign_dollar(self, tokens):
+        """
+        Parses rules 2,3,4,5 (prices with the char $ not in thousands)
+        :param tokens: list of tokens
+        :return: the correct and final token
+        """
         token_str = str(tokens[0])
         if len(tokens) > 1:
             if tokens[1] == 'million':
