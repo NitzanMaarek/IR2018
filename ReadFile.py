@@ -3,7 +3,7 @@ import numpy as np
 import os
 import multiprocessing as mp
 import datetime
-from RegexTest import RegexTest
+from Parse import Parse
 from nltk.tokenize import word_tokenize
 from nltk.stem.porter import *
 import json
@@ -66,7 +66,6 @@ class Document:
     def __init__(self, data, stem, q):
         self.stem = stem
         self.doc_num = self.get_doc_parameter(data[0], 'DOCNO')
-        # print(self.doc_num)
         self.HT = self.get_doc_parameter(data[1], 'HT')
 
         start = -1
@@ -84,20 +83,20 @@ class Document:
         data[i] = data[i].replace('<TEXT>', '')
         self.text = data[start + 6:finish]
 
+    def doc_pipeline(self):
+        regex = Parse()
+        self.text = regex.regex_pipeline(self.text)
+        self.create_terms()
+        if write_to_disk: # TODO: Not sure it works in python need to check that
+            self.to_json()
+
+    def to_json(self):
         dict_to_json = {}
         dict_to_json['doc_num'] = self.doc_num
         dict_to_json['HT'] = self.HT
-        dict_to_json['orig_data'] = data
-
-        # q.put(self.doc_num)
-        # print(self.doc_num)
-        # with open('C:\\Chen\\BGU\\2019\\2018 - Semester A\\3. Information Retrival\\Engine\\jsons\\' + self.doc_num + '.txt', 'w') as outfile:
-        #     json.dump(dict_to_json, outfile)
-
-    def doc_pipeline(self):
-        regex = RegexTest()
-        self.text = regex.regex_pipeline(self.text)
-
+        # dict_to_json['orig_data'] = data
+        with open('C:\\Chen\\BGU\\2019\\2018 - Semester A\\3. Information Retrival\\Engine\\jsons\\' + self.doc_num + '.txt', 'w') as outfile:
+            json.dump(dict_to_json, outfile)
 
     def set_text(self, data): # No usage
         start = -1
@@ -127,11 +126,19 @@ class Document:
             self.terms = set(word_tokenize(self.text))
 
 if __name__ == '__main__':
-    # All files debug config
-    file = ReadFile(r'C:\Chen\BGU\2019\2018 - Semester A\3. Information Retrival\Engine\corpus', True, False)
-    file.run_file_reader()
+    # Debug configs:
+    single_file = True
+    write_to_disk = False
+    parallel = True
+    stem = False
 
     # Single file debug config
-    # file = ReadFile(r'C:\Chen\BGU\2019\2018 - Semester A\3. Information Retrival\Engine\corpus', False, True)
-    # file.read_directory(r'C:\Chen\BGU\2019\2018 - Semester A\3. Information Retrival\Engine\test directory')
-    # Counter([stemmer.stem(word) for word in word_tokenize(data)])
+    if single_file:
+        file = ReadFile(r'C:\Chen\BGU\2019\2018 - Semester A\3. Information Retrival\Engine\corpus', parallel, stem)
+        file.read_directory(r'C:\Chen\BGU\2019\2018 - Semester A\3. Information Retrival\Engine\test directory')
+    else:
+        # All files debug config
+        file = ReadFile(r'C:\Chen\BGU\2019\2018 - Semester A\3. Information Retrival\Engine\corpus', parallel, stem)
+        file.run_file_reader()
+
+    # Counter([stemmer.stem(word) for word in word_tokenize(data)]) - This is the stem and tokenizing test, keep this here plz
