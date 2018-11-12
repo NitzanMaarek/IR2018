@@ -9,10 +9,11 @@ from nltk.stem.porter import *
 import json
 
 class ReadFile:
-    def __init__(self, directory, multiprocess, stem):
+    def __init__(self, directory, multiprocess, stem, write_to_disk):
         self.directory = directory
         self.multiprocess = multiprocess
         self.stem = stem
+        self.write_to_disk = write_to_disk
 
     def run_file_reader(self):
         start_time = datetime.datetime.now()
@@ -50,7 +51,7 @@ class ReadFile:
                 if "<DOC>" in line:
                     start = i
                 elif "</DOC>" in line:
-                    Document(lines[start + 1: i - 1], self.stem, q)
+                    Document(lines[start + 1: i - 1], self.stem, q, self.write_to_disk)
                     # if False:
                     #     job = self.pool.apply_async(Document.__init__, doc, self.stem)  # Need to make sure this line works
                     #     self.jobs.append(job)
@@ -63,10 +64,11 @@ class ReadFile:
 
 
 class Document:
-    def __init__(self, data, stem, q):
+    def __init__(self, data, stem, q, write_to_disk):
         self.stem = stem
         self.doc_num = self.get_doc_parameter(data[0], 'DOCNO')
         self.HT = self.get_doc_parameter(data[1], 'HT')
+        self.write_to_disk = write_to_disk
 
         start = -1
         finish = -1
@@ -82,13 +84,14 @@ class Document:
         data[i] = data[i].replace('[Text]', '')
         data[i] = data[i].replace('<TEXT>', '')
         self.text = data[start + 6:finish]
+        self.doc_pipeline()
 
     def doc_pipeline(self):
         regex = Parse()
         self.create_tokens()
-        self.text = regex.regex_pipeline(self.text)
-        if write_to_disk: # TODO: Not sure it works in python need to check that
-            self.to_json()
+        self.text = regex.regex_pipeline(self.tokens)
+        if self.write_to_disk: # TODO: Not sure it works in python need to check that
+            self.to_json() # TODO: Change it to HDF5
 
     def to_json(self):
         dict_to_json = {}
@@ -136,7 +139,7 @@ if __name__ == '__main__':
 
     # Single file debug config
     if single_file:
-        file = ReadFile(r'C:\Chen\BGU\2019\2018 - Semester A\3. Information Retrival\Engine\corpus', parallel, stem)
+        file = ReadFile(r'C:\Chen\BGU\2019\2018 - Semester A\3. Information Retrival\Engine\corpus', parallel, stem, write_to_disk)
         file.read_directory(r'C:\Chen\BGU\2019\2018 - Semester A\3. Information Retrival\Engine\test directory')
     else:
         # All files debug config
