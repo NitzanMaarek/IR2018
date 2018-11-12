@@ -85,8 +85,8 @@ class Document:
 
     def doc_pipeline(self):
         regex = Parse()
+        self.create_tokens()
         self.text = regex.regex_pipeline(self.text)
-        self.create_terms()
         if write_to_disk: # TODO: Not sure it works in python need to check that
             self.to_json()
 
@@ -117,13 +117,15 @@ class Document:
         end_index = line.find('</' + label + '>')
         return line[start_index + len(start_label):end_index].rstrip().lstrip()
 
-    def create_terms(self):
+    def create_tokens(self):
+        tokens = []
+        for line in self.text:
+            tokens = tokens + (word_tokenize(line))
         if self.stem:
             stemmer = PorterStemmer()
-            tmp_terms = word_tokenize(self.text)
-            self.terms = [stemmer.stem(term) for term in tmp_terms]
+            self.tokens = [stemmer.stem(term) for term in tokens]
         else:
-            self.terms = set(word_tokenize(self.text))
+            self.tokens = tokens
 
 if __name__ == '__main__':
     # Debug configs:
