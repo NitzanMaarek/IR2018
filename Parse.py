@@ -10,8 +10,8 @@ class Parse:
         self.dollar_key_words = ('$', 'Dollars', 'dollars')
         # self.month_list = ('January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December')
         # self.month_list_capital = ('JANUARY', 'FEBRUARY', 'MARCH', 'APRIL', 'MAY', 'JUNE', 'JULY', 'AUGUST', 'SEPTEMBER', ' OCTOBER', 'NOVEMBER', 'DECEMBER')
-        self.month_dictionary = {'January' : '01', 'February' : '02', 'March' : '03', 'April' : '04', 'May' : '05', 'June' : '06',
-                                 'July' : '07', 'August' : '08', 'September' : '09', 'October' : '10', 'November' : '11', 'December' : '12',
+        self.month_dictionary = {'January': '01', 'February': '02', 'March': '03', 'April': '04', 'May': '05', 'June': '06',
+                                 'July': '07', 'August': '08', 'September': '09', 'October': '10', 'November': '11', 'December': '12',
                                  'JANUARY': '01', 'FEBRUARY': '02', 'MARCH': '03', 'APRIL': '04', 'MAY': '05', 'JUNE': '06', 'JULY': '07',
                                  'AUGUST': '08', 'SEPTEMBER': '09', 'OCTOBER': '10', 'NOVEMBER': '11', 'DECEMBER': '12'}
 
@@ -26,7 +26,7 @@ class Parse:
 
     def is_number(self, s):
         try:
-            float(s)
+            int(s)
             return True
         except ValueError:
             return False
@@ -44,7 +44,7 @@ class Parse:
             token = tokens[self.token_index]
             token_str = tokens[self.token_index]
             if token_str == 'ratings':
-                print('kaka')
+                print('delete me and the if')
             if token_str in self.percent_key_words:                                 # If percent
                 if token_str == ('percent' or 'percentage'):
                     tokens[self.token_index-1] = tokens[self.token_index-1] + '%'
@@ -68,9 +68,7 @@ class Parse:
             self.token_index = self.token_index+1
 
 
-    def sub_percent_in_line(self, tokens):
-        #if type(tokens) is not list:
-        return str(tokens[0]) + '%'         # ***CAN REMOVE CASTING????***
+
 
     def parse_and_sub_numbers(self, line):
         """
@@ -338,21 +336,45 @@ class Parse:
         :return: haven't decided yet if to return entire list or no need or idk...
         """
         strings_to_return = list()
-        if len(tokens) > i+1 and (tokens[i+1] == ',' or (len(tokens[i+1]) == 4 and tokens[i+1].isdigit())):   # if  date is 14 May 1993 or 2 August, 1992 or May 2014 or May,  ALSO
-            if len(tokens) > i+2 and tokens[i+1] == ',':        # if date has year (there is i+2 token in list) and also comma
-                if 1 <= len(tokens[i-1]) < 3 and tokens[i-1].isdigit():     # if date has days in it: 14 may, (with comma)
-                    # TODO: Need to check if comma is inside month token or not and if is found in key_words_months if comma is inside.
-                    if len(tokens[i+2]) == 4 and tokens[i+2].isdigit():     # if date contains years: 14 may, 1993
-                        # TODO: Need to either tokenize month-year and day-year as requested in doc, or conclude day-month-year rule?
-                        strings_to_return.append(self.month_dictionary.values(tokens[i]) + '-' + tokens[i-1] + '-' + tokens[i+2])       # 24 april, 1994 -> 04-24-1994
-                        strings_to_return.append(self.month_dictionary.values(tokens[i]) + '-' + tokens[i-1])                           # -> 04-24
-                        strings_to_return.append(tokens[i+2] + '-' + self.month_dictionary.values(tokens[i]))                          # -> 1994-04
-                    else:   # means date has no years, its only 14 may,  (with comma)
-                        strings_to_return.append(self.month_dictionary.values(tokens[i]) + '-' + tokens[i-1])
-    #         elif len(tokens[i+1])
-    #     elif tokens[i-1]
-    #
-    # def sub_adjacent_tokens(self, tokens, i):
+        month_value = self.month_dictionary.get(tokens[i])
+        if len(tokens) > i+1 and tokens[i+1] == ',':                                                        #IF DATE HAS COMMA
+            if len(tokens) > i+2 and len(tokens[i+2]) == 4 and self.is_number(tokens[i+2]):                 # if date contains year after coma
+                if i > 0 and self.is_number(tokens[i-1]) and 0 < int(tokens[i-1]) < 32 :                    # if also day included in date
+                    strings_to_return.append(month_value + '-' + tokens[i-1])   # month-day
+                    strings_to_return.append(tokens[i+2] + '-' + month_value)   # year-month
+                    strings_to_return.append(strings_to_return[1] + '-' + tokens[i-1])                      # year-month-day
+                    tokens[i-1] = strings_to_return[0]
+                    tokens[i] = strings_to_return[1]
+                    tokens[i+1] = strings_to_return[2]
+                    del tokens[i+2]
+                    # maybe need to increment token_index by 1?
+                else:                                                                                       # no day included in date
+                    tokens[i] = tokens[i + 2] + '-' + month_value                               # year-month
+                    del tokens[i + 1]
+                    del tokens[i + 1]
+            else:                                                                                           # no year included in date
+                if i > 0 and self.is_number(tokens[i - 1]) and 0 < int(tokens[i - 1]) < 32:                 # if also day included in date
+                    tokens[i-1] = month_value + '-' + tokens[i - 1]                             # month-day
+                    del tokens[i]
+                    self.token_index = self.token_index - 1
+        elif len(tokens) > i+1 and len(tokens[i+1]) == 4 and self.is_number(tokens[i+1]):                   # if date contains year WITHOUT COMMA
+            if i > 0 and self.is_number(tokens[i-1]) and 0 < int(tokens[i-1]) < 32:
+                strings_to_return.append(month_value + '-' + tokens[i - 1])     # month-day
+                strings_to_return.append(tokens[i + 1] + '-' + month_value)     # year-month
+                strings_to_return.append(strings_to_return[1] + '-' + tokens[i - 1])                        # year-month-day
+                tokens[i-1] = strings_to_return[0]
+                tokens[i] = strings_to_return[1]
+                tokens[i+1] = strings_to_return[2]
+            else:                                                                                           # no day included in date
+                tokens[i] = tokens[i+1] + '-' + month_value                         # year-month
+                del tokens[i+1]
+        elif i > 0 and self.is_number(tokens[i-1]) and 0 < int(tokens[i-1]) < 32:
+                tokens[i-1] = month_value + '-' + tokens[i-1]                       # month-day
+                del tokens[i]
+                self.token_index = self.token_index - 1
+
+        return strings_to_return
+
 
 
 
