@@ -24,12 +24,7 @@ class Parse:
         return self.find_key_words_in_line(new_data)
 
 
-    def is_number(self, s):
-        try:
-            int(s)
-            return True
-        except ValueError:
-            return False
+
 
 
     def find_key_words_in_line(self, tokens):
@@ -42,25 +37,18 @@ class Parse:
         self.token_index = 0
         while self.token_index < len(tokens):
             token = tokens[self.token_index]
-            token_str = tokens[self.token_index]
+            token_str = str(tokens[self.token_index])
             if token_str == 'ratings':
                 print('delete me and the if')
-            if token_str in self.percent_key_words:                                 # If percent
-                if token_str == ('percent' or 'percentage'):
-                    tokens[self.token_index-1] = tokens[self.token_index-1] + '%'
-                    del tokens[self.token_index]
-                    self.token_index = self.token_index - 1
-                else:
-                    if self.token_index > 0:
-                        if self.is_number(tokens[self.token_index-1]):
-                            tokens[self.token_index-1] = tokens[self.token_index-1] + '%'
-                            del tokens[self.token_index]
-                            self.token_index = self.token_index - 1
+            if token_str.__contains__('/'):
+                self.sub_tokenize_fractions(tokens, self.token_index)
+            elif token_str in self.percent_key_words:                                 # If percent
+                self.sub_percentage(tokens, self.token_index)
             elif token_str in self.dollar_key_words:                            # If currency
-                        self.tokenize_dollars(tokens, self.token_index)
+                self.tokenize_dollars(tokens, self.token_index)
             elif token_str in self.month_dictionary.keys():  # If date
                 self.sub_dates_in_line(tokens, self.token_index)
-            elif token[0] is ['A-Z']:           # *****CONDITION DOESNT WORK *****                                # If word begins with capital letter
+            elif token_str[0] is ['A-Z']:           # *****CONDITION DOESNT WORK *****                                # If word begins with capital letter
                 k = 1
             elif str(token).__contains__('-'):                                  # If word has a hyphen: adjacent words
                 # self.sub_adjacent_tokens(tokens, i)
@@ -68,6 +56,18 @@ class Parse:
             self.token_index = self.token_index+1
 
 
+    def sub_percentage(self, tokens, i):
+        token_str = tokens[i]
+        if token_str == ('percent' or 'percentage'):
+            tokens[self.token_index - 1] = tokens[self.token_index - 1] + '%'
+            del tokens[self.token_index]
+            self.token_index = self.token_index - 1
+        else:
+            if self.token_index > 0:
+                if self.is_integer(tokens[self.token_index - 1]):
+                    tokens[self.token_index - 1] = tokens[self.token_index - 1] + '%'
+                    del tokens[self.token_index]
+                    self.token_index = self.token_index - 1
 
 
     def parse_and_sub_numbers(self, line):
@@ -338,8 +338,8 @@ class Parse:
         strings_to_return = list()
         month_value = self.month_dictionary.get(tokens[i])
         if len(tokens) > i+1 and tokens[i+1] == ',':                                                        #IF DATE HAS COMMA
-            if len(tokens) > i+2 and len(tokens[i+2]) == 4 and self.is_number(tokens[i+2]):                 # if date contains year after coma
-                if i > 0 and self.is_number(tokens[i-1]) and 0 < int(tokens[i-1]) < 32 :                    # if also day included in date
+            if len(tokens) > i+2 and len(tokens[i+2]) == 4 and self.is_integer(tokens[i + 2]):                 # if date contains year after coma
+                if i > 0 and self.is_integer(tokens[i - 1]) and 0 < int(tokens[i - 1]) < 32 :                    # if also day included in date
                     strings_to_return.append(month_value + '-' + tokens[i-1])   # month-day
                     strings_to_return.append(tokens[i+2] + '-' + month_value)   # year-month
                     strings_to_return.append(strings_to_return[1] + '-' + tokens[i-1])                      # year-month-day
@@ -353,12 +353,12 @@ class Parse:
                     del tokens[i + 1]
                     del tokens[i + 1]
             else:                                                                                           # no year included in date
-                if i > 0 and self.is_number(tokens[i - 1]) and 0 < int(tokens[i - 1]) < 32:                 # if also day included in date
+                if i > 0 and self.is_integer(tokens[i - 1]) and 0 < int(tokens[i - 1]) < 32:                 # if also day included in date
                     tokens[i-1] = month_value + '-' + tokens[i - 1]                             # month-day
                     del tokens[i]
                     self.token_index = self.token_index - 1
-        elif len(tokens) > i+1 and len(tokens[i+1]) == 4 and self.is_number(tokens[i+1]):                   # if date contains year WITHOUT COMMA
-            if i > 0 and self.is_number(tokens[i-1]) and 0 < int(tokens[i-1]) < 32:
+        elif len(tokens) > i+1 and len(tokens[i+1]) == 4 and self.is_integer(tokens[i + 1]):                   # if date contains year WITHOUT COMMA
+            if i > 0 and self.is_integer(tokens[i - 1]) and 0 < int(tokens[i - 1]) < 32:
                 strings_to_return.append(month_value + '-' + tokens[i - 1])     # month-day
                 strings_to_return.append(tokens[i + 1] + '-' + month_value)     # year-month
                 strings_to_return.append(strings_to_return[1] + '-' + tokens[i - 1])                        # year-month-day
@@ -368,14 +368,75 @@ class Parse:
             else:                                                                                           # no day included in date
                 tokens[i] = tokens[i+1] + '-' + month_value                         # year-month
                 del tokens[i+1]
-        elif i > 0 and self.is_number(tokens[i-1]) and 0 < int(tokens[i-1]) < 32:
+        elif i > 0 and self.is_integer(tokens[i - 1]) and 0 < int(tokens[i - 1]) < 32:
                 tokens[i-1] = month_value + '-' + tokens[i-1]                       # month-day
                 del tokens[i]
                 self.token_index = self.token_index - 1
 
         return strings_to_return
 
+    def is_any_kind_of_number(self, s):
+        return self.is_number_k_m_b_t(s) or self.is_integer(s) or self.is_float(s)
 
 
+    def is_integer(self, s):
+        """
+        Checks if string s is int
+        :param s: string
+        :return: True/False
+        """
+        try:
+            int(s)
+            return True
+        except ValueError:
+            return False
+
+    def is_float(self, s):
+        """
+        Checks if string s is float
+        :param s: string
+        :return: True/False
+        """
+        try:
+            float(s)
+            return True
+        except ValueError:
+            return False
+
+    def is_number_k_m_b_t(self, s):
+        """
+        Checks if string s is Thousands/Millions/Billions/Trillions
+        :param s: string representation
+        :return: True/False
+        """
+        value_str = str(s)
+        str_length = len(value_str)
+        letter = value_str[str_length-1]
+        if letter == 'K' or letter == 'M' or letter == 'B':
+            try:
+                float(value_str[0:str_length-1])
+                return True
+            except ValueError:
+                return False
+        elif value_str[str_length-1] == 'T':
+            try:
+                int(value_str[0:str_length-1])
+                return True
+            except ValueError:
+                return False
+
+    def sub_tokenize_fractions(self, tokens, i):
+        """
+        Tokenize fraction after number parsing
+        :param tokens: tokens list
+        :param i: where the fraction is
+        :return: nothing.
+        """
+        fraction_strings = tokens[i].split('/')
+        if self.is_any_kind_of_number(fraction_strings[0]) and self.is_any_kind_of_number(fraction_strings[1]):     # if fraction has valid numbers
+            if i > 0 and (self.is_integer(tokens[i-1]) or self.is_number_k_m_b_t(tokens[i-1])):                     # if it's mixed fraction
+                tokens[i-1] = tokens[i-1] + ' ' + tokens[i]
+                del tokens[i]
+                self.token_index = self.token_index - 1
 
 
