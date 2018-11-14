@@ -1,6 +1,8 @@
 import re
 import time
 import locale
+from nltk.tokenize import word_tokenize
+from nltk.stem.porter import *
 
 class Parse:
 
@@ -18,14 +20,21 @@ class Parse:
         locale.setlocale(locale.LC_ALL, 'en_US.UTF-8')
         self.token_index = 0
 
-    def regex_pipeline(self, data):
+    def regex_pipeline(self, data, stem):
         # TODO: need to write method
-        new_data = data
-        return self.find_key_words_in_line(new_data)
+        tokens = self.create_tokens(data)
+        tokens = self.find_key_words_in_line(tokens)
+        if stem:
+            stemmer = PorterStemmer()
+            tokens = [stemmer.stem(term) for term in tokens]
+        return tokens
 
-
-
-
+    def create_tokens(self, data):
+        tokens = []
+        for line in data:
+            line = self.parse_and_sub_numbers(line)
+            tokens = tokens + (word_tokenize(line))
+        return tokens
 
     def find_key_words_in_line(self, tokens):
         """
@@ -38,8 +47,6 @@ class Parse:
         while self.token_index < len(tokens):
             token = tokens[self.token_index]
             token_str = str(tokens[self.token_index])
-            if token_str == 'ratings':
-                print('delete me and the if')
             if token_str.__contains__('/'):
                 self.sub_tokenize_fractions(tokens, self.token_index)
             elif token_str in self.percent_key_words:                                 # If percent
@@ -376,6 +383,8 @@ class Parse:
         return strings_to_return
 
     def is_any_kind_of_number(self, s):
+        if s is None or len(s) == 0:
+            return False
         return self.is_number_k_m_b_t(s) or self.is_integer(s) or self.is_float(s)
 
 
@@ -385,6 +394,8 @@ class Parse:
         :param s: string
         :return: True/False
         """
+        if s is None or len(s) == 0:
+            return False
         try:
             int(s)
             return True
@@ -397,6 +408,8 @@ class Parse:
         :param s: string
         :return: True/False
         """
+        if s is None or len(s) == 0:
+            return False
         try:
             float(s)
             return True
@@ -409,8 +422,11 @@ class Parse:
         :param s: string representation
         :return: True/False
         """
+        if s is None or len(s) == 0:
+            return False
         value_str = str(s)
         str_length = len(value_str)
+
         letter = value_str[str_length-1]
         if letter == 'K' or letter == 'M' or letter == 'B':
             try:

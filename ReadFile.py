@@ -4,8 +4,6 @@ import os
 import multiprocessing as mp
 import datetime
 from Parse import Parse
-from nltk.tokenize import word_tokenize
-from nltk.stem.porter import *
 import json
 
 class ReadFile:
@@ -34,7 +32,7 @@ class ReadFile:
                     job = pool.apply_async(self.read_file_lines, (path, q))
                     jobs.append(job)
                 else:
-                    self.read_file_lines(path)
+                    self.read_file_lines(path, q)
 
         for job in jobs:
             res = job.get()
@@ -52,14 +50,16 @@ class ReadFile:
                     start = i
                 elif "</DOC>" in line:
                     Document(lines[start + 1: i - 1], self.stem, q, self.write_to_disk)
-                    # if False:
-                    #     job = self.pool.apply_async(Document.__init__, doc, self.stem)  # Need to make sure this line works
-                    #     self.jobs.append(job)
-                    # else:
-                    #     Document(lines[start + 1 : i - 1], self.stem ,q)
-            # q.put(file_path)
+                        # if False:
+                        #     job = self.pool.apply_async(Document.__init__, doc, self.stem)  # Need to make sure this line works
+                        #     self.jobs.append(job)
+                        # else:
+                        #     Document(lines[start + 1 : i - 1], self.stem ,q)
+                # q.put(file_path)
         except:
             print(file_path)
+        # except Exception as e: print(e)
+            # print("Processing file not succeeded: " + file_path)
         return file_path
 
 
@@ -88,8 +88,7 @@ class Document:
 
     def doc_pipeline(self):
         regex = Parse()
-        self.create_tokens()
-        self.text = regex.regex_pipeline(self.tokens)
+        self.tokens = regex.regex_pipeline(self.text, self.stem)
         if self.write_to_disk: # TODO: Not sure it works in python need to check that
             self.to_json() # TODO: Change it to HDF5
 
@@ -120,19 +119,9 @@ class Document:
         end_index = line.find('</' + label + '>')
         return line[start_index + len(start_label):end_index].rstrip().lstrip()
 
-    def create_tokens(self):
-        tokens = []
-        for line in self.text:
-            tokens = tokens + (word_tokenize(line))
-        if self.stem:
-            stemmer = PorterStemmer()
-            self.tokens = [stemmer.stem(term) for term in tokens]
-        else:
-            self.tokens = tokens
-
 if __name__ == '__main__':
     # Debug configs:
-    single_file = True
+    single_file = False
     write_to_disk = False
     parallel = True
     stem = False
@@ -143,7 +132,7 @@ if __name__ == '__main__':
         file.read_directory(r'C:\Chen\BGU\2019\2018 - Semester A\3. Information Retrival\Engine\test directory')
     else:
         # All files debug config
-        file = ReadFile(r'C:\Chen\BGU\2019\2018 - Semester A\3. Information Retrival\Engine\corpus', parallel, stem)
+        file = ReadFile(r'C:\Chen\BGU\2019\2018 - Semester A\3. Information Retrival\Engine\corpus', parallel, stem, write_to_disk)
         file.run_file_reader()
 
     # Counter([stemmer.stem(word) for word in word_tokenize(data)]) - This is the stem and tokenizing test, keep this here plz
