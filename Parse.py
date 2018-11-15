@@ -32,7 +32,7 @@ class Parse:
     def create_tokens(self, data):
         tokens = []
         for line in data:
-            line = self.parse_and_sub_numbers(line)
+            # line = self.parse_and_sub_numbers(line)
             tokens = tokens + (word_tokenize(line))
         return tokens
 
@@ -61,11 +61,11 @@ class Parse:
                 # self.sub_adjacent_tokens(tokens, i)
                 j = 2
             self.token_index = self.token_index+1
-
+        return tokens
 
     def sub_percentage(self, tokens, i):
         token_str = tokens[i]
-        if token_str == ('percent' or 'percentage'):
+        if token_str == ('percent' or 'percentage') and self.is_any_kind_of_number(tokens[i-1]):
             tokens[self.token_index - 1] = tokens[self.token_index - 1] + '%'
             del tokens[self.token_index]
             self.token_index = self.token_index - 1
@@ -376,10 +376,12 @@ class Parse:
                 tokens[i] = tokens[i+1] + '-' + month_value                         # year-month
                 del tokens[i+1]
         elif i > 0 and self.is_integer(tokens[i - 1]) and 0 < int(tokens[i - 1]) < 32:
-                tokens[i-1] = month_value + '-' + tokens[i-1]                       # month-day
-                del tokens[i]
-                self.token_index = self.token_index - 1
-
+            tokens[i-1] = month_value + '-' + tokens[i-1]                       # month-day
+            del tokens[i]
+            self.token_index = self.token_index - 1
+        elif len(tokens) > i+1 and self.is_integer(tokens[i+1]) and 0 < int(tokens[i+1]) < 32:
+            tokens[i] = month_value + '-' + tokens[i+1]
+            del tokens[i+1]
         return strings_to_return
 
     def is_any_kind_of_number(self, s):
