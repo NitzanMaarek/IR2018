@@ -9,7 +9,6 @@ from nltk.stem.porter import *
 class Parse:
 
     def __init__(self):
-
         self.percent_key_words = ('%', 'percent', 'percentage')
         self.dollar_key_words = ('$', 'Dollars', 'dollars')
         # self.month_list = ('January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December')
@@ -39,14 +38,23 @@ class Parse:
         for line in data:
             # start_time = datetime.datetime.now()
             line = self.parse_and_sub_numbers(line)
+
+            line = line.split()
+            for word in line:
+                last_char = word[len(word) - 1:]
+                if not last_char.isdigit() or not last_char.isalpha():
+                    tokens.append(word[len(word)-1:])
+                else:
+                    tokens.append(word)
+
             # finish_time = datetime.datetime.now()
             # print('Regex took: ' + str(finish_time - start_time))
             # start_time = datetime.datetime.now()
-            new_tokens = word_tokenize(line)
+            # new_tokens = word_tokenize(line)
             # finish_time = datetime.datetime.now()
             # print('Tokenizing took: ' + str(finish_time - start_time))
-            for token in new_tokens:
-                tokens.append(token)
+            # for token in new_tokens:
+            #     tokens.append(token)
             # tokens = tokens + (word_tokenize(line))
         return tokens
 

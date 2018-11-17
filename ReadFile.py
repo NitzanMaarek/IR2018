@@ -1,5 +1,3 @@
-import pandas as pd
-import numpy as np
 import os
 import multiprocessing as mp
 import datetime
@@ -41,7 +39,6 @@ class ReadFile:
         try:
             file = open(file_path, 'r')
             lines = file.readlines()
-            # with open(file_path, 'r') as lines:
             for i, line in enumerate(lines, start=0):
                 if "<DOC>" in line:
                     start = i
