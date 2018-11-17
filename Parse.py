@@ -1,6 +1,8 @@
 import re
 import time
 import locale
+
+import datetime
 from nltk.tokenize import word_tokenize
 from nltk.stem.porter import *
 
@@ -16,14 +18,17 @@ class Parse:
                                  'July': '07', 'August': '08', 'September': '09', 'October': '10', 'November': '11', 'December': '12',
                                  'JANUARY': '01', 'FEBRUARY': '02', 'MARCH': '03', 'APRIL': '04', 'MAY': '05', 'JUNE': '06', 'JULY': '07',
                                  'AUGUST': '08', 'SEPTEMBER': '09', 'OCTOBER': '10', 'NOVEMBER': '11', 'DECEMBER': '12'}
-
+        self.month_first_letter_array = ['a', 'A', 'd', 'D', 'f', 'F', 'j', 'J', 'm', 'M', 'n', 'N', 'o', 'O', 's', 'S']
         locale.setlocale(locale.LC_ALL, 'en_US.UTF-8')
         self.token_index = 0
 
     def regex_pipeline(self, data, stem):
         # TODO: need to write method
         tokens = self.create_tokens(data)
+        # start_time = datetime.datetime.now()
         tokens = self.find_key_words_in_line(tokens)
+        # finish_time = datetime.datetime.now()
+        # print('Parsing took: ' + str(finish_time - start_time))
         if stem:
             stemmer = PorterStemmer()
             tokens = [stemmer.stem(term) for term in tokens]
@@ -32,8 +37,14 @@ class Parse:
     def create_tokens(self, data):
         tokens = []
         for line in data:
+            # start_time = datetime.datetime.now()
             line = self.parse_and_sub_numbers(line)
+            # finish_time = datetime.datetime.now()
+            # print('Regex took: ' + str(finish_time - start_time))
+            # start_time = datetime.datetime.now()
             new_tokens = word_tokenize(line)
+            # finish_time = datetime.datetime.now()
+            # print('Tokenizing took: ' + str(finish_time - start_time))
             for token in new_tokens:
                 tokens.append(token)
             # tokens = tokens + (word_tokenize(line))
@@ -48,19 +59,19 @@ class Parse:
         """
         self.token_index = 0
         while self.token_index < len(tokens):
-            token = tokens[self.token_index]
             token_str = str(tokens[self.token_index])
             if token_str.__contains__('/'):
                 self.sub_tokenize_fractions(tokens, self.token_index)
-            elif token_str in self.percent_key_words:                                 # If percent
+            elif token_str == '%' or (token_str[0] == 'p' and (token_str == 'percent' or token_str == 'percentage')):             # If percent
                 self.sub_percentage(tokens, self.token_index)
-            elif token_str in self.dollar_key_words:                            # If currency
+            elif token_str == '$' or ((token_str[0] == 'D' or token_str[0] == 'd') and (token_str == 'Dollars' or token_str == 'dollars')):                            # If currency
                 self.tokenize_dollars(tokens, self.token_index)
-            elif token_str in self.month_dictionary.keys():  # If date
+            elif token_str[0] in self.month_first_letter_array and token_str in self.month_dictionary.keys():  # If date
                 self.sub_dates_in_line(tokens, self.token_index)
-            elif token_str[0] is ['A-Z']:           # *****CONDITION DOESNT WORK *****                                # If word begins with capital letter
+            elif token_str[0] is ['A-Z']:           # *****CONDITION DOESNT WORK *****     # If word begins with capital letter
                 k = 1
-            elif str(token).__contains__('-'):                                  # If word has a hyphen: adjacent words
+            elif (token_str[0] == 'b' or token_str[0] == 'B') and (token_str == 'between' or token_str == 'Between'):      # If word has a hyphen: adjacent words
+                self.sub_between_token(tokens, self.token_index)
                 # self.sub_adjacent_tokens(tokens, i)
                 j = 2
             self.token_index = self.token_index+1
@@ -111,7 +122,7 @@ class Parse:
             return self.replace_billions(value_str)
         elif "Trillion" in value_str or "." in value_str:
             return self.replace_trillion(value_str)
-        value_int = int(str(value).replace(',', ''))
+        value_int = int(value_str.replace(',', ''))
         if value_int < 1000000:
             return self.replace_thousands(value_str)
         elif value_int < 1000000000:
@@ -212,7 +223,6 @@ class Parse:
         :return: same token list but after parsing prices and tokenizing it.
         """
         # for i, token in enumerate(tokens, start=j):
-        token = tokens[i]
         token_str = str(tokens[i])
         if token_str == '$':     # if tokens contain sign $
             if len(tokens) > i+2 and (tokens[i+2] == 'million' or tokens[i+2] == 'billion' or tokens[i+2] == 'trillion'):
@@ -460,4 +470,10 @@ class Parse:
                 del tokens[i]
                 self.token_index = self.token_index - 1
 
+    def sub_between_token(self, tokens, token_index):
+        if len(tokens) > token_index+3 and self.is_any_kind_of_number(tokens[token_index+1]) and tokens[token_index+2] =='and' and self.is_any_kind_of_number(tokens[token_index+3]):
+                tokens[token_index] = tokens[token_index] + ' ' + tokens[token_index+1] + ' ' + tokens[token_index+2] + ' ' + tokens[token_index+3]
+                del tokens[token_index+3]
+                del tokens[token_index+2]
+                del tokens[token_index+1]
 
