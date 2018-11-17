@@ -43,13 +43,14 @@ class ReadFile:
     def read_file_lines(self, file_path, q):
         # with open(file_path, 'r') as lines:
         try:
-            lines = open(file_path, 'r').readlines()
-            for i, line in enumerate(lines, start=0):
-                # print(line)
-                if "<DOC>" in line:
-                    start = i
-                elif "</DOC>" in line:
-                    Document(lines[start + 1: i - 1], self.stem, q, self.write_to_disk)
+            # lines = open(file_path, 'r').readlines()
+            with open(file_path, 'r') as lines:
+                for i, line in enumerate(lines, start=0):
+                    # print(line)
+                    if "<DOC>" in line:
+                        start = i
+                    elif "</DOC>" in line:
+                        Document(lines[start + 1: i - 1], self.stem, q, self.write_to_disk)
                         # if False:
                         #     job = self.pool.apply_async(Document.__init__, doc, self.stem)  # Need to make sure this line works
                         #     self.jobs.append(job)
