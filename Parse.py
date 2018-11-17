@@ -32,10 +32,10 @@ class Parse:
     def create_tokens(self, data):
         tokens = []
         for line in data:
+            line = self.parse_and_sub_numbers(line)
             new_tokens = word_tokenize(line)
             for token in new_tokens:
                 tokens.append(token)
-            # line = self.parse_and_sub_numbers(line)
             # tokens = tokens + (word_tokenize(line))
         return tokens
 

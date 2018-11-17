@@ -14,10 +14,7 @@ class ReadFile:
         self.write_to_disk = write_to_disk
 
     def run_file_reader(self):
-        start_time = datetime.datetime.now()
         self.read_directory(self.directory)
-        finish_time = datetime.datetime.now()
-        print(finish_time - start_time)
 
     def read_directory(self, directory):
         manager = mp.Manager()
@@ -41,26 +38,27 @@ class ReadFile:
         pool.join()
 
     def read_file_lines(self, file_path, q):
-        # with open(file_path, 'r') as lines:
         try:
-            # lines = open(file_path, 'r').readlines()
-            with open(file_path, 'r') as lines:
-                for i, line in enumerate(lines, start=0):
-                    # print(line)
-                    if "<DOC>" in line:
-                        start = i
-                    elif "</DOC>" in line:
-                        Document(lines[start + 1: i - 1], self.stem, q, self.write_to_disk)
+            file = open(file_path, 'r')
+            lines = file.readlines()
+            # with open(file_path, 'r') as lines:
+            for i, line in enumerate(lines, start=0):
+                if "<DOC>" in line:
+                    start = i
+                elif "</DOC>" in line:
+                    Document(lines[start + 1: i - 1], self.stem, q, self.write_to_disk)
+            file.close()
                         # if False:
                         #     job = self.pool.apply_async(Document.__init__, doc, self.stem)  # Need to make sure this line works
                         #     self.jobs.append(job)
                         # else:
                         #     Document(lines[start + 1 : i - 1], self.stem ,q)
                 # q.put(file_path)
-        except:
-            print(file_path)
-        # except Exception as e: print(e)
-            # print("Processing file not succeeded: " + file_path)
+        # except:
+        #     print(file_path)
+        except Exception as e:
+            print(e)
+            print("Processing file not succeeded: " + file_path)
         return file_path
 
 
@@ -127,13 +125,17 @@ if __name__ == '__main__':
     parallel = True
     stem = False
 
+    start_time = datetime.datetime.now()
+
     # Single file debug config
     if single_file:
         file = ReadFile(r'C:\Chen\BGU\2019\2018 - Semester A\3. Information Retrival\Engine\corpus', parallel, stem, write_to_disk)
         file.read_directory(r'C:\Chen\BGU\2019\2018 - Semester A\3. Information Retrival\Engine\test directory')
     else:
         # All files debug config
-        file = ReadFile(r'C:\Chen\BGU\2019\2018 - Semester A\3. Information Retrival\Engine\corpus', parallel, stem, write_to_disk)
+        file = ReadFile(r'C:\Chen\BGU\2019\2018 - Semester A\3. Information Retrival\Engine\test directory\100 files', parallel, stem, write_to_disk)
         file.run_file_reader()
 
+    finish_time = datetime.datetime.now()
+    print(finish_time - start_time)
     # Counter([stemmer.stem(word) for word in word_tokenize(data)]) - This is the stem and tokenizing test, keep this here plz
