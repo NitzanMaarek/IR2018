@@ -130,7 +130,7 @@ if __name__ == '__main__':
         file.read_directory(r'C:\Chen\BGU\2019\2018 - Semester A\3. Information Retrival\Engine\test directory')
     else:
         # All files debug config
-        file = ReadFile(r'C:\Chen\BGU\2019\2018 - Semester A\3. Information Retrival\Engine\test directory\100 files', parallel, stem, write_to_disk)
+        file = ReadFile(r'C:\Chen\BGU\2019\2018 - Semester A\3. Information Retrival\Engine\corpus', parallel, stem, write_to_disk)
         file.run_file_reader()
 
     finish_time = datetime.datetime.now()
