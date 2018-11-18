@@ -43,7 +43,8 @@ class Parse:
             for word in line:
                 last_char = word[len(word) - 1:]
                 if not last_char.isdigit() or not last_char.isalpha():
-                    tokens.append(word[:len(word)-1])
+                    if len(word) > 1:
+                        tokens.append(word[:len(word)-1])
                 else:
                     tokens.append(word)
 
