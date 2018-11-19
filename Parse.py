@@ -42,9 +42,13 @@ class Parse:
             line = line.split()
             for word in line:
                 last_char = word[len(word) - 1:]
-                if not last_char.isdigit() or not last_char.isalpha():
+                first_char = word[0]
+                if not last_char.isdigit() and not last_char.isalpha():
                     if len(word) > 1:
                         tokens.append(word[:len(word)-1])
+                elif first_char is '$':
+                    tokens.append('$')
+                    tokens.append(word[1:])
                 else:
                     tokens.append(word)
 
