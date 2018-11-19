@@ -11,8 +11,6 @@ class Parse:
     def __init__(self):
         self.percent_key_words = ('%', 'percent', 'percentage')
         self.dollar_key_words = ('$', 'Dollars', 'dollars')
-        # self.month_list = ('January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December')
-        # self.month_list_capital = ('JANUARY', 'FEBRUARY', 'MARCH', 'APRIL', 'MAY', 'JUNE', 'JULY', 'AUGUST', 'SEPTEMBER', ' OCTOBER', 'NOVEMBER', 'DECEMBER')
         self.month_dictionary = {'January': '01', 'February': '02', 'March': '03', 'April': '04', 'May': '05', 'June': '06',
                                  'July': '07', 'August': '08', 'September': '09', 'October': '10', 'November': '11', 'December': '12',
                                  'JANUARY': '01', 'FEBRUARY': '02', 'MARCH': '03', 'APRIL': '04', 'MAY': '05', 'JUNE': '06', 'JULY': '07',
@@ -24,10 +22,7 @@ class Parse:
     def regex_pipeline(self, data, stem):
         # TODO: need to write method
         tokens = self.create_tokens(data)
-        # start_time = datetime.datetime.now()
         tokens = self.find_key_words_in_line(tokens)
-        # finish_time = datetime.datetime.now()
-        # print('Parsing took: ' + str(finish_time - start_time))
         if stem:
             stemmer = PorterStemmer()
             tokens = [stemmer.stem(term) for term in tokens]
@@ -119,11 +114,12 @@ class Parse:
         """
         value = match.group()
         value_str = str(value)
-        if "Thousand" in value_str or "." in value_str:
+        dot_position = value_str.find('.')
+        if "Thousand" in value_str or (dot_position > 0 and 2 < len(value_str[0:dot_position]) < 7):
             return self.replace_thousands(value_str)
-        elif "Million" in value_str or "." in value_str:
+        elif "Million" in value_str or (dot_position > 0 and 6 < len(value_str[0:dot_position]) < 10):
             return self.replace_millions(value_str)
-        elif "Billion" in value_str or "." in value_str:
+        elif "Billion" in value_str or (dot_position > 0 and 9 < len(value_str[0:dot_position]) < 13):
             return self.replace_billions(value_str)
         elif "Trillion" in value_str or "." in value_str:
             return self.replace_trillion(value_str)
@@ -163,7 +159,7 @@ class Parse:
         elif str_value.__contains__("Thousand"):
             str_value = str_value.split(' ')[0] + 'K'  # if <int> Thousand
         elif str_value.__contains__("."):  # if number has no comma (,)
-            comma_position = str_value.index(".")
+            comma_position = str_value.find(".")
             beginning = str_value[0:comma_position - 3]
             middle = str_value[comma_position - 3:comma_position]
             end = str_value[comma_position + 1:]
@@ -190,7 +186,7 @@ class Parse:
         elif str_value.__contains__("Million"):
             str_value = str_value.split(' ')[0] + 'M'
         elif str_value.__contains__('.'):
-            comma_position = str_value.index('.')
+            comma_position = str_value.find('.')
             beginning = str_value[0:comma_position - 6]
             middle = str_value[comma_position - 6:comma_position]
             end = str_value[comma_position + 1:]
