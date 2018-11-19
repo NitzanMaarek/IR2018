@@ -36,15 +36,16 @@ class Parse:
     def create_tokens(self, data):
         tokens = []
         for line in data:
-            # start_time = datetime.datetime.now()
             line = self.parse_and_sub_numbers(line)
-
             line = line.split()
             for word in line:
                 last_char = word[len(word) - 1:]
                 first_char = word[0]
-                if not last_char.isdigit() and not last_char.isalpha():
-                    if len(word) > 1:
+                if len(word) > 1:
+                    if last_char is '%':
+                        tokens.append(word[:len(word) - 1])
+                        tokens.append('%')
+                    elif not last_char.isdigit() and not last_char.isalpha():
                         tokens.append(word[:len(word)-1])
                 elif first_char is '$':
                     tokens.append('$')
@@ -52,15 +53,6 @@ class Parse:
                 else:
                     tokens.append(word)
 
-            # finish_time = datetime.datetime.now()
-            # print('Regex took: ' + str(finish_time - start_time))
-            # start_time = datetime.datetime.now()
-            # new_tokens = word_tokenize(line)
-            # finish_time = datetime.datetime.now()
-            # print('Tokenizing took: ' + str(finish_time - start_time))
-            # for token in new_tokens:
-            #     tokens.append(token)
-            # tokens = tokens + (word_tokenize(line))
         return tokens
 
     def find_key_words_in_line(self, tokens):
