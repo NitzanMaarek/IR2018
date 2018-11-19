@@ -79,7 +79,7 @@ class Document:
 
         data[i] = data[i].replace('[Text]', '')
         data[i] = data[i].replace('<TEXT>', '')
-        self.text = data[start + 6:finish]
+        self.text = data[start:finish]
         self.doc_pipeline()
 
     def doc_pipeline(self):
@@ -92,6 +92,8 @@ class Document:
         dict_to_json = {}
         dict_to_json['doc_num'] = self.doc_num
         dict_to_json['HT'] = self.HT
+        dict_to_json['Text'] = self.text
+        dict_to_json['Tokens'] = self.tokens
         # dict_to_json['orig_data'] = data
         with open('C:\\Chen\\BGU\\2019\\2018 - Semester A\\3. Information Retrival\\Engine\\jsons\\' + self.doc_num + '.txt', 'w') as outfile:
             json.dump(dict_to_json, outfile)
@@ -117,8 +119,8 @@ class Document:
 
 if __name__ == '__main__':
     # Debug configs:
-    single_file = False
-    write_to_disk = False
+    single_file = True
+    write_to_disk = True
     parallel = True
     stem = False
 
@@ -127,7 +129,7 @@ if __name__ == '__main__':
     # Single file debug config
     if single_file:
         file = ReadFile(r'C:\Chen\BGU\2019\2018 - Semester A\3. Information Retrival\Engine\corpus', parallel, stem, write_to_disk)
-        file.read_directory(r'C:\Chen\BGU\2019\2018 - Semester A\3. Information Retrival\Engine\test directory')
+        file.read_directory(r'C:\Chen\BGU\2019\2018 - Semester A\3. Information Retrival\Engine\test directory\test file')
     else:
         # All files debug config
         file = ReadFile(r'C:\Chen\BGU\2019\2018 - Semester A\3. Information Retrival\Engine\corpus', parallel, stem, write_to_disk)

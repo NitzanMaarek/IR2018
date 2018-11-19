@@ -42,9 +42,11 @@ class Parse:
                         tokens.append('%')
                     elif not last_char.isdigit() and not last_char.isalpha():
                         tokens.append(word[:len(word)-1])
-                elif first_char is '$':
-                    tokens.append('$')
-                    tokens.append(word[1:])
+                    elif first_char is '$':
+                        tokens.append('$')
+                        tokens.append(word[1:])
+                    else:
+                        tokens.append(word)
                 else:
                     tokens.append(word)
 
