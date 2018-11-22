@@ -8,7 +8,7 @@ from nltk.stem.porter import *
 
 class Parse:
 
-    def __init__(self):
+    def __init__(self, stop_words):
         self.percent_key_words = ('%', 'percent', 'percentage')
         self.dollar_key_words = ('$', 'Dollars', 'dollars')
         self.month_dictionary = {'January': '01', 'February': '02', 'March': '03', 'April': '04', 'May': '05', 'June': '06',
@@ -17,10 +17,11 @@ class Parse:
                                  'AUGUST': '08', 'SEPTEMBER': '09', 'OCTOBER': '10', 'NOVEMBER': '11', 'DECEMBER': '12'}
         self.month_first_letter_array = ['a', 'A', 'd', 'D', 'f', 'F', 'j', 'J', 'm', 'M', 'n', 'N', 'o', 'O', 's', 'S']
         locale.setlocale(locale.LC_ALL, 'en_US.UTF-8')
+        self.delimiters = [' ', ',', '.', '/', '"', '\'', '\\', '(', ')', '[', ']', '{', '}', ':', '-', ';']
         self.token_index = 0
+        self.stop_words = stop_words
 
     def regex_pipeline(self, data, stem):
-        # TODO: need to write method
         tokens = self.create_tokens(data)
         tokens = self.find_key_words_in_line(tokens)
         if stem:
@@ -36,6 +37,35 @@ class Parse:
             for word in line:
                 last_char = word[len(word) - 1:]
                 first_char = word[0]
+                # TODO: fix delimiter deletion
+                last = len(word) - 1
+                first = 0
+                while first <= last and (word[last] in self.delimiters or word[first] in self.delimiters):  # loop to remove delimiters
+                        if word[first] in self.delimiters:
+                            first += 1
+                        if word[last] in self.delimiters:
+                            last -= 1
+                if first > last:    # Means all word was delimiters and need to ignore it.
+                    continue
+                else:               # Means not all of the word is delimiters
+                    word = word[first:last+1]
+
+
+
+                # while len(word) > 0 and (first_char in self.delimiters or last_char in self.delimiters):    # loop to remove delimiters from both ends
+                #     if first_char in self.delimiters:
+                #         word = word[1:]
+                #         if len(word) >= 1:
+                #             first_char = word[0]
+                #     if last_char in self.delimiters:
+                #         word = word[:len(word)-1]
+                #         if len(word) >= 1:
+                #             last_char = word[len(word) - 1:]
+                #
+                if word in self.stop_words:
+                    continue
+
+                # TODO: remove stop words here
                 if len(word) > 1:
                     if last_char is '%':
                         tokens.append(word[:len(word) - 1])
@@ -47,7 +77,7 @@ class Parse:
                         tokens.append(word[1:])
                     else:
                         tokens.append(word)
-                else:
+                elif len(word) > 0:
                     tokens.append(word)
 
         return tokens
@@ -74,8 +104,6 @@ class Parse:
                 k = 1
             elif (token_str[0] == 'b' or token_str[0] == 'B') and (token_str == 'between' or token_str == 'Between'):      # If word has a hyphen: adjacent words
                 self.sub_between_token(tokens, self.token_index)
-                # self.sub_adjacent_tokens(tokens, i)
-                j = 2
             self.token_index = self.token_index+1
         return tokens
 
@@ -363,9 +391,10 @@ class Parse:
         if len(tokens) > i+1 and tokens[i+1] == ',':                                                        #IF DATE HAS COMMA
             if len(tokens) > i+2 and len(tokens[i+2]) == 4 and self.is_integer(tokens[i + 2]):                 # if date contains year after coma
                 if i > 0 and self.is_integer(tokens[i - 1]) and 0 < int(tokens[i - 1]) < 32 :                    # if also day included in date
-                    strings_to_return.append(month_value + '-' + tokens[i-1])   # month-day
+                    day = self.change_day_format(tokens[i - 1])
+                    strings_to_return.append(month_value + '-' + day)   # month-day
                     strings_to_return.append(tokens[i+2] + '-' + month_value)   # year-month
-                    strings_to_return.append(strings_to_return[1] + '-' + tokens[i-1])                      # year-month-day
+                    strings_to_return.append(strings_to_return[1] + '-' + day)                      # year-month-day
                     tokens[i-1] = strings_to_return[0]
                     tokens[i] = strings_to_return[1]
                     tokens[i+1] = strings_to_return[2]
@@ -382,9 +411,10 @@ class Parse:
                     self.token_index = self.token_index - 1
         elif len(tokens) > i+1 and len(tokens[i+1]) == 4 and self.is_integer(tokens[i + 1]):                   # if date contains year WITHOUT COMMA
             if i > 0 and self.is_integer(tokens[i - 1]) and 0 < int(tokens[i - 1]) < 32:
-                strings_to_return.append(month_value + '-' + tokens[i - 1])     # month-day
+                day = self.change_day_format(tokens[i-1])
+                strings_to_return.append(month_value + '-' + day)     # month-day
                 strings_to_return.append(tokens[i + 1] + '-' + month_value)     # year-month
-                strings_to_return.append(strings_to_return[1] + '-' + tokens[i - 1])                        # year-month-day
+                strings_to_return.append(strings_to_return[1] + '-' + day)                        # year-month-day
                 tokens[i-1] = strings_to_return[0]
                 tokens[i] = strings_to_return[1]
                 tokens[i+1] = strings_to_return[2]
@@ -392,13 +422,21 @@ class Parse:
                 tokens[i] = tokens[i+1] + '-' + month_value                         # year-month
                 del tokens[i+1]
         elif i > 0 and self.is_integer(tokens[i - 1]) and 0 < int(tokens[i - 1]) < 32:
-            tokens[i-1] = month_value + '-' + tokens[i-1]                       # month-day
+            day = self.change_day_format(tokens[i - 1])
+            tokens[i-1] = month_value + '-' + day                       # month-day
             del tokens[i]
             self.token_index = self.token_index - 1
         elif len(tokens) > i+1 and self.is_integer(tokens[i+1]) and 0 < int(tokens[i+1]) < 32:
-            tokens[i] = month_value + '-' + tokens[i+1]
+            day = self.change_day_format(tokens[i + 1])
+            tokens[i] = month_value + '-' + day
             del tokens[i+1]
         return strings_to_return
+
+    def change_day_format(self, s):
+        if len(s) == 1:
+            return '0' + s
+        else:
+            return s
 
     def is_any_kind_of_number(self, s):
         if s is None or len(s) == 0:
