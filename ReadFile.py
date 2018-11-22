@@ -10,7 +10,6 @@ class ReadFile:
         self.multiprocess = multiprocess
         self.stem = stem
         self.write_to_disk = write_to_disk
-        self.stop_words_list = []
 
     def run_file_reader(self):
         self.read_directory(self.directory)
@@ -84,14 +83,14 @@ class Document:
             if 'DATE1' in data[i]:
                 self.date = self.get_doc_parameter(data[i], 'DATE1')
             if (start == -1 and '<TEXT>' in data[i]) or ('[Text]' in data[i]):
-                start = i + 1
+                self.doc_start_line = i +1
             if '</TEXT>' in data[i]:
-                finish = i
+                self.doc_finish_line = i
                 break
 
         data[i] = data[i].replace('[Text]', '')
         data[i] = data[i].replace('<TEXT>', '')
-        self.text = data[start:finish]
+        self.text = data[self.doc_start_line:self.doc_finish_line]
         self.doc_pipeline()
 
     def doc_pipeline(self):
@@ -107,7 +106,7 @@ class Document:
         dict_to_json['Text'] = self.text
         dict_to_json['Tokens'] = self.tokens
         # dict_to_json['orig_data'] = data
-        with open('C:\\Users\\Nitzan\\Desktop\\AFTER PARSE 1 file\\' + self.doc_num + '.txt', 'w') as outfile:
+        with open('C:\\Chen\\BGU\\2019\\2018 - Semester A\\3. Information Retrival\\Engine\\jsons\\' + self.doc_num + '.txt', 'w') as outfile:
             json.dump(dict_to_json, outfile)
 
     def set_text(self, data): # No usage
@@ -119,6 +118,10 @@ class Document:
             if '</TEXT>' in data[i]:
                 finish = i
                 break
+            if '<F P=104>' in data[i]:
+                self.city = data[i].split()[2].upper()
+            if '<F P=101>' in data[i]:
+                self.topic = data[i].split()[2].upper()
         data[i] = data[i].replace('[Text]', '')
         data[i] = data[i].replace('<TEXT>', '')
         self.text = data[start:finish]
@@ -131,9 +134,9 @@ class Document:
 
 if __name__ == '__main__':
     # Debug configs:
-    single_file = False
-    write_to_disk = False
-    parallel = False
+    single_file = True
+    write_to_disk = True
+    parallel = True
     stem = False
 
     start_time = datetime.datetime.now()
