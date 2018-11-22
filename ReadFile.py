@@ -45,14 +45,6 @@ class ReadFile:
                 elif "</DOC>" in line:
                     Document(lines[start + 1: i - 1], self.stem, q, self.write_to_disk)
             file.close()
-                        # if False:
-                        #     job = self.pool.apply_async(Document.__init__, doc, self.stem)  # Need to make sure this line works
-                        #     self.jobs.append(job)
-                        # else:
-                        #     Document(lines[start + 1 : i - 1], self.stem ,q)
-                # q.put(file_path)
-        # except:
-        #     print(file_path)
         except Exception as e:
             print(e)
             print("Processing file not succeeded: " + file_path)
@@ -72,14 +64,14 @@ class Document:
             if 'DATE1' in data[i]:
                 self.date = self.get_doc_parameter(data[i], 'DATE1')
             if (start == -1 and '<TEXT>' in data[i]) or ('[Text]' in data[i]):
-                start = i + 1
+                self.doc_start_line = i +1
             if '</TEXT>' in data[i]:
-                finish = i
+                self.doc_finish_line = i
                 break
 
         data[i] = data[i].replace('[Text]', '')
         data[i] = data[i].replace('<TEXT>', '')
-        self.text = data[start:finish]
+        self.text = data[self.doc_start_line:self.doc_finish_line]
         self.doc_pipeline()
 
     def doc_pipeline(self):
@@ -107,6 +99,10 @@ class Document:
             if '</TEXT>' in data[i]:
                 finish = i
                 break
+            if '<F P=104>' in data[i]:
+                self.city = data[i].split()[2].upper()
+            if '<F P=101>' in data[i]:
+                self.topic = data[i].split()[2].upper()
         data[i] = data[i].replace('[Text]', '')
         data[i] = data[i].replace('<TEXT>', '')
         self.text = data[start:finish]
@@ -119,8 +115,8 @@ class Document:
 
 if __name__ == '__main__':
     # Debug configs:
-    single_file = True
-    write_to_disk = True
+    single_file = False
+    write_to_disk = False
     parallel = True
     stem = False
 
