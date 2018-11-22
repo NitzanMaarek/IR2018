@@ -8,7 +8,9 @@ from nltk.stem.porter import *
 
 class Parse:
 
-    def __init__(self, stop_words):
+    static_stop_words_list = []
+
+    def __init__(self):
         self.percent_key_words = ('%', 'percent', 'percentage')
         self.dollar_key_words = ('$', 'Dollars', 'dollars')
         self.month_dictionary = {'January': '01', 'February': '02', 'March': '03', 'April': '04', 'May': '05', 'June': '06',
@@ -19,7 +21,9 @@ class Parse:
         locale.setlocale(locale.LC_ALL, 'en_US.UTF-8')
         self.delimiters = [' ', ',', '.', '/', '"', '\'', '\\', '(', ')', '[', ']', '{', '}', ':', '-', ';']
         self.token_index = 0
-        self.stop_words = stop_words
+
+
+
 
     def regex_pipeline(self, data, stem):
         tokens = self.create_tokens(data)
@@ -35,8 +39,7 @@ class Parse:
             line = self.parse_and_sub_numbers(line)
             line = line.split()
             for word in line:
-                last_char = word[len(word) - 1:]
-                first_char = word[0]
+
                 # TODO: fix delimiter deletion
                 last = len(word) - 1
                 first = 0
@@ -50,20 +53,11 @@ class Parse:
                 else:               # Means not all of the word is delimiters
                     word = word[first:last+1]
 
-
-
-                # while len(word) > 0 and (first_char in self.delimiters or last_char in self.delimiters):    # loop to remove delimiters from both ends
-                #     if first_char in self.delimiters:
-                #         word = word[1:]
-                #         if len(word) >= 1:
-                #             first_char = word[0]
-                #     if last_char in self.delimiters:
-                #         word = word[:len(word)-1]
-                #         if len(word) >= 1:
-                #             last_char = word[len(word) - 1:]
-                #
-                if word in self.stop_words:
+                if word in Parse.static_stop_words_list:
                     continue
+
+                last_char = word[len(word) - 1:]
+                first_char = word[0]
 
                 # TODO: remove stop words here
                 if len(word) > 1:

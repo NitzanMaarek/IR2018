@@ -10,6 +10,7 @@ class ReadFile:
         self.multiprocess = multiprocess
         self.stem = stem
         self.write_to_disk = write_to_disk
+        self.stop_words_list = []
 
     def run_file_reader(self):
         self.read_directory(self.directory)
@@ -21,6 +22,8 @@ class ReadFile:
         jobs = []
 
         for root, dirs, files in os.walk(directory):
+            # TODO: Read also stop_words.txt from this directory and forward list to parser init
+            Parse.static_stop_words_list = self.read_stop_words_lines(directory)
             for file in files:
                 path = os.path.join(root, file)
                 if self.multiprocess:
@@ -35,6 +38,22 @@ class ReadFile:
         pool.close()
         pool.join()
 
+    def read_stop_words_lines(self, directory):
+        try:
+            stop_words_list = []
+            stop_words_file = open(directory + '\\' + 'stop_words.txt', 'r')
+            for line in stop_words_file:
+                if line[-1:] == '\n':
+                    line = line[:-1]
+                if line.__contains__('\\'):     # TODO: Need to fix when there is \ in stopword
+                    line = line.replace('\\')
+                stop_words_list.append(line)
+            return stop_words_list
+        except Exception as e:
+            print(e)
+            print('File not found: ' + directory + 'stop_words.txt')
+
+
     def read_file_lines(self, file_path, q):
         try:
             file = open(file_path, 'r')
@@ -45,14 +64,7 @@ class ReadFile:
                 elif "</DOC>" in line:
                     Document(lines[start + 1: i - 1], self.stem, q, self.write_to_disk)
             file.close()
-                        # if False:
-                        #     job = self.pool.apply_async(Document.__init__, doc, self.stem)  # Need to make sure this line works
-                        #     self.jobs.append(job)
-                        # else:
-                        #     Document(lines[start + 1 : i - 1], self.stem ,q)
-                # q.put(file_path)
-        # except:
-        #     print(file_path)
+
         except Exception as e:
             print(e)
             print("Processing file not succeeded: " + file_path)
@@ -83,7 +95,7 @@ class Document:
         self.doc_pipeline()
 
     def doc_pipeline(self):
-        regex = Parse()
+        regex = Parse()        # TODO: Need to give parser the stop_words list
         self.tokens = regex.regex_pipeline(self.text, self.stem)
         if self.write_to_disk: # TODO: Not sure it works in python need to check that
             self.to_json() # TODO: Change it to HDF5
@@ -95,7 +107,7 @@ class Document:
         dict_to_json['Text'] = self.text
         dict_to_json['Tokens'] = self.tokens
         # dict_to_json['orig_data'] = data
-        with open('C:\\Chen\\BGU\\2019\\2018 - Semester A\\3. Information Retrival\\Engine\\jsons\\' + self.doc_num + '.txt', 'w') as outfile:
+        with open('C:\\Users\\Nitzan\\Desktop\\AFTER PARSE 1 file\\' + self.doc_num + '.txt', 'w') as outfile:
             json.dump(dict_to_json, outfile)
 
     def set_text(self, data): # No usage
@@ -119,20 +131,20 @@ class Document:
 
 if __name__ == '__main__':
     # Debug configs:
-    single_file = True
-    write_to_disk = True
-    parallel = True
+    single_file = False
+    write_to_disk = False
+    parallel = False
     stem = False
 
     start_time = datetime.datetime.now()
 
     # Single file debug config
     if single_file:
-        file = ReadFile(r'C:\Chen\BGU\2019\2018 - Semester A\3. Information Retrival\Engine\corpus', parallel, stem, write_to_disk)
-        file.read_directory(r'C:\Chen\BGU\2019\2018 - Semester A\3. Information Retrival\Engine\test directory\test file')
+        file = ReadFile(r'C:\Users\Nitzan\Desktop\FB396001', parallel, stem, write_to_disk)
+        file.read_directory(r'C:\Users\Nitzan\Desktop\FB396001')
     else:
         # All files debug config
-        file = ReadFile(r'C:\Chen\BGU\2019\2018 - Semester A\3. Information Retrival\Engine\corpus', parallel, stem, write_to_disk)
+        file = ReadFile(r'C:\Users\Nitzan\Desktop\100 file corpus', parallel, stem, write_to_disk)
         file.run_file_reader()
 
     finish_time = datetime.datetime.now()
