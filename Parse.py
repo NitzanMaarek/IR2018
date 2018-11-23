@@ -22,9 +22,6 @@ class Parse:
         self.delimiters = [' ', ',', '.', '/', '"', '\'', '\\', '(', ')', '[', ']', '{', '}', ':', '-', ';']
         self.token_index = 0
 
-
-
-
     def regex_pipeline(self, data, stem):
         tokens = self.create_tokens(data)
         tokens = self.find_key_words_in_line(tokens)

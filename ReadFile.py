@@ -2,6 +2,7 @@ import os
 import multiprocessing as mp
 import datetime
 from Parse import Parse
+from Indexer import Indexer
 import json
 
 class ReadFile:
@@ -92,6 +93,7 @@ class Document:
         data[i] = data[i].replace('<TEXT>', '')
         self.text = data[self.doc_start_line:self.doc_finish_line]
         self.doc_pipeline()
+        q.put(self) # Inserting the document object so the listener will get it
 
     def doc_pipeline(self):
         regex = Parse()        # TODO: Need to give parser the stop_words list
@@ -138,7 +140,10 @@ if __name__ == '__main__':
     write_to_disk = True
     parallel = True
     stem = False
+    Index = True
 
+    if Index:
+        indexer = Indexer()
     start_time = datetime.datetime.now()
 
     # Single file debug config
