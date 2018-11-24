@@ -108,7 +108,7 @@ class Document:
         dict_to_json['Text'] = self.text
         dict_to_json['Tokens'] = self.tokens
         # dict_to_json['orig_data'] = data
-        with open('C:\\Chen\\BGU\\2019\\2018 - Semester A\\3. Information Retrival\\Engine\\jsons\\' + self.doc_num + '.txt', 'w') as outfile:
+        with open('C:\\Users\\Nitzan\\Desktop\\AFTER PARSE 1 file\\' + self.doc_num + '.txt', 'w') as outfile:
             json.dump(dict_to_json, outfile)
 
     def set_text(self, data): # No usage
@@ -140,7 +140,7 @@ if __name__ == '__main__':
     write_to_disk = True
     parallel = True
     stem = False
-    Index = True
+    Index = False
 
     if Index:
         indexer = Indexer()
