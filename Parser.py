@@ -38,11 +38,15 @@ class Parser:
         return tokens
 
     def create_tokens(self, data):
-        tokens = []
+        self.tokens = []
+        self.skip_tokenize = 0
         for data_index, line in enumerate(data, start=0):
             self.data_index = data_index
             self.line = line.split()
             for line_index, word in enumerate(self.line, start=0):
+                if self.skip_tokenize > 0:
+                    self.skip_tokenize -= 1
+                    continue
                 self.line_index = line_index
                 self.word = word
                 last = len(word) - 1
@@ -65,30 +69,37 @@ class Parser:
             # Word is normal word and also String with delimiters in inside: number with comma, words with slash etc..
 
             token = self.parse_strings()
+
             if token is not None and len(token) > 0:
-                tokens.append(token)
+                self.tokens.append(token)
 
 
-        return tokens
+        return self.tokens
 
     def get_next_word(self):
         """
         iterates over data if next word exists and returns it
         :return: next word in data, None if end of text.
         """
-        if self.line_index == len(self.line) - 1:                   #If current word is last in line
+        if len(self.line) == self.line_index + 1:                   #If current word is last in line
             if len(self.data) > self.data_index + 1:                #If current line is NOT last line
-               return self.data[self.data_index + 1][0]          #Take next word in next line in case its important
+               return self.data[self.data_index + 1][0].split()[0]          #Take next word in next line in case its important
+        else:
+            return self.line[self.line_index + 1]           # Not last in line? return the next word in line then
         return None
 
     def get_previous_word(self):
         if self.data_index != 0:
-            return self.data[self.data_index - 1][0]
+            return self.tokens[-1]
             #TODO: need to check if previous doesn't return \n
 
 
 
     def parse_strings(self):
+        """
+        Main parse function
+        :return: final Token after parse according to all rules.
+        """
         token = self.word
         if token is None or len(token) == 0:
             return None
@@ -96,18 +107,183 @@ class Parser:
         first_token = token[0]
         if first_token == '1' or first_token == '2' or first_token == '3' or first_token == '4' or first_token == '5' or first_token == '6' or first_token == '7' or first_token == '8' or first_token == '9':
             token = self.parse_string_only_number()
-        if first_token == '$':
+        elif first_token == '$':
             token = self.parse_dollar_sign_with_number()
-        if (first_token == 'd' or first_token == 'D') and (token == 'dollars' or token == 'Dollars'):
-            token = self.parse_dollar_sign_with_number
-        if (first_token == 'b' or first_token == 'B') and (token == 'Between' or token == 'between'):
+        elif first_token == 'D' and token == 'Dollars':
+            token = self.parse_dollar_with_capital_d()
+        elif first_token == 'd' and token == 'dollars':
+            token = self.parse_dollar_small_d()
+        elif (first_token == 'b' or first_token == 'B') and (token == 'Between' or token == 'between'):
 
-        if token in self.month_dictionary.keys():
+        elif token in self.month_dictionary.keys():
+            token = self.parse_date_with_month()
+        elif (first_token == 'p' or first_token == 'P') and (token == 'percent' or token == 'Percent' or token == 'percentage' or token == 'Percentage'):
+            token = self.parse_percent_word()
+        return token
 
-        if (first_token == 'p' or first_token == 'P') and (token == 'percent' or token == 'Percent' or token == 'percentage' or token == 'Percentage'):
+    def parse_date_with_month(self):
+        """
+        Parses the next cases:  1. <day> <month>  or  <month> <day>   ->  <month_number>-<day>
+                                2. <month> <year>   ->  <year>-<month_number>
+            *** NEW RULE ***    3. <day> <month> <year> or <day> <month>, <year>  -> <year>-<month>-<day> and also cases 1 and 2.
+        :return: List of tokens: either length of 1 (cases 1 and 2) or length of 3 (case 3)
+                1. length of 1: this method will call other function to skip next/delete previous token (the day/year) and return the new correct token to be appended
+                2. length of 3: this method will call parse_day_month_year(date_list) delete previous (day), mark to skip next (year), add 2 tokens and return the thirds to be appended.
+        """
+        token = self.word
+        day = None
+        if len(self.tokens) >= 1:
+            day = self.tokens[-1]
+        if day is not None and self.is_integer(day) and 1 <= int(day) <= 31:
+            # There is a day before, we will check if there is also year
+            year = self.get_next_word()
+            if year is not None and self.is_integer(year) and 1800 <= int(year) <= 2030:  #accept years between 1800 and 2030
+                token = self.parse_day_month_year((day, token, year))
+            else:
+                # There is only day before and no year after month
+                token = self.parse_day_before_month_no_year((day, token))
+        else:
+            # There is no day before month: Need to check if day or year after month
+            next_word = self.get_next_word()
+            if next_word is not None:
+                if self.is_integer(next_word):
+                    next_word_int = int(next_word)
+                    if 1 <= next_word_int <= 31:
+                        token = self.parse_day_after_month((next_word, token))
+                    elif 1800 <= next_word_int <= 2030:
+                        token = self.parse_year_after_month((token, next_word))
+        return token
+
+    def parse_year_after_month(self, date_list):
+        """
+        method marks to skip 1 token and return correct token
+        :param date_list: (month, year)
+        :return: token = <year>-<month>
+        """
+        token = date_list[1] + '-' + self.month_dictionary.values(date_list[0])
+        self.skip_tokenize = 1
+        return token
+
+    def parse_day_after_month(self, date_list):
+        """
+        method marks to skip next tokenize and returns correct token
+        :param date_list: (day, month)
+        :return: token = <month>-<day>
+        """
+        token = self.month_dictionary.values(date_list[1]) + '-' + self.change_day_format(date_list[0])
+        self.skip_tokenize = 1
+        return token
+
+    def parse_day_before_month_no_year(self, date_list):
+        """
+        this method deletes previous (day) and returns <month>-<day>
+        :param date_list: (day, month) = no need to check input
+        :return: token = <month>-<day>
+        """
+        token = self.month_dictionary.values(date_list[1]) + '-' + self.change_day_format(date_list[0])
+        del self.tokens[-1]
+        return token
+
+    def parse_day_month_year(self, date_list):
+        """
+        this method will delete previous (day), mark to skip next (year), add 2 tokens and return the thirds to be appended.
+        :param date_list: (day, month, year) = no need to check input
+        :return: token: <year>-<month_number>-<day>
+        """
+        token = date_list[2] + '-' + self.month_dictionary.values(date_list[1]) + '-' + self.change_day_format(date_list[0])
+        del self.tokens[-1]
+        self.tokens.append(self.month_dictionary.values(date_list[1]) + '-' + self.change_day_format(date_list[0]))
+        self.tokens.append(date_list[2] + '-' + self.month_dictionary.values(date_list[1]))
+        self.skip_tokenize = 1
+        return token
+
+    def parse_percent_word(self):
+        token = self.word
+        if len(self.tokens) >= 1:
+            previous_token = self.tokens[-1]
+            if self.is_any_kind_of_number(previous_token):
+                token = previous_token + '%'
+                # *** Here need to delete last token which is the number and return <number>%
+                del self.tokens[-1]
+        return token
+
+    def parse_dollar_with_capital_d(self):
+        token = self.word
+        if len(self.tokens) >= 1:
+            price_scale = self.tokens[-1]
+            if price_scale == 'm' or price_scale == 'bn':
+                price = self.tokens[-2]
+                if self.is_integer(price) or self.is_float(price):
+                    if price_scale == 'm':
+                        token = self.parse_dollar_sign_with_parsed_number_million(('$', price + 'M'))
+                    elif price_scale == 'bn':
+                        token = self.parse_dollar_sign_with_parsed_number_million(('$', price + 'B'))
+
+                    # *** Here need to delete both tokens <number/price> and <m/bn> because they were tokenized before
+                    del self.tokens[-2]
+                    del self.tokens[-1]
+            elif self.is_any_kind_of_number(price_scale):
+                # TODO: THIS IS NOT GOOD NEED TO FIX THIS IN CASE OF THOUSANDS SINCE THEYRE ALREADY PARSED HERE
+                price = str(price_scale)
+                if price.__contains__('K'):
+                    price = self.fix_thousands_for_dollars(price)
+                    token = price + ' Dollars'
+                elif price.__contains__('M') or price.__contains__('B') or price.__contains__('T'):
+                    token = self.parse_dollar_sign_with_parsed_number_million(('$', price_scale))
+                else:
+                    token = price + ' Dollars'
+
+                # *** Here need to delete last token which was the number because now adding <number> Dollars
+                del self.token[-1]
 
         return token
 
+
+
+    def fix_thousands_for_dollars(self, price_in_thousands):
+        """
+        Functions substitutes thousands of currency to correct format for currency
+        :param price_in_thousands: string of price in thousands: 5.1k or 42k  (with comma or without)
+        :return: correct string
+        """
+        k_position = price_in_thousands.find('K')
+        if price_in_thousands.__contains__('.'):  # If number is: 3.1K or 4.12K or 5.123K
+            dot_position = price_in_thousands.find('.')
+            if k_position - dot_position == 2:
+                price_in_thousands = price_in_thousands.replace('.', ',')
+                price_in_thousands = price_in_thousands.replace('K', '00')
+            elif k_position - dot_position == 3:
+                price_in_thousands = price_in_thousands.replace('.', ',')
+                price_in_thousands = price_in_thousands.replace('K', '0')
+            elif k_position - dot_position == 4:
+                price_in_thousands = price_in_thousands.replace('.', ',')
+                price_in_thousands = price_in_thousands.replace('K', '')
+        else:  # If number has no comma
+            price_in_thousands = price_in_thousands.replace('K', ',000')
+        return price_in_thousands
+
+    def parse_dollar_small_d(self):
+        token = self.word
+        indicator = False           #indicator if in face we tokenized dollar like in rules and so need to delete previouse tokens.
+        if len(self.tokens) >= 3:
+            us_token = self.tokens[-1]
+            price_scale = self.tokens[-2]
+            price = self.tokens[-3]
+            if us_token == 'U.S':
+                if price_scale == 'million':
+                    token = self.parse_dollar_sign_with_parsed_number_million(('$', price + 'M'))
+                    indicator = True
+                elif price_scale == 'billion':
+                    token = self.parse_dollar_sign_with_parsed_number_million(('$', price + 'B'))
+                    indicator = True
+                elif price_scale == 'trillion':
+                    token = self.parse_dollar_sign_with_parsed_number_million(('$', price + 'T'))
+                    indicator = True
+                if indicator:           #Delete last three tokens: <price> <million/billion/trillin> <U.S> to add new token.
+                    del self.tokens[-3]
+                    del self.tokens[-2]
+                    del self.tokens[-1]
+        return token
 
     def parse_string_only_number(self):
         """
@@ -119,10 +295,13 @@ class Parser:
         token = self.word
         next_word = ''
         pattern = None
-
+        percent = False
+        if token[-1] == '%':
+            token = token[:-1]
+            percent = True
         if self.line_index == len(self.line) - 1:                   #If current word is last in line
             if len(self.data) > self.data_index + 1:                #If current line is NOT last line
-                next_word = self.data[self.data_index + 1][0]         #Take next word in next line in case its important
+                next_word = self.data[self.data_index + 1][0].split()[0]         #Take next word in next line in case its important
                 #TODO: check that command above really takes first word in next line.
         else:                                                       #Current word is not last in line
             next_word = self.line[self.line_index + 1]              #Take next word in line also
@@ -145,6 +324,8 @@ class Parser:
                 pattern = re.compile(r'(([1-9]\d{0,2}\.\d{1,9})|([1-9]\d{0,2}))')       #Number between 0-999 possible decimal point
                 token = pattern.match()
                 # TODO: Check if two lines above work for numbers between 0 and 999 with decimal point also.
+        if percent:
+            token = token + '%'
 
         return token
 
@@ -163,10 +344,10 @@ class Parser:
         after_split = self.word.split('/')
         if len(after_split) == 2:
             if self.is_integer(after_split[0]) and self.is_integer(after_split[1]):     #If it's <int>/<int>
-                if self.data_index != 0:
-                    previouse_word = self.data[self.data_index - 1][0]      # TODO: Need to check previous_word != '\n'
-                    if self.is_any_kind_of_number(previouse_word):
-                        return previouse_word + self.word
+                if len(self.tokens) >= 1:
+                    previous_word = self.tokens[-1]      # TODO: Need to check previous_word != '\n'
+                    if self.is_any_kind_of_number(previous_word):
+                        return previous_word + self.word
                     else:
                         return self.word
         else:
@@ -197,69 +378,52 @@ class Parser:
         """
         token = self.word
         next_word = ''
-        price = self.word[1:]
+        price = self.word[1:]       # only number without $ sign
 
         if not self.line_index == len(self.line) - 1:                   #If current word is not last in line
             next_word = self.line[self.line_index + 1]                  # Take next word in line
         else:
             ka = 1
-            #TODO: need to take the first word from next line
+            #TODO: need to take the first word from next line if million/billion/trillion need to be parsed
 
         if not len(next_word) == 0:
             if next_word == 'million' or next_word == 'billion' or next_word == 'trillion':
                 if 1 < len(price) < 4 and (self.is_integer(price) or self.is_float(price)):
-                    token = self.parse_dollar_sign_with_word(('$', price, next_word))
+                    token = self.parse_dollar_sign_with_parsed_number_million(('$', price, next_word))
         else:
-            price = self.parse_numbers_for_dollar_sign(price)
+            token = self.parse_numbers_for_dollar_sign(price)
 
-
-
-
-
-        token_str = str(tokens[i])
-        if token_str == '$':  # if tokens contain sign $
-            if len(tokens) > i + 2 and (
-                    tokens[i + 2] == 'million' or tokens[i + 2] == 'billion' or tokens[i + 2] == 'trillion'):
-                tokens[i] = self.sub_currency_in_line(
-                    (tokens[i], tokens[i + 1], tokens[i + 2]))  # parse $ <number> <million/billion/trillion>
-                del tokens[i + 1]
-                del tokens[i + 1]
-                # self.token_index = self.token_index - 1
-            elif str(tokens[i + 1]).__contains__('K') or str(tokens[i + 1]).__contains__('M') or str(
-                    tokens[i + 1]).__contains__('B') or str(tokens[i + 1]).__contains__('T'):
-                tokens[i] = self.sub_currency_in_line((tokens[i], tokens[i + 1]))  # parse $ <number>
-                del tokens[i + 1]
-            else:
-                tokens[i] = tokens[i + 1] + ' Dollars'
-                del tokens[i + 1]
+        return token
 
     def parse_numbers_for_dollar_sign(self, price):
         """
         parses the number of the dollar by demand
-        :param price: the number
-        :return: only the number in currency format
+        :param price: the number only without $ sign
+        :return: <number> Dollars
         """
-        dot_position = price.find('.')
-        comma_position = price.find(',')
 
-        if price.__contains__(','):
-            pattern = re.compile(r'(([1-9]\d{0,2},\d{3},\d{3},\d{3})|([1-9]\d{0,2},\d{3},\d{3}))')  # Numbers with comma
-            price = pattern.sub(self.replace_only_numbers_regex(), self.word)  # Substitute to parsed string
+        raw_number = float(price.replace(',', ''))
+        if 1000 <= raw_number < 1000000:        #Only thousands
+            pattern = re.compile(r'(([1-9]\d{0,2},\d{3})|([1-9]\d{3,5}\.\d{1,9}))')
+            price = pattern.sub(self.replace_only_thousands_dollars_regex(), price)
+            price = price + 'Dollars'
 
-        elif self.word.__contains__('.'):
-            pattern = re.compile(r'(([1-9]\d{9,11}\.\d{1,9})|([1-9]\d{6,8}\.\d{0,9})|([1-9]\d{3,5}\.\d{1,9}))')  # Numbers with decimal point
-            price = pattern.sub(self.replace_only_numbers_regex(), self.word)  # Substitute to parsed string
+        elif raw_number >= 1000000:             #Millions and above
+            pattern = re.compile(r'([1-9]\d{0,2},\d{3},\d{3},\d{3})|([1-9]\d{0,2},\d{3},\d{3})|([1-9]\d{9,11}\.\d{1,9})|([1-9]\d{6,8}\.\d{0,9})')
+            price = pattern.sub(self.replace_only_millions_above_dollars_regex(), price)
+            price = self.parse_dollar_sign_with_parsed_number_million(('$', price))
 
-        else:
-            pattern = re.compile(r'(([1-9]\d{0,2},\d{3})|(([1-9]\d{3,5}\.\d{1,9}))|([1-9]\d{0,2}\.\d{1,9})|([1-9]\d{0,2}))')  # Number between 0-999 possible decimal point
+        else:                                   #below thousands.
+            pattern = re.compile(r'(([1-9]\d{0,2}\.\d{1,9})|([1-9]\d{0,2}))')  # Number between 0-999 possible decimal point
             price = pattern.match()
+            price = price + ' Dollars'
+        return price
 
-
-    def parse_dollar_sign_with_word(self, tokens):
+    def parse_dollar_sign_with_parsed_number_million(self, tokens):
         """
         Parses rules 2,3,4,5 (prices with the char $ not in thousands)
-        :param tokens: list of
-        :return: the correct and final token
+        :param tokens: list of $ <parsed_number>  or $ <number> <million/billion/trillion>
+        :return: <number> M Dollars
         """
         token_str = str(tokens[1])
         if len(tokens) > 2:             # if $ <number> <million/billion/trillion>
@@ -329,6 +493,22 @@ class Parser:
             return self.replace_millions(value_str)
         elif value_int < 1000000000000:
             return self.replace_billions(value_str)
+
+    def replace_only_millions_above_dollars_regex(self, match):
+        value = match.group()
+        value_str = str(value)
+        value_int = int(value_str.replace(',', ''))
+        if value_int < 1000000000:
+            return self.replace_millions(value_str)
+        elif value_int < 1000000000000:
+            return self.replace_billions(value_str)
+
+    def replace_only_thousands_dollars_regex(selfs, match):
+        value = match.group()
+        value_str = str(value)
+        value_int = int(value_str.replace(',', ''))
+        if value_int < 1000000:
+            return value_str
 
     def replace_trillion(self, value):
         """
@@ -416,31 +596,6 @@ class Parser:
 
 
 
-
-
-
-
-    def sub_currency_in_line(self, tokens):
-        """
-        Function returns tokenized token of price with given tokens list
-        :param tokens: Tokens of regarding parsing price ONLY.  Length of list is either 2 or 3 elements
-                        Tokens will hold either: ('$', <number>) or ('$', <number>, <million/billion/trillion>)
-        :return: new token after parse
-        """
-        first_token_str = str(tokens[0])
-        second_token_str = str(tokens[1])
-        if second_token_str.__contains__('K'):               # if price in thousands SUBSTITUTE AND RETURN CORRECT TOKEN
-            if first_token_str.__contains__('$'):           # if $450K or $12.1K
-                second_token_str = self.sub_currency_k(second_token_str)    # returns $450,000 or $12,100
-                second_token_str = second_token_str + ' Dollars'
-            else:
-                second_token_str = self.sub_currency_k(second_token_str)    #if 450K Dollars or 12.1K Dollars, returns 450,000 dollars etc. (HAS THE WORD DOLLARS)
-            return second_token_str                   # return fixed token
-        else:
-            return self.parse_dollar_sign_with_word(tokens)   # *** NEED TO SEND ONLY $PRICE TOKENS LIST***
-
-
-
     def change_day_format(self, s):
         if len(s) == 1:
             return '0' + s
@@ -505,3 +660,5 @@ class Parser:
                 return True
             except ValueError:
                 return False
+
+
