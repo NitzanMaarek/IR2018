@@ -8,7 +8,7 @@ class ReadFile:
         self.write_to_disk = write_to_disk
         self.q = q
         self.file_path = file_path
-        self.read_file()
+        self.read_file() #this should be here
 
     def run_file_reader(self):
         self.read_directory(self.directory)
