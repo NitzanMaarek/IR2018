@@ -36,8 +36,6 @@ class Parse:
             line = self.parse_and_sub_numbers(line)
             line = line.split()
             for word in line:
-
-                # TODO: fix delimiter deletion
                 last = len(word) - 1
                 first = 0
                 while first <= last and (word[last] in self.delimiters or word[first] in self.delimiters):  # loop to remove delimiters
@@ -56,7 +54,6 @@ class Parse:
                 last_char = word[len(word) - 1:]
                 first_char = word[0]
 
-                # TODO: remove stop words here
                 if len(word) > 1:
                     if last_char is '%':
                         tokens.append(word[:len(word) - 1])
@@ -508,4 +505,5 @@ class Parse:
                 del tokens[token_index+3]
                 del tokens[token_index+2]
                 del tokens[token_index+1]
+
 
