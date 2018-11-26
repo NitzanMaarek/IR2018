@@ -51,7 +51,7 @@ class ReadFile:
 
     def read_file(self):
         try:
-            file = open(self.file_path, 'r')
+            file = open(self.file_path, 'r', errors='ignore')
             lines = file.readlines()
             for i, line in enumerate(lines, start=0):
                 if "<DOC>" in line:
