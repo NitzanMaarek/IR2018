@@ -79,7 +79,6 @@ class Parser:
                     token = self.parse_handle_between_token(token)   # If we've encountered the word between then keep track if next tokens are : between <number> and <number>
                     self.tokens.append(token)
 
-
         return self.tokens
 
     def parse_handle_between_token(self, parsed_token):
@@ -121,9 +120,18 @@ class Parser:
                 if next_line is None:
                     return None
                 first_word_next_line = next_line.split()[0]
+                if first_word_next_line is not None:
+                    last_char_next_word = first_word_next_line[-1]
+                    if last_char_next_word in self.delimiters:  # Check if next word contains delimiter as last char.
+                        first_word_next_line = first_word_next_line[:-1]
                 return first_word_next_line          #Take next word in next line in case its important
         else:
-            return self.line[self.line_index + 1]           # Not last in line? return the next word in line then
+            next_word = self.line[self.line_index + 1]
+            if next_word is not None:
+                last_char_next_word = next_word[-1]
+                if last_char_next_word in self.delimiters:  # Check if next word contains delimiter as last char.
+                    next_word = next_word[:-1]
+            return next_word           # Not last in line? return the next word in line then
         return None
 
     def get_word_i(self, i):
@@ -161,8 +169,6 @@ class Parser:
             return self.tokens[-1]
             #TODO: need to check if previous doesn't return \n
 
-
-
     def parse_strings(self):
         """
         Main parse function
@@ -187,16 +193,35 @@ class Parser:
             token = self.parse_percent_word()
         return token
 
-    def parse_between_token(self):
-        token = self.word
-        first_number = self.get_word_i(1)
-        word_and = self.get_word_i(2)
-        second_number = self.get_word_i(3)
-        if first_number is not None and word_and is not None and second_number is not None:
-            first_number = self.parse
+    def check_if_token_is_numer_range(self, token):
+        """
+        Checks if given token is <parsed_number>-<parsed_number> and if so count it as a number
+        :param token: some text with '-' in it
+        :return: True if <parsed_number>-<parsed_number>. False otherwise
+        """
+        if token is not None:
+            after_split = token.split('-')
+            if len(after_split) == 2:
+                first_number = after_split[0]
+                second_number = after_split[1]
+                if self.is_any_kind_of_number(first_number) and self.is_any_kind_of_number(second_number):
+                    return True
+        return False
 
-        return token
-
+    def check_if_day_is_range(self, token):
+        """
+                Checks if given token is <parsed_number>-<parsed_number> and if so count it as a number
+                :param token: some text with '-' in it
+                :return: True if <parsed_number>-<parsed_number>. False otherwise
+                """
+        if token is not None:
+            after_split = token.split('-')
+            if len(after_split) == 2:
+                first_number = after_split[0]
+                second_number = after_split[1]
+                if self.is_integer(first_number) and self.is_integer(second_number) and (1 <= int(first_number) < int(second_number) <= 31):
+                    return True
+        return False
 
     def parse_date_with_month(self):
         """
@@ -211,7 +236,7 @@ class Parser:
         day = None
         if len(self.tokens) >= 1:
             day = self.tokens[-1]
-        if day is not None and self.is_integer(day) and 1 <= int(day) <= 31:
+        if day is not None and ((self.is_integer(day) and 1 <= int(day) <= 31) or (self.check_if_day_is_range(day))):
             # There is a day before, we will check if there is also year
             year = self.get_next_word()
             if year is not None and self.is_integer(year) and 1800 <= int(year) <= 2030:  #accept years between 1800 and 2030
@@ -229,6 +254,8 @@ class Parser:
                         token = self.parse_day_after_month((next_word, token))
                     elif 1800 <= next_word_int <= 2030:
                         token = self.parse_year_after_month((token, next_word))
+                elif self.check_if_day_is_range(next_word):
+                    token = self.parse_day_after_month((next_word, token))
         return token
 
     def parse_year_after_month(self, date_list):
@@ -370,25 +397,16 @@ class Parser:
                     or the number after parse under the given rules.
         """
         token = self.word
-        pattern = None
         percent = False
         if token[-1] == '%':
             token = token[:-1]
             percent = True
-        # if self.line_index == len(self.line) - 1:                   #If current word is last in line
-        #     if len(self.data) > self.data_index + 1:                #If current line is NOT last line
-        #         next_word = self.data[self.data_index + 1][0].split()[0]         #Take next word in next line in case its important
-        #         #TODO: check that command above really takes first word in next line.
-        # else:                                                       #Current word is not last in line
-        #     next_word = self.line[self.line_index + 1]              #Take next word in line also
-
         next_word = self.get_next_word()
 
         if next_word is not None and (next_word == 'Thousand' or next_word == 'Million' or next_word == 'Billion' or next_word == 'Trillion'):     # If there's a next word check it.
             token = self.parse_numbers_with_words(next_word)
         else:
             if self.word.__contains__('-'):
-                # token = self.parse_range()
                 token = self.word
             elif self.word.__contains__('/'):
                 token = self.parse_fraction()
