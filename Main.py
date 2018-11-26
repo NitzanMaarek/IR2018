@@ -7,19 +7,18 @@ from ReadFile import ReadFile
 
 def read_directory(directory, multiprocess):
     jobs = []
+    # file_reader = ReadFile(stem, write_to_disk, q)
 
     for root, dirs, files in os.walk(directory):
         # TODO: Read also stop_words.txt from this directory and forward list to parser init
-        Parse.static_stop_words_list = read_stop_words_lines(directory) # TODO: Figure out what is this
+        stop_words_list = read_stop_words_lines(directory) # TODO: Figure out what is this
         for file in files:
-            if file == 'stop_words.txt':
-                continue
             path = os.path.join(root, file)
             if multiprocess:
-                job = pool.apply_async(ReadFile, (stem, write_to_disk, q, path))
+                job = pool.apply_async(ReadFile, (stem, write_to_disk, q, path, stop_words_list))
                 jobs.append(job)
             else:
-                ReadFile(stem, write_to_disk, q, path)
+                ReadFile(stem, write_to_disk, q, path, stop_words_list)
 
     for job in jobs:
         res = job.get()
@@ -31,14 +30,14 @@ def read_directory(directory, multiprocess):
 
 def read_stop_words_lines(directory):
     try:
-        stop_words_list = []
+        stop_words_list = {}
         stop_words_file = open(directory + '\\' + 'stop_words.txt', 'r')
         for line in stop_words_file:
             if line[-1:] == '\n':
                 line = line[:-1]
             if line.__contains__('\\'):     # TODO: Need to fix when there is \ in stopword
                 line = line.replace('\\')
-            stop_words_list.append(line)
+            stop_words_list[line] = 1
         return stop_words_list
     except Exception as e:
         print(e)
@@ -46,7 +45,7 @@ def read_stop_words_lines(directory):
 
 if __name__ == '__main__':
     # Debug configs:
-    single_file = True
+    single_file = False
     write_to_disk = False
     parallel = True
     stem = False
@@ -66,11 +65,12 @@ if __name__ == '__main__':
     # Single file debug config
     if single_file:
         # file = ReadFile(r'C:\Users\Nitzan\Desktop\FB396001', parallel, stem, write_to_disk, q, pool)
-        read_directory(directory=r'C:\Chen\BGU\2019\2018 - Semester A\3. Information Retrival\Engine\test directory\100 files', multiprocess=parallel)
+        read_directory(directory=r'C:\Users\Nitzan\Desktop\FB396001', multiprocess=parallel)
     else:
         # All files debug config
-        read_directory(directory=r'C:\Chen\BGU\2019\2018 - Semester A\3. Information Retrival\Engine\test directory\100 files', multiprocess=parallel)
-
+        # file = ReadFile(r'C:\Users\Nitzan\Desktop\100 file corpus', parallel)
+        # file.run_file_reader()
+        read_directory(directory=r'C:\Users\Nitzan\Desktop\100 file corpus', multiprocess=parallel)
     finish_time = datetime.datetime.now()
     print(finish_time - start_time)
     # Counter([stemmer.stem(word) for word in word_tokenize(data)]) - This is the stem and tokenizing test, keep this here plz

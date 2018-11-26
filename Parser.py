@@ -8,9 +8,9 @@ from nltk.stem.porter import *
 
 class Parser:
 
-    static_stop_words_list = []
 
-    def __init__(self):
+
+    def __init__(self, stop_words_list):
         self.percent_key_words = ('%', 'percent', 'percentage')
         self.dollar_key_words = ('$', 'Dollars', 'dollars')
         self.month_dictionary = {'January': '01', 'February': '02', 'March': '03', 'April': '04', 'May': '05', 'June': '06',
@@ -27,7 +27,7 @@ class Parser:
         self.data_index = 0     # Index of lines in data
         self.data = None
         self.skip_tokenize = 0  # Indicates how many tokens to skip to not tokenize
-
+        self.stop_words_list = stop_words_list
 
     def parser_pipeline(self, data, stem):
         self.data = data
@@ -67,7 +67,7 @@ class Parser:
                     word = word[first:last + 1]
                 self.word = word
 
-                if self.word in Parser.static_stop_words_list:
+                if self.word in self.stop_words_list:
                     continue
 
             # Here we're supposed to have the word (not stop-word) without any delimiters

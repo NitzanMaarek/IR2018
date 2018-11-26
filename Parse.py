@@ -8,9 +8,9 @@ from nltk.stem.porter import *
 
 class Parse:
 
-    static_stop_words_list = []
 
-    def __init__(self):
+
+    def __init__(self, stop_words_dict):
         self.percent_key_words = ('%', 'percent', 'percentage')
         self.dollar_key_words = ('$', 'Dollars', 'dollars')
         self.month_dictionary = {'January': '01', 'February': '02', 'March': '03', 'April': '04', 'May': '05', 'June': '06',
@@ -21,6 +21,7 @@ class Parse:
         locale.setlocale(locale.LC_ALL, 'en_US.UTF-8')
         self.delimiters = [' ', ',', '.', '/', '"', '\'', '\\', '(', ')', '[', ']', '{', '}', ':', '-', ';']
         self.token_index = 0
+        self.stop_words_dictionary = stop_words_dict
 
     def regex_pipeline(self, data, stem):
         tokens = self.create_tokens(data)
@@ -32,6 +33,7 @@ class Parse:
 
     def create_tokens(self, data):
         tokens = []
+
         for line in data:
             line = self.parse_and_sub_numbers(line)
             line = line.split()
@@ -48,7 +50,7 @@ class Parse:
                 else:               # Means not all of the word is delimiters
                     word = word[first:last+1]
 
-                if word in Parse.static_stop_words_list:
+                if word in self.stop_words_dictionary:
                     continue
 
                 last_char = word[len(word) - 1:]

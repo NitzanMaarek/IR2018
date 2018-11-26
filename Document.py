@@ -3,7 +3,7 @@ from Parser import Parser
 import json
 
 class Document:
-    def __init__(self, data, stem, q, write_to_disk):
+    def __init__(self, data, stem, q, write_to_disk, stop_words_list):
         self.stem = stem
         self.doc_num = self.get_doc_parameter(data[0], 'DOCNO')
         self.HT = self.get_doc_parameter(data[1], 'HT')
@@ -35,12 +35,12 @@ class Document:
         data[i] = data[i].replace('[Text]', '')
         data[i] = data[i].replace('<TEXT>', '')
         self.text = data[self.doc_start_line:self.doc_finish_line]
-        self.doc_pipeline()
+        self.doc_pipeline(stop_words_list)
         # print(self.doc_num)
         q.put(self) # Inserting the document object so the listener will get it
 
-    def doc_pipeline(self):
-        parser = Parser()        # TODO: Need to give parser the stop_words list
+    def doc_pipeline(self, stop_words_list):
+        parser = Parser(stop_words_list)        # TODO: Need to give parser the stop_words list
         self.tokens = parser.parser_pipeline(self.text, self.stem)
         if self.write_to_disk: # TODO: Not sure it works in python need to check that
             self.to_json() # TODO: Change it to HDF5
