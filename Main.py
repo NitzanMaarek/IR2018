@@ -7,12 +7,13 @@ from ReadFile import ReadFile
 
 def read_directory(directory, multiprocess):
     jobs = []
-    # file_reader = ReadFile(stem, write_to_disk, q)
 
     for root, dirs, files in os.walk(directory):
         # TODO: Read also stop_words.txt from this directory and forward list to parser init
         Parse.static_stop_words_list = read_stop_words_lines(directory) # TODO: Figure out what is this
         for file in files:
+            if file == 'stop_words.txt':
+                continue
             path = os.path.join(root, file)
             if multiprocess:
                 job = pool.apply_async(ReadFile, (stem, write_to_disk, q, path))
