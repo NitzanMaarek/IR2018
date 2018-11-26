@@ -66,6 +66,7 @@ class Parser:
                 else:  # Means not all of the word is delimiters
                     word = word[first:last + 1]
                 self.word = word
+
                 if self.word in Parser.static_stop_words_list:
                     continue
 
