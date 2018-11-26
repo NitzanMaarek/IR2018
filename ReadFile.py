@@ -3,10 +3,12 @@ from Parse import Parse
 from Document import Document
 
 class ReadFile:
-    def __init__(self, stem, write_to_disk, q):
+    def __init__(self, stem, write_to_disk, q, file_path):
         self.stem = stem
         self.write_to_disk = write_to_disk
         self.q = q
+        self.file_path = file_path
+        self.read_file()
 
     def run_file_reader(self):
         self.read_directory(self.directory)
@@ -47,10 +49,9 @@ class ReadFile:
             print(e)
             print('File not found: ' + directory + 'stop_words.txt')
 
-
-    def read_file(self, file_path):
+    def read_file(self):
         try:
-            file = open(file_path, 'r')
+            file = open(self.file_path, 'r')
             lines = file.readlines()
             for i, line in enumerate(lines, start=0):
                 if "<DOC>" in line:
@@ -60,5 +61,5 @@ class ReadFile:
             file.close()
         except Exception as e:
             print(e)
-            print("Processing file not succeeded: " + file_path)
-        return file_path
+            print("Processing file not succeeded: " + self.file_path)
+        return self.file_path
