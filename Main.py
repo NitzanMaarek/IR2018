@@ -70,7 +70,7 @@ if __name__ == '__main__':
         # All files debug config
         # file = ReadFile(r'C:\Users\Nitzan\Desktop\100 file corpus', parallel)
         # file.run_file_reader()
-        read_directory(directory=r'C:\Users\Nitzan\Desktop\100 file corpus', multiprocess=parallel)
+        read_directory(directory=r'C:\Users\Nitzan\Desktop\entire corpus\corpus', multiprocess=parallel)
     finish_time = datetime.datetime.now()
     print(finish_time - start_time)
     # Counter([stemmer.stem(word) for word in word_tokenize(data)]) - This is the stem and tokenizing test, keep this here plz
