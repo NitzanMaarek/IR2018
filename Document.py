@@ -1,4 +1,5 @@
 from Parse import Parse
+from Parser import Parser
 import json
 
 class Document:
@@ -14,10 +15,14 @@ class Document:
                 self.date = self.get_doc_parameter(data[i], 'DATE1')
                 continue
             if '<F P=104>' in data[i]:
-                self.city = data[i].split()[2].upper()
+                after_split = data[i].split()
+                if len(after_split) > 2:
+                    self.city = after_split[2].upper()
                 continue
             if '<F P=101>' in data[i]:
-                self.topic = data[i].split()[2].upper()
+                after_split = data[i].split()
+                if len(after_split) > 2:
+                    self.topic = after_split[2].upper()
                 continue
             if (start == -1 and '<TEXT>' in data[i]) or ('[Text]' in data[i]):
                 self.doc_start_line = i +1
@@ -31,12 +36,12 @@ class Document:
         data[i] = data[i].replace('<TEXT>', '')
         self.text = data[self.doc_start_line:self.doc_finish_line]
         self.doc_pipeline()
-        print(self.doc_num)
+        # print(self.doc_num)
         q.put(self) # Inserting the document object so the listener will get it
 
     def doc_pipeline(self):
-        regex = Parse()        # TODO: Need to give parser the stop_words list
-        self.tokens = regex.regex_pipeline(self.text, self.stem)
+        parser = Parser()        # TODO: Need to give parser the stop_words list
+        self.tokens = parser.parser_pipeline(self.text, self.stem)
         if self.write_to_disk: # TODO: Not sure it works in python need to check that
             self.to_json() # TODO: Change it to HDF5
 
