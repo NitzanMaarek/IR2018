@@ -18,8 +18,8 @@ class Parser:
                                  'JANUARY': '01', 'FEBRUARY': '02', 'MARCH': '03', 'APRIL': '04', 'MAY': '05', 'JUNE': '06', 'JULY': '07',
                                  'AUGUST': '08', 'SEPTEMBER': '09', 'OCTOBER': '10', 'NOVEMBER': '11', 'DECEMBER': '12'}
         self.month_first_letter_array = ['a', 'A', 'd', 'D', 'f', 'F', 'j', 'J', 'm', 'M', 'n', 'N', 'o', 'O', 's', 'S']
-        locale.setlocale(locale.LC_ALL, 'en_US.UTF-8')
-        self.delimiters = [' ', ',', '.', '/', '"', '\'', '\\', '(', ')', '[', ']', '{', '}', ':', '-', ';']
+        # locale.setlocale(locale.LC_ALL, 'en_US.UTF-8')
+        self.delimiters = [' ', ',', '.', '/', '"', '\'', '\\', '(', ')', '[', ']', '{', '}', ':', '-', ';', '?', '!']
         self.token_index = 0
         self.word = ''
         self.line_index = 0     # Index of words in a line
@@ -28,6 +28,9 @@ class Parser:
         self.data = None
         self.skip_tokenize = 0  # Indicates how many tokens to skip to not tokenize
         self.stop_words_list = stop_words_list
+        self.token_dictionary_num_of_appearance = {}        #Contains final tokens with number of appearences
+        self.token_dictionary_first_position = {}           #Contains final tokens with first position appeared
+
 
     def parser_pipeline(self, data, stem):
         self.data = data
@@ -40,7 +43,6 @@ class Parser:
 
     def create_tokens(self, data):
         self.tokens = []
-        skip_tokenize = 0
         self.data_length = len(data)
         self.between_flag = False
         self.between_index = 0
@@ -53,33 +55,88 @@ class Parser:
                     continue
                 self.line_index = line_index
                 self.word = word
-                last = len(word) - 1
-                first = 0
-                while first <= last and (
-                        word[last] in self.delimiters or self.word[first] in self.delimiters):  # loop to remove delimiters
-                    if word[first] in self.delimiters:
-                        first += 1
-                    if word[last] in self.delimiters:
-                        last -= 1
-                if first > last:  # Means all word was delimiters and need to ignore it.
+
+                self.word = self.remove_delimiters(self.word)
+                if self.word is None:
                     continue
-                else:  # Means not all of the word is delimiters
-                    word = word[first:last + 1]
-                self.word = word
 
                 if self.word in self.stop_words_list:
                     continue
 
-            # Here we're supposed to have the word (not stop-word) without any delimiters
-            # Word is normal word and also String with delimiters in inside: number with comma, words with slash etc..
-
+                # Here we're supposed to have the word (not stop-word) without any delimiters
+                # Word is normal word and also String with delimiters in inside: number with comma, words with slash etc..
+                #TODO: Maybe remove delimiters INSIDE the word? like: england/france/spain is saved like that as token
                 token = self.parse_strings()
 
                 if token is not None and len(token) > 0:
                     token = self.parse_handle_between_token(token)   # If we've encountered the word between then keep track if next tokens are : between <number> and <number>
                     self.tokens.append(token)
+                    self.add_token_to_dictionary(token, (data_index, line_index))
 
-        return self.tokens
+        return self.merge_and_sort_dictionaries()
+
+        # return self.tokens
+
+
+    def merge_and_sort_dictionaries(self):
+        if self.token_dictionary_first_position.__sizeof__() > 1:
+            merged_sorted_dictionary = {}
+            for (key_p, value_p), (key_f, value_f) in zip(self.token_dictionary_first_position.items(), self.token_dictionary_num_of_appearance.items()):
+                # key_p, value_p = items in dictionary of first Position
+                # key_f, value_f = items in dictionary of Frequency/appearences
+                merged_sorted_dictionary[key_p] = (self.token_dictionary_num_of_appearance[key_f], self.token_dictionary_first_position[key_p])
+
+            merged_sorted_dictionary = sorted(merged_sorted_dictionary)
+            return merged_sorted_dictionary
+        return None
+
+    def add_token_to_dictionary(self, token, position_list):
+        """
+        adds/updates token to dictionaries
+        :param token: the token to add or update and list = (line_number, position_in_line)
+        """
+        if self.token_dictionary_first_position.__contains__(token):
+            self.token_dictionary_num_of_appearance[token] += 1
+        else:
+            self.token_dictionary_num_of_appearance[token] = 1
+            self.token_dictionary_first_position[token] = position_list
+
+    def remove_delimiters(self, word):
+        """
+        method receives string and removes all delimiters in beginning and end of string
+        :param word: string parsed by split()
+        :return: word without delimiters in both ends, None if all word was delimiters
+        """
+        last = len(word) - 1
+        first = 0
+
+        while first <= last and (word[last] in self.delimiters or word[first] in self.delimiters):  # loop to remove delimiters
+            if word[first] in self.delimiters:
+                first += 1
+            if word[last] in self.delimiters:
+                last -= 1
+        if first > last:  # Means all word was delimiters and need to ignore it.
+            return None
+        else:  # Means not all of the word is delimiters
+            word = word[first:last + 1]
+        return word
+
+    def delete_last_i_tokens(self, i):
+        """
+        method deletes last i tokens from both tokens list and tokens dictionary
+        in the dictionary it decreases number of appearances by 1, if last appearance then delete from dictionary
+        :param i: number of tokens to delete from end of list
+        """
+        while i > 0:
+            token_to_operate = self.tokens[-i]
+            token_frequency = self.token_dictionary_num_of_appearance.get(token_to_operate, 0)
+            if token_frequency > 1:
+                self.token_dictionary_num_of_appearance[token_to_operate] -= 1
+            elif token_frequency == 1:
+                del self.token_dictionary_num_of_appearance[token_to_operate]
+                del self.token_dictionary_first_position[token_to_operate]
+            del self.tokens[-i]
+            i -= 1
 
     def parse_handle_between_token(self, parsed_token):
         """
