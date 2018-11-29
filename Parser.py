@@ -11,15 +11,17 @@ class Parser:
 
 
     def __init__(self, stop_words_list):
-        self.percent_key_words = ('%', 'percent', 'percentage')
-        self.dollar_key_words = ('$', 'Dollars', 'dollars')
+        self.percent_key_words = {'%', 'percent', 'percentage'}
+        self.dollar_key_words = {'$', 'Dollars', 'dollars'}
         self.month_dictionary = {'January': '01', 'February': '02', 'March': '03', 'April': '04', 'May': '05', 'June': '06',
                                  'July': '07', 'August': '08', 'September': '09', 'October': '10', 'November': '11', 'December': '12',
                                  'JANUARY': '01', 'FEBRUARY': '02', 'MARCH': '03', 'APRIL': '04', 'MAY': '05', 'JUNE': '06', 'JULY': '07',
-                                 'AUGUST': '08', 'SEPTEMBER': '09', 'OCTOBER': '10', 'NOVEMBER': '11', 'DECEMBER': '12'}
+                                 'AUGUST': '08', 'SEPTEMBER': '09', 'OCTOBER': '10', 'NOVEMBER': '11', 'DECEMBER': '12',
+                                 'january': '01', 'february': '02', 'march': '03', 'april': '04', 'may': '05', 'june': '06',
+                                 'july': '07', 'august': '08', 'september': '09', 'october': '10', 'november': '11', 'december': '12'}
         self.month_first_letter_array = ['a', 'A', 'd', 'D', 'f', 'F', 'j', 'J', 'm', 'M', 'n', 'N', 'o', 'O', 's', 'S']
         # locale.setlocale(locale.LC_ALL, 'en_US.UTF-8')
-        self.delimiters = [' ', ',', '.', '/', '"', '\'', '\\', '(', ')', '[', ']', '{', '}', ':', '-', ';', '?', '!']
+        self.delimiters = {' ', ',', '.', '/', '"', '\'', '\\', '(', ')', '[', ']', '{', '}', ':', '-', ';', '?', '!'}
         self.token_index = 0
         self.word = ''
         self.line_index = 0     # Index of words in a line
@@ -30,12 +32,14 @@ class Parser:
         self.stop_words_list = stop_words_list
         self.token_dictionary_num_of_appearance = {}        #Contains final tokens with number of appearences
         self.token_dictionary_first_position = {}           #Contains final tokens with first position appeared
+        self.token_upper_case_dictionary = {}
 
 
     def parser_pipeline(self, data, stem):
         self.data = data
         tokens = self.create_tokens(self.data)
         # tokens = self.find_key_words_in_line(tokens)
+        #TODO: Need to fix stemming
         if stem:
             stemmer = PorterStemmer()
             tokens = [stemmer.stem(term) for term in tokens]
@@ -46,6 +50,7 @@ class Parser:
         self.data_length = len(data)
         self.between_flag = False
         self.between_index = 0
+        self.stop_word_flag = True
         for data_index, line in enumerate(data, start=0):
             self.data_index = data_index
             self.line = line.split()
@@ -60,7 +65,10 @@ class Parser:
                 if self.word is None:
                     continue
 
-                if self.word in self.stop_words_list:
+                if self.word == 'between' or self.word == 'Between':
+                    self.between_index = 1
+
+                if self.between_index == 0 and self.word in self.stop_words_list:
                     continue
 
                 # Here we're supposed to have the word (not stop-word) without any delimiters
@@ -69,16 +77,49 @@ class Parser:
                 token = self.parse_strings()
 
                 if token is not None and len(token) > 0:
-                    token = self.parse_handle_between_token(token)   # If we've encountered the word between then keep track if next tokens are : between <number> and <number>
-                    self.tokens.append(token)
-                    self.add_token_to_dictionary(token, (data_index, line_index))
+                    if self.between_index >= 1:
+                        token = self.parse_handle_between_token(token)   # If we've encountered the word between then keep track if next tokens are : between <number> and <number>
+                    self.add_token_to_collections(token, (data_index, line_index))
+        self.correct_upper_lower_cases()
 
         return self.merge_and_sort_dictionaries()
 
         # return self.tokens
 
+    def correct_upper_lower_cases(self):
+        """
+        Checks every upper case word written if it was written in lower case -> transform to lower case
+        """
+        if len(self.token_upper_case_dictionary) > 0:
+            for upper_case_token in self.token_upper_case_dictionary:             #For each capital letter word
+                lower_case_token = self.lower_case_word(upper_case_token)
+                if lower_case_token in self.token_dictionary_num_of_appearance and upper_case_token in self.token_dictionary_num_of_appearance:         #If also lower case exists
+                    #Merge upper and lower cases into lower case
+                    upper_position = self.token_dictionary_first_position[upper_case_token]
+                    upper_frequencey = self.token_dictionary_num_of_appearance[upper_case_token]
+                    lower_position = self.token_dictionary_first_position[lower_case_token]
+                    upper_line_pos = upper_position[0]
+                    lower_line_pos = lower_position[0]
+                    if upper_line_pos < lower_line_pos:
+                        self.token_dictionary_first_position[lower_case_token] = upper_position
+                    elif upper_line_pos > lower_line_pos:
+                        self.token_dictionary_first_position[lower_case_token] = lower_position
+                    else:
+                        upper_word_pos = upper_position[1]
+                        lower_word_pos = lower_position[1]
+                        if upper_word_pos < lower_word_pos:
+                            self.token_dictionary_first_position[lower_case_token] = upper_position
+                        else:
+                            self.token_dictionary_first_position[lower_case_token] = lower_position
+                    self.token_dictionary_num_of_appearance[lower_case_token] += upper_frequencey
+                    del self.token_dictionary_num_of_appearance[upper_case_token]
+                    del self.token_dictionary_first_position[upper_case_token]
+
 
     def merge_and_sort_dictionaries(self):
+        """
+        :return:
+        """
         if self.token_dictionary_first_position.__sizeof__() > 1:
             merged_sorted_dictionary = {}
             for (key_p, value_p), (key_f, value_f) in zip(self.token_dictionary_first_position.items(), self.token_dictionary_num_of_appearance.items()):
@@ -86,20 +127,33 @@ class Parser:
                 # key_f, value_f = items in dictionary of Frequency/appearences
                 merged_sorted_dictionary[key_p] = (self.token_dictionary_num_of_appearance[key_f], self.token_dictionary_first_position[key_p])
 
-            merged_sorted_dictionary = sorted(merged_sorted_dictionary)
+            # merged_sorted_dictionary = sorted(merged_sorted_dictionary)
             return merged_sorted_dictionary
         return None
 
-    def add_token_to_dictionary(self, token, position_list):
+    def add_token_to_collections(self, token, position_list):
         """
         adds/updates token to dictionaries
-        :param token: the token to add or update and list = (line_number, position_in_line)
+        :param token: one token or list of tokens to add or update and list = (line_number, position_in_line)
+        :param position_list: list of poisition in doc (lines) and position in line (words)
         """
-        if self.token_dictionary_first_position.__contains__(token):
-            self.token_dictionary_num_of_appearance[token] += 1
+        if type(token) is list:
+            for item in token:
+                if self.token_dictionary_first_position.__contains__(item):
+                    self.token_dictionary_num_of_appearance[item] += 1
+                else:
+                    self.token_dictionary_num_of_appearance[item] = 1
+                    self.token_dictionary_first_position[item] = position_list
+                self.tokens.append(item)
         else:
-            self.token_dictionary_num_of_appearance[token] = 1
-            self.token_dictionary_first_position[token] = position_list
+
+            if self.token_dictionary_first_position.__contains__(token):
+                self.token_dictionary_num_of_appearance[token] += 1
+            else:
+                self.token_dictionary_num_of_appearance[token] = 1
+                self.token_dictionary_first_position[token] = position_list
+            self.tokens.append(token)
+
 
     def remove_delimiters(self, word):
         """
@@ -121,22 +175,21 @@ class Parser:
             word = word[first:last + 1]
         return word
 
-    def delete_last_i_tokens(self, i):
+    def delete_token_i(self, i):
         """
-        method deletes last i tokens from both tokens list and tokens dictionary
+        method deletes token i (from end of list) from both tokens list and tokens dictionary
         in the dictionary it decreases number of appearances by 1, if last appearance then delete from dictionary
         :param i: number of tokens to delete from end of list
         """
-        while i > 0:
-            token_to_operate = self.tokens[-i]
-            token_frequency = self.token_dictionary_num_of_appearance.get(token_to_operate, 0)
-            if token_frequency > 1:
-                self.token_dictionary_num_of_appearance[token_to_operate] -= 1
-            elif token_frequency == 1:
-                del self.token_dictionary_num_of_appearance[token_to_operate]
-                del self.token_dictionary_first_position[token_to_operate]
-            del self.tokens[-i]
-            i -= 1
+        token_to_operate = self.tokens[-i]
+        token_frequency = self.token_dictionary_num_of_appearance.get(token_to_operate, 0)
+        if token_frequency > 1:
+            self.token_dictionary_num_of_appearance[token_to_operate] -= 1
+        elif token_frequency == 1:
+            del self.token_dictionary_num_of_appearance[token_to_operate]
+            del self.token_dictionary_first_position[token_to_operate]
+        del self.tokens[-i]
+
 
     def parse_handle_between_token(self, parsed_token):
         """
@@ -146,25 +199,28 @@ class Parser:
         :return: token 'between <number> and <number>' after deletion if sequence complete, normal token otherwise
         """
         token = parsed_token
-        if not self.between_flag and (token == 'between' or token == 'Between'):
-            self.between_flag = True
-            self.between_index = 1
-        elif self.between_flag and self.between_index > 1:  # If word between appeared check next strings
-            if self.between_index == 3 and token == 'and':  # If its time for the word 'and' to appear
-                self.between_index += 1
-            elif (self.between_index == 2 or self.between_index == 4) and self.is_any_kind_of_number(token):  # If number
+        if self.between_index == 2:
+            if self.is_any_kind_of_number(token):       # If second string is number
                 self.between_index += 1
             else:
-                if self.between_index == 5:  # if between <number> and <number> sequence appeard, token it and delete previous 3 tokens (current is number)
-                    token = 'between ' + self.tokens[-2] + ' and ' + token
-                    del self.tokens[-3]
-                    del self.tokens[-2]
-                    del self.tokens[-1]
-                # Reset between sequence
-                # *** IMPORTANT: if not 'and' or number where its supposed to be, reset between sequence by flag = False and index = 0
                 self.between_index = 0
-                self.between_flag = False
+
+        elif self.between_index == 3:
+            if token == 'and':
+                self.between_index += 1
+            else:
+                self.between_index = 0
+        elif self.between_index == 4:
+            if self.is_any_kind_of_number(token):
+                self.between_index = 0
+                token_list = ['between ' + self.tokens[-2] + ' and ' + token, token]
+                self.delete_token_i(3)  # delete the token 'between'
+                self.delete_token_i(1)  # delete the token 'and'
+                return token_list
+        else:
+            self.between_index += 1
         return token
+
 
     def get_next_word(self):
         """
@@ -219,13 +275,6 @@ class Parser:
                 return self.data[index_of_lines + 1]
         return None
 
-
-
-    def get_previous_word(self):
-        if self.data_index != 0:
-            return self.tokens[-1]
-            #TODO: need to check if previous doesn't return \n
-
     def parse_strings(self):
         """
         Main parse function
@@ -248,6 +297,51 @@ class Parser:
             token = self.parse_date_with_month()
         elif (first_token == 'p' or first_token == 'P') and (token == 'percent' or token == 'Percent' or token == 'percentage' or token == 'Percentage'):
             token = self.parse_percent_word()
+
+        if token is None:
+            return None
+
+        first_token = token[0]
+        if 'A' < first_token < 'Z':
+            token = self.upper_case_word(token)
+            self.token_upper_case_dictionary[token] = 0
+        elif 'a' < first_token < 'z':
+            token = self.lower_case_word(token)
+        return token
+
+
+
+    def lower_case_word(self, token):
+        """
+        method checks if token is an alphabetical word. If so make it lower case
+        :param token: string
+        :return: if word, then same word in lower case, otherwise same token
+        """
+        chars_list = []    #list of strings to join after
+        if token is not None:
+            for char in token:
+                char_int_rep = ord(char)
+                if 65 <= char_int_rep <= 90:     #if char is UPPER case, make it lower case
+                    chars_list.append(chr(char_int_rep + 32))
+                elif 97 <= char_int_rep <= 122:     #if char is not a letter then abort and return original token.
+                    chars_list.append(char)
+                else:
+                    return token
+            return ''.join(chars_list)
+        return token
+
+    def upper_case_word(self, token):
+        chars_list = []  # list of strings to join after
+        if token is not None:
+            for char in token:
+                char_int_rep = ord(char)
+                if 97 <= char_int_rep <= 122:  # if char is LOWER case, make it lower case
+                    chars_list.append(chr(char_int_rep - 32))
+                elif 65 <= char_int_rep <= 90:  # if char is not a letter then abort and return original token.
+                    chars_list.append(char)
+                else:
+                    return token
+            return ''.join(chars_list)
         return token
 
     def check_if_token_is_numer_range(self, token):
@@ -342,7 +436,8 @@ class Parser:
         :return: token = <month>-<day>
         """
         token = self.month_dictionary.get(date_list[1]) + '-' + self.change_day_format(date_list[0])
-        del self.tokens[-1]
+        self.delete_token_i(1)
+        # del self.tokens[-1]
         return token
 
     def parse_day_month_year(self, date_list):
@@ -351,10 +446,12 @@ class Parser:
         :param date_list: (day, month, year) = no need to check input
         :return: token: <year>-<month_number>-<day>
         """
-        token = date_list[2] + '-' + self.month_dictionary.get(date_list[1]) + '-' + self.change_day_format(date_list[0])
-        del self.tokens[-1]
-        self.tokens.append(self.month_dictionary.get(date_list[1]) + '-' + self.change_day_format(date_list[0]))
-        self.tokens.append(date_list[2] + '-' + self.month_dictionary.get(date_list[1]))
+        month = self.month_dictionary.get(date_list[1])
+        day = self.change_day_format(date_list[0])
+        year = date_list[2]
+        self.delete_token_i(1)      #Delete tokenized day
+        # del self.tokens[-1]
+        token = [year + '-' + month + '-' + day, month + '-' + day, year + '-' + month]
         self.skip_tokenize = 1
         return token
 
@@ -365,7 +462,8 @@ class Parser:
             if self.is_any_kind_of_number(previous_token):
                 token = previous_token + '%'
                 # *** Here need to delete last token which is the number and return <number>%
-                del self.tokens[-1]
+                self.delete_token_i(1)
+                # del self.tokens[-1]
         return token
 
     def parse_dollar_with_capital_d(self):
@@ -382,7 +480,8 @@ class Parser:
                     if self.is_integer(price) or self.is_float(price):
                         token = self.parse_dollar_sign_with_parsed_number_million(('$', price + 'B'))
                     # *** Here need to delete token <number/price><m/bn> because it was tokenized earlier
-                del self.tokens[-1]
+                self.delete_token_i(1)
+                # del self.tokens[-1]
             elif self.is_any_kind_of_number(previous_token):
                 # TODO: THIS IS NOT GOOD NEED TO FIX THIS IN CASE OF THOUSANDS SINCE THEYRE ALREADY PARSED HERE
                 price = str(previous_token)
@@ -395,7 +494,8 @@ class Parser:
                     token = price + ' Dollars'
 
                 # *** Here need to delete last token which was the number because now adding <number> Dollars
-                del self.tokens[-1]
+                self.delete_token_i(1)
+                # del self.tokens[-1]
 
         return token
 
@@ -441,9 +541,12 @@ class Parser:
                     token = self.parse_dollar_sign_with_parsed_number_million(('$', price + 'T'))
                     indicator = True
                 if indicator:           #Delete last three tokens: <price> <million/billion/trillin> <U.S> to add new token.
-                    del self.tokens[-3]
-                    del self.tokens[-2]
-                    del self.tokens[-1]
+                    self.delete_token_i(3)
+                    self.delete_token_i(2)
+                    self.delete_token_i(1)
+                    # del self.tokens[-3]
+                    # del self.tokens[-2]
+                    # del self.tokens[-1]
         return token
 
     def parse_string_only_number(self):
@@ -499,7 +602,8 @@ class Parser:
                 if len(self.tokens) >= 1:
                     previous_word = self.tokens[-1]      # TODO: Need to check previous_word != '\n'
                     if self.is_any_kind_of_number(previous_word):
-                        del self.tokens[-1]
+                        self.delete_token_i(1)
+                        # del self.tokens[-1]
                         return previous_word + ' ' + self.word
                     else:
                         return self.word
