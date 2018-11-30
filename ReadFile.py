@@ -10,9 +10,6 @@ class ReadFile:
         self.file_path = file_path
         self.read_file(stop_words_list) #this should be here
 
-    def run_file_reader(self):
-        self.read_directory(self.directory)
-
     def read_file(self, stop_words_list):
         try:
             file = open(self.file_path, 'r', errors='ignore')

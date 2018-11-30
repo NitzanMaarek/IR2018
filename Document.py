@@ -9,6 +9,7 @@ class Document:
         self.HT = self.get_doc_parameter(data[1], 'HT')
         self.write_to_disk = write_to_disk
 
+        # TODO: create a function out of this
         start = -1
         for i in range(0, len(data)):
             if 'DATE1' in data[i]:
@@ -24,6 +25,23 @@ class Document:
                 if len(after_split) > 2:
                     self.topic = after_split[2].upper()
                 continue
+            # Title section:
+            # TODO: remove self.title_str if not needed in the end
+            if '<H3>' in data[i]:
+                title = data[i].replace('<H3>', '')
+                title = title.replace('</H3>', '')
+                title = title.replace('<TI>', '')
+                title = title.replace('</TI>', '')
+                self.title_str = title
+                self.title = title.split()
+            if '<HEADLINE>' in data[i]:
+                if 'LA' in self.doc_num:
+                    self.title_str = data[i + 2]
+                    self.title = data[i + 2].split()
+                else:
+                    title = data[i + 1][data[i + 1].find('/') + 1:]
+                    self.title_str = title
+                    self.title = title.split()
             if (start == -1 and '<TEXT>' in data[i]) or ('[Text]' in data[i]):
                 self.doc_start_line = i +1
                 continue
@@ -31,7 +49,7 @@ class Document:
                 self.doc_finish_line = i
                 break
 
-
+        print(self.doc_num + ': ' + self.title_str)
         data[i] = data[i].replace('[Text]', '')
         data[i] = data[i].replace('<TEXT>', '')
         self.text = data[self.doc_start_line:self.doc_finish_line]

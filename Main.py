@@ -1,7 +1,7 @@
 import datetime
 import os
 import multiprocessing as mp
-from Indexer import Indexer
+import Indexer
 from Parse import Parse
 from ReadFile import ReadFile
 
@@ -25,9 +25,6 @@ def read_directory(directory, multiprocess):
 
     q.put('kill')
 
-    pool.close()
-    pool.join()
-
 def read_stop_words_lines(directory):
     try:
         stop_words_list = {}
@@ -43,11 +40,36 @@ def read_stop_words_lines(directory):
         print(e)
         print('File not found: ' + directory + 'stop_words.txt')
 
+def indexer_listener(docs_per_merge=50):
+    # indexer = Indexer('posting')
+    docs = []
+    count = 0
+    '''listens for messages on the docs_queue, writes to file. '''
+    with open('listener output.txt', 'w+') as file:
+        while 1:
+            doc = q.get()
+            docs.append(doc)
+            count += 1
+            if count == docs_per_merge:
+                count = 0
+                pool.apply_async(Indexer.merge_docs, (docs,))
+                docs = []
+            if str(doc) == 'kill':
+                pool.apply_async(Indexer.merge_docs, (docs,))
+                print('killed')
+                break
+            file.write("Indexer received doc: " + str(doc.doc_num) + '\n')
+
+    pool.close()
+    pool.join()
+    # TODO: call function that uses data here
+
+
 if __name__ == '__main__':
     # Debug configs:
-    single_file = False
+    single_file = True
     write_to_disk = False
-    parallel = True
+    parallel = False
     stem = False
     Index = True
 
@@ -57,20 +79,18 @@ if __name__ == '__main__':
 
     start_time = datetime.datetime.now()
 
-    # put listener to work first
-    if Index:
-        indexer = Indexer('posting path', q)
-        pool.apply_async(indexer.run_listener, )
-
     # Single file debug config
     if single_file:
         # file = ReadFile(r'C:\Users\Nitzan\Desktop\FB396001', parallel, stem, write_to_disk, q, pool)
-        read_directory(directory=r'C:\Users\Nitzan\Desktop\FB396001', multiprocess=parallel)
+        read_directory(directory=r'C:\Chen\BGU\2019\2018 - Semester A\3. Information Retrival\Engine\test directory\FT test', multiprocess=parallel)
     else:
         # All files debug config
         # file = ReadFile(r'C:\Users\Nitzan\Desktop\100 file corpus', parallel)
-        # file.run_file_reader()
         read_directory(directory=r'C:\Users\Nitzan\Desktop\entire corpus\corpus', multiprocess=parallel)
+
+    if Index:
+        indexer_listener()
+
     finish_time = datetime.datetime.now()
     print(finish_time - start_time)
     # Counter([stemmer.stem(word) for word in word_tokenize(data)]) - This is the stem and tokenizing test, keep this here plz

@@ -1,18 +1,11 @@
-import nltk
+import multiprocessing as mp
 
-class Indexer():
-    def __init__(self, posting_path, q):
-        self.dict = {}
-        self.posting_path = posting_path
-        self.q = q
+# class Indexer():
+#     def __init__(self, posting_path):
+#         self.dict = {}
+#         self.posting_path = posting_path
+        # self.files_per_iter = files_per_iter
 
-    def run_listener(self):
-        '''listens for messages on the q, writes to file. '''
-        with open('listener output.txt', 'a+') as file:
-            while 1:
-                doc = self.q.get()
-                if str(doc) == 'kill':
-                    print('killed')
-                    break
-                # file.write("Indexer received doc: " + str(doc.doc_num) + '\n')
-                # TODO: call function that uses data here
+def merge_docs(doc_list):
+    with open('indexer output.txt', 'a+') as file:
+        file.write("docs num: " + str(len(doc_list)) + "\n")
