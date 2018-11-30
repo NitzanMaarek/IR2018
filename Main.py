@@ -6,16 +6,22 @@ from ReadFile import ReadFile
 
 def read_directory(directory, multiprocess):
     # file_reader = ReadFile(stem, write_to_disk, q)
+    jobs = []
 
     for root, dirs, files in os.walk(directory):
         # TODO: Read also stop_words.txt from this directory and forward list to parser init
         stop_words_list = read_stop_words_lines(directory) # TODO: Figure out what is this
         for file in files:
-            path = os.path.join(root, file)
-            if multiprocess:
-                pool.apply_async(ReadFile, (stem, write_to_disk, q, path, stop_words_list))
-            else:
-                ReadFile(stem, write_to_disk, q, path, stop_words_list)
+            if not file == 'stop_words.txt':
+                path = os.path.join(root, file)
+                if multiprocess:
+                    job = pool.apply_async(ReadFile, (file, stem, write_to_disk, q, path, stop_words_list))
+                    jobs.append(job)
+                else:
+                    ReadFile(file, stem, write_to_disk, q, path, stop_words_list)
+
+    for job in jobs:
+        res = job.get()
 
     q.put('last doc')
 
@@ -90,11 +96,11 @@ if __name__ == '__main__':
     # Single file debug config
     if single_file:
         # file = ReadFile(r'C:\Users\Nitzan\Desktop\FB396001', parallel, stem, write_to_disk, q, pool)
-        read_directory(directory=r'C:\Chen\BGU\2019\2018 - Semester A\3. Information Retrival\Engine\test directory\LA test', multiprocess=parallel)
+        read_directory(directory=r'C:\Chen\BGU\2019\2018 - Semester A\3. Information Retrival\Engine\test directory\10 files', multiprocess=parallel)
     else:
         # All files debug config
         # file = ReadFile(r'C:\Users\Nitzan\Desktop\100 file corpus', parallel)
-        read_directory(directory=r'C:\Users\Nitzan\Desktop\entire corpus\corpus', multiprocess=parallel)
+        read_directory(directory=r'C:\Chen\BGU\2019\2018 - Semester A\3. Information Retrival\Engine\corpus', multiprocess=parallel)
 
     if Index:
         indexer_listener(50)

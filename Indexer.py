@@ -1,4 +1,5 @@
 # import h5py
+import pickle
 from Token import Token
 
 def merge_docs(doc_list):
@@ -8,12 +9,13 @@ def merge_docs(doc_list):
     :return: dictionary of tokens
     """
     tokens_dictionary = _create_tokens_dictionary(doc_list)
-    documents_dictionary = {}
-    return tokens_dictionary
+    documents_dictionary = _create_document_dictionary(doc_list)
+    save_obj(tokens_dictionary, 'test tokens dict')
+    save_obj(tokens_dictionary, 'test docs dict')
+    # return tokens_dictionary
 
 def _create_tokens_dictionary(doc_list):
     super_dict = {}
-
     for doc in doc_list:
         if hasattr(doc, 'tokens'):
             for key in doc.tokens:
@@ -24,10 +26,19 @@ def _create_tokens_dictionary(doc_list):
                     super_dict[key].add_data(doc.tokens[key], doc.doc_num)
     return super_dict
 
-# def _create_document_dictionary(doc_list):
+def _create_document_dictionary(doc_list):
+    document_dictionary = {}
+
+    for doc in doc_list:
+        document_dictionary[doc.doc_num] = doc
+
+    return document_dictionary
 
 
-# def write_dictionary_to_disk(d):
-#     h = h5py.File('myfile.hdf5')
-#     for k, v in d.items():
-#         h.create_dataset('%k%s')
+def save_obj(obj, name):
+    with open(name + '.pkl', 'wb') as f:
+        pickle.dump(obj, f, pickle.HIGHEST_PROTOCOL)
+
+def load_obj(name):
+    with open(name + '.pkl', 'rb') as f:
+        return pickle.load(f)

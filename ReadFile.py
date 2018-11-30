@@ -1,7 +1,8 @@
 from Document import Document
 
 class ReadFile:
-    def __init__(self, stem, write_to_disk, q, file_path, stop_words_list):
+    def __init__(self, file_name, stem, write_to_disk, q, file_path, stop_words_list):
+        self.file_name = file_name
         self.stem = stem
         self.write_to_disk = write_to_disk
         self.q = q
@@ -17,7 +18,7 @@ class ReadFile:
                 if "<DOC>" in line:
                     start = i
                 elif "</DOC>" in line:
-                    Document(data=lines[start + 1: i - 1], q=self.q, stem=self.stem, write_to_disk=self.write_to_disk, stop_words_list=stop_words_list, first_row_index=start, last_row_index=i-1)
+                    Document(data=lines[start + 1: i - 1], file_name=self.file_name , q=self.q, stem=self.stem, write_to_disk=self.write_to_disk, stop_words_list=stop_words_list, first_row_index=start, last_row_index=i-1)
             file.close()
         except Exception as e:
             print(e)
