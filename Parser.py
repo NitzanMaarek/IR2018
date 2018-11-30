@@ -1,9 +1,4 @@
-import re
-import time
-import locale
 
-import datetime
-from nltk.tokenize import word_tokenize
 from nltk.stem.porter import *
 
 class Parser:

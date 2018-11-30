@@ -1,4 +1,3 @@
-from Parse import Parse
 from Parser import Parser
 import json
 
@@ -34,14 +33,17 @@ class Document:
                 title = title.replace('</TI>', '')
                 self.title_str = title
                 self.title = title.split()
+                continue
             if '<HEADLINE>' in data[i]:
                 if 'LA' in self.doc_num:
                     self.title_str = data[i + 2]
                     self.title = data[i + 2].split()
+                    continue
                 else:
                     title = data[i + 1][data[i + 1].find('/') + 1:]
                     self.title_str = title
                     self.title = title.split()
+                    continue
             if (start == -1 and '<TEXT>' in data[i]) or ('[Text]' in data[i]):
                 self.doc_start_line = i +1
                 continue
@@ -49,7 +51,7 @@ class Document:
                 self.doc_finish_line = i
                 break
 
-        print(self.doc_num + ': ' + self.title_str)
+        # print(self.doc_num + ': ' + self.title_str)
         data[i] = data[i].replace('[Text]', '')
         data[i] = data[i].replace('<TEXT>', '')
         self.text = data[self.doc_start_line:self.doc_finish_line]

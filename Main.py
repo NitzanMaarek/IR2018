@@ -2,11 +2,9 @@ import datetime
 import os
 import multiprocessing as mp
 import Indexer
-from Parse import Parse
 from ReadFile import ReadFile
 
 def read_directory(directory, multiprocess):
-    jobs = []
     # file_reader = ReadFile(stem, write_to_disk, q)
 
     for root, dirs, files in os.walk(directory):
@@ -15,15 +13,11 @@ def read_directory(directory, multiprocess):
         for file in files:
             path = os.path.join(root, file)
             if multiprocess:
-                job = pool.apply_async(ReadFile, (stem, write_to_disk, q, path, stop_words_list))
-                jobs.append(job)
+                pool.apply_async(ReadFile, (stem, write_to_disk, q, path, stop_words_list))
             else:
                 ReadFile(stem, write_to_disk, q, path, stop_words_list)
 
-    for job in jobs:
-        res = job.get()
-
-    q.put('kill')
+    q.put('last doc')
 
 def read_stop_words_lines(directory):
     try:
@@ -41,24 +35,38 @@ def read_stop_words_lines(directory):
         print('File not found: ' + directory + 'stop_words.txt')
 
 def indexer_listener(docs_per_merge=50):
-    # indexer = Indexer('posting')
     docs = []
+    jobs = []
+
     count = 0
     '''listens for messages on the docs_queue, writes to file. '''
     with open('listener output.txt', 'w+') as file:
         while 1:
             doc = q.get()
-            docs.append(doc)
             count += 1
-            if count == docs_per_merge:
+            if parallel and count == docs_per_merge:
                 count = 0
-                pool.apply_async(Indexer.merge_docs, (docs,))
+                docs.append(doc)
+                job = pool.apply_async(Indexer.merge_docs, (docs,))
+                jobs.append(job)
                 docs = []
-            if str(doc) == 'kill':
-                pool.apply_async(Indexer.merge_docs, (docs,))
-                print('killed')
+                continue
+            elif count == docs_per_merge: # TODO: delete after done testing - just for non-parallel testing
+                count = 0
+                docs.append(doc)
+                Indexer.merge_docs(docs)
+                docs = []
+                continue
+            if str(doc) == 'last doc':
+                job = pool.apply_async(Indexer.merge_docs, (docs,))
+                jobs.append(job)
+                print('last doc')
                 break
+            docs.append(doc)
             file.write("Indexer received doc: " + str(doc.doc_num) + '\n')
+
+    for job in jobs:
+        res = job.get()
 
     pool.close()
     pool.join()

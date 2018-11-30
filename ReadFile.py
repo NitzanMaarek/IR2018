@@ -1,5 +1,3 @@
-import os
-from Parse import Parse
 from Document import Document
 
 class ReadFile:
@@ -12,6 +10,7 @@ class ReadFile:
 
     def read_file(self, stop_words_list):
         try:
+            # with open(self.file_path, 'r', errors='ignore') as file:
             file = open(self.file_path, 'r', errors='ignore')
             lines = file.readlines()
             for i, line in enumerate(lines, start=0):
