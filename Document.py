@@ -2,12 +2,13 @@ from Parser import Parser
 import json
 
 class Document:
-    def __init__(self, data, stem, q, write_to_disk, stop_words_list):
+    def __init__(self, data, stem, q, write_to_disk, stop_words_list, first_row_index, last_row_index):
         self.stem = stem
         self.doc_num = self.get_doc_parameter(data[0], 'DOCNO')
         self.HT = self.get_doc_parameter(data[1], 'HT')
         self.write_to_disk = write_to_disk
-
+        self.doc_start_line = -1
+        self.doc_finish_line = -1
         # TODO: create a function out of this
         start = -1
         for i in range(0, len(data)):
@@ -54,8 +55,12 @@ class Document:
         # print(self.doc_num + ': ' + self.title_str)
         data[i] = data[i].replace('[Text]', '')
         data[i] = data[i].replace('<TEXT>', '')
-        self.text = data[self.doc_start_line:self.doc_finish_line]
-        self.doc_pipeline(stop_words_list)
+        if self.doc_start_line == -1 and self.doc_finish_line == -1:
+            self.doc_start_line = first_row_index
+            self.doc_finish_line = last_row_index
+        else:
+            self.text = data[self.doc_start_line:self.doc_finish_line]
+            self.doc_pipeline(stop_words_list)
         # print(self.doc_num)
         q.put(self) # Inserting the document object so the listener will get it
 
@@ -74,23 +79,6 @@ class Document:
         # dict_to_json['orig_data'] = data
         with open('C:\\Chen\\BGU\\2019\\2018 - Semester A\\3. Information Retrival\\Engine\\jsons\\' + self.doc_num + '.txt', 'w') as outfile:
             json.dump(dict_to_json, outfile)
-
-    def set_text(self, data): # No usage
-        start = -1
-        finish = -1
-        for i in range(0, len(data)):
-            if (start == -1 and '<TEXT>' in data[i]) or ('[Text]' in data[i]):
-                start = i + 1
-            if '</TEXT>' in data[i]:
-                finish = i
-                break
-            if '<F P=104>' in data[i]:
-                self.city = data[i].split()[2].upper()
-            if '<F P=101>' in data[i]:
-                self.topic = data[i].split()[2].upper()
-        data[i] = data[i].replace('[Text]', '')
-        data[i] = data[i].replace('<TEXT>', '')
-        self.text = data[start:finish]
 
     def get_doc_parameter(self, line, label):
         start_label = '<' + label + '>'

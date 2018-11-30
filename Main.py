@@ -90,14 +90,14 @@ if __name__ == '__main__':
     # Single file debug config
     if single_file:
         # file = ReadFile(r'C:\Users\Nitzan\Desktop\FB396001', parallel, stem, write_to_disk, q, pool)
-        read_directory(directory=r'C:\Chen\BGU\2019\2018 - Semester A\3. Information Retrival\Engine\test directory\FT test', multiprocess=parallel)
+        read_directory(directory=r'C:\Chen\BGU\2019\2018 - Semester A\3. Information Retrival\Engine\test directory\LA test', multiprocess=parallel)
     else:
         # All files debug config
         # file = ReadFile(r'C:\Users\Nitzan\Desktop\100 file corpus', parallel)
         read_directory(directory=r'C:\Users\Nitzan\Desktop\entire corpus\corpus', multiprocess=parallel)
 
     if Index:
-        indexer_listener()
+        indexer_listener(50)
 
     finish_time = datetime.datetime.now()
     print(finish_time - start_time)

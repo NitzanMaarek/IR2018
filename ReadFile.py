@@ -17,7 +17,7 @@ class ReadFile:
                 if "<DOC>" in line:
                     start = i
                 elif "</DOC>" in line:
-                    Document(data=lines[start + 1: i - 1], q=self.q, stem=self.stem, write_to_disk=self.write_to_disk, stop_words_list=stop_words_list)
+                    Document(data=lines[start + 1: i - 1], q=self.q, stem=self.stem, write_to_disk=self.write_to_disk, stop_words_list=stop_words_list, first_row_index=start, last_row_index=i-1)
             file.close()
         except Exception as e:
             print(e)
