@@ -83,7 +83,7 @@ if __name__ == '__main__':
     # Debug configs:
     single_file = True
     write_to_disk = False
-    parallel = False
+    parallel = True
     stem = False
     Index = True
 
