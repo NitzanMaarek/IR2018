@@ -135,7 +135,7 @@ def merge_chunks(chunks_directory, num_of_chunks, stem_flag):
 
     for prefix in prefix_list:
         list_chunk_dictionaries = get_list_chunks_dictionary(num_of_chunks, prefix, stem_addition_for_prefix)
-        merged_prefix_dictionary = merge_docs(list_chunk_dictionaries)  #TODO: change function here to one that really merges dicitonaries
+        merged_prefix_dictionary = merge_pickles_by_prefix(list_chunk_dictionaries)  #TODO: change function here to one that really merges dicitonaries
         sorted_terms = sorted(merged_prefix_dictionary)
         #Write dictionary as posting file
         dictionary_file_name = ''.join([stem_addition_for_files, 'd_', prefix])     # d_aa or sd_aa for dictionary aa or stemmed aa respectively
@@ -153,14 +153,12 @@ def merge_chunks(chunks_directory, num_of_chunks, stem_flag):
                 d.write(str_for_dictionary)
                 tp.write(str_for_posting)
 
-def merge_pickles_by_prefix(prefix):
+def merge_pickles_by_prefix(dictionaries_list):
     merged_dict = {}
-    for file in os.listdir('pickles'):
-        if file.startswith(prefix):
-            dict = load_obj(file)
-            for key in dict:
-                if key in merged_dict:
-                    merged_dict[key].merge_tokens(dict[key])
-                else:
-                    merged_dict[key] = dict[key]
+    for dict in dictionaries_list:
+        for key in dict:
+            if key in merged_dict:
+                merged_dict[key].merge_tokens(dict[key])
+            else:
+                merged_dict[key] = dict[key]
     return merged_dict
