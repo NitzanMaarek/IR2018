@@ -14,7 +14,7 @@ def merge_docs(doc_list, batch_num):
     # p.nice(psutil.HIGH_PRIORITY_CLASS)
     tokens_dictionary = _create_tokens_dictionary(doc_list)
     documents_dictionary = _create_document_dictionary(doc_list)
-    new_write_dictionary_by_prefix(tokens_dictionary, batch_num)
+    write_dictionary_by_prefix(tokens_dictionary, batch_num)
 
 def _create_tokens_dictionary(doc_list):
     """
@@ -42,18 +42,6 @@ def _create_document_dictionary(doc_list):
     return document_dictionary
 
 def write_dictionary_by_prefix(dict, batch_num):
-    small_letters = string.ascii_lowercase
-    big_letters = string.ascii_uppercase
-    for i, first_letter in enumerate(small_letters):
-        for j, second_letter in enumerate(small_letters):
-            prefix_combos = [first_letter + second_letter, big_letters[i] + second_letter, big_letters[i] + big_letters[j]]
-            sliced_dict = slice_dict(dict, prefix_combos)
-            save_obj(sliced_dict, prefix_combos[0], batch_num)
-
-def slice_dict(dict, prefix_combos):
-    return {k: v for k, v in dict.items() if k.startswith(str(prefix_combos[0])) or k.startswith(str(prefix_combos[1])) or k.startswith(str(prefix_combos[2]))}
-
-def new_write_dictionary_by_prefix(dict, batch_num):
     sorted_keys = sorted(dict)
     temp_dict = {}
     temp_key_prefix = None
@@ -165,6 +153,14 @@ def merge_chunks(chunks_directory, num_of_chunks, stem_flag):
                 d.write(str_for_dictionary)
                 tp.write(str_for_posting)
 
-
-
-
+def merge_pickles_by_prefix(prefix):
+    merged_dict = {}
+    for file in os.listdir('pickles'):
+        if file.startswith(prefix):
+            dict = load_obj(file)
+            for key in dict:
+                if key in merged_dict:
+                    merged_dict[key].merge_tokens(dict[key])
+                else:
+                    merged_dict[key] = dict[key]
+    return merged_dict
