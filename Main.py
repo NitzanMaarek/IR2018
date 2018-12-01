@@ -33,6 +33,8 @@ def read_directory(directory, multiprocess, batch_size=20000):
 
     processed_docs, next_batch_num = dump_proceesed_docs_to_disk(jobs, batch_size, next_batch_num)
     total_doc_count += processed_docs
+    print(datetime.datetime.now() - start_time)
+    Indexer.merge_chunks('pickles\\', next_batch_num + 1, stem)
     print(total_doc_count)
 
 def dump_proceesed_docs_to_disk(jobs, batch_size, next_batch_num):
@@ -86,7 +88,7 @@ def read_stop_words_lines(directory):
 
 if __name__ == '__main__':
     # Debug configs:
-    single_file = False
+    single_file = True
     write_to_disk = False
     parallel = True
     stem = False
@@ -101,7 +103,7 @@ if __name__ == '__main__':
     # Single file debug config
     if single_file:
         # file = ReadFile(r'C:\Users\Nitzan\Desktop\FB396001', parallel, stem, write_to_disk, q, pool)
-        read_directory(directory=r'C:\Chen\BGU\2019\2018 - Semester A\3. Information Retrival\Engine\test directory\300 files', multiprocess=parallel, batch_size=20000)
+        read_directory(directory=r'C:\Chen\BGU\2019\2018 - Semester A\3. Information Retrival\Engine\test directory\10 files', multiprocess=parallel, batch_size=20000)
     else:
         # All files debug config
         # file = ReadFile(r'C:\Users\Nitzan\Desktop\100 file corpus', parallel)

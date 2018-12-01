@@ -78,8 +78,11 @@ def save_obj(obj, name, batch_num):
         pickle.dump(obj, f, pickle.HIGHEST_PROTOCOL)
 
 def load_obj(name):
-    with open('pickles\\' + name + '.pkl', 'rb') as f:
-        return pickle.load(f)
+    file_name = 'pickles\\' + name + '.pkl'
+    if os.path.isfile(file_name):
+        with open(file_name, 'rb') as f:
+            return pickle.load(f)
+    return None
 
 def lower_case_word(token):
     """
@@ -112,8 +115,9 @@ def get_list_chunks_dictionary(num_of_chunks, prefix, stem_str):
     """
     list_dictionaries = []
     for i in range(0,num_of_chunks):
-        dict = load_obj(''.join([prefix, str(i), stem_str]))
-        list_dictionaries.append(dict)
+        dict = load_obj(''.join([prefix, '_', str(i), stem_str]))
+        if not dict == None:
+            list_dictionaries.append(dict)
     return list_dictionaries
 
 def merge_chunks(chunks_directory, num_of_chunks, stem_flag):
@@ -138,8 +142,8 @@ def merge_chunks(chunks_directory, num_of_chunks, stem_flag):
         merged_prefix_dictionary = merge_pickles_by_prefix(list_chunk_dictionaries)  #TODO: change function here to one that really merges dicitonaries
         sorted_terms = sorted(merged_prefix_dictionary)
         #Write dictionary as posting file
-        dictionary_file_name = ''.join([stem_addition_for_files, 'd_', prefix])     # d_aa or sd_aa for dictionary aa or stemmed aa respectively
-        posting_file_name = ''.join([stem_addition_for_files, 'tp_', prefix])        # tp_aa or stp_aa for TERM posting or stemmed posting for aa respectively
+        dictionary_file_name = ''.join(['pickles\\', stem_addition_for_files, 'd_', prefix])     # d_aa or sd_aa for dictionary aa or stemmed aa respectively
+        posting_file_name = ''.join(['pickles\\', stem_addition_for_files, 'tp_', prefix])        # tp_aa or stp_aa for TERM posting or stemmed posting for aa respectively
         with open(dictionary_file_name, 'w') as d, open (posting_file_name, 'w') as tp:
             for term in sorted_terms:
                 seek_offset = 0
@@ -148,7 +152,7 @@ def merge_chunks(chunks_directory, num_of_chunks, stem_flag):
                 str_for_posting = ''.join([term, term_documents_attributes])
                 #string is: term <doc_id tf first_position_in_doc doc_pointer> <doc_id tf first_position_in_doc doc_pointer>...
                 seek_offset += len(str_for_posting) + 2     #+2 to jump to next line and skip token \n
-                str_for_dictionary = ''.join([term, term.df, posting_file_name, str(seek_offset)])
+                str_for_dictionary = ''.join([term, str(merged_prefix_dictionary[term].df), posting_file_name, str(seek_offset)])
                 #string is term df posting_file_name seek_position(pointer to line of term)
                 d.write(str_for_dictionary)
                 tp.write(str_for_posting)
