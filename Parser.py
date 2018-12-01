@@ -1,10 +1,6 @@
-
 from nltk.stem.porter import *
 
 class Parser:
-
-
-
     def __init__(self, stop_words_list):
         self.percent_key_words = {'%', 'percent', 'percentage'}
         self.dollar_key_words = {'$', 'Dollars', 'dollars'}
