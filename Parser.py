@@ -1,4 +1,4 @@
-
+from nltk import word_tokenize
 from nltk.stem.porter import *
 
 class Parser:
@@ -16,7 +16,7 @@ class Parser:
                                  'july': '07', 'august': '08', 'september': '09', 'october': '10', 'november': '11', 'december': '12'}
         self.month_first_letter_array = ['a', 'A', 'd', 'D', 'f', 'F', 'j', 'J', 'm', 'M', 'n', 'N', 'o', 'O', 's', 'S']
         # locale.setlocale(locale.LC_ALL, 'en_US.UTF-8')
-        self.delimiters = {' ', ',', '.', '/', '"', '\'', '\\', '(', ')', '[', ']', '{', '}', ':', '-', ';', '?', '!', '*', '>', '<', '&', '+', '#', '@', '_', '='}
+        self.delimiters = {' ', ',', '.', '/', '"', '\'', '\\', '(', ')', '[', ']', '{', '}', ':', '-', ';', '?', '!', '*', '>', '<', '&', '+', '#', '@', '^', '_', '='}
         self.token_index = 0
         self.word = ''
         self.line_index = 0     # Index of words in a line
@@ -122,7 +122,6 @@ class Parser:
                 # key_f, value_f = items in dictionary of Frequency/appearences
                 merged_sorted_dictionary[key_p] = (self.token_dictionary_num_of_appearance[key_f], self.token_dictionary_first_position[key_p])
 
-            # merged_sorted_dictionary = sorted(merged_sorted_dictionary)
             return merged_sorted_dictionary
         return None
 
@@ -302,7 +301,18 @@ class Parser:
             self.token_upper_case_dictionary[token] = 0
         elif 'a' < first_token < 'z':
             token = self.lower_case_word(token)
+        # else:
+        #     token = self.tokenize_unknown_word(token)
         return token
+
+    def tokenize_unnkown_word(self, word):
+        """
+        Tokenizes an unknown word and parses tokens
+        :param word:
+        :return: list of tokens?
+        """
+        words_after_tokenize = word_tokenize(word)
+        print("Word before tokenization: " + word + '   After tokenization: ' + words_after_tokenize)
 
 
 
@@ -563,6 +573,7 @@ class Parser:
         else:
             if self.word.__contains__('-'):
                 token = self.word
+                #TODO: add to line both numbers in range to get parsed again.
             elif self.word.__contains__('/'):
                 token = self.parse_fraction()
             elif self.word.__contains__(','):
@@ -580,6 +591,7 @@ class Parser:
         return token
 
     def parse_range(self):
+        # *** NEED TO FIX FUNCTION, CURRENTLY NOT IN USE ***
         after_split = self.word.split('-')
         if len(after_split) == 2:
             if (self.is_any_kind_of_number(after_split[0]) and self.is_any_kind_of_number(after_split[1])) or (self.is_any_kind_of_number(after_split[0]) and not self.is_any_kind_of_number(after_split[1])):
@@ -597,7 +609,7 @@ class Parser:
                 if len(self.tokens) >= 1:
                     previous_word = self.tokens[-1]      # TODO: Need to check previous_word != '\n'
                     if self.is_any_kind_of_number(previous_word):
-                        self.delete_token_i(1)
+                        self.delete_token_i(1)      #Delete tokenized number to tokenize number with fraction as single token
                         # del self.tokens[-1]
                         return previous_word + ' ' + self.word
                     else:
@@ -781,25 +793,32 @@ class Parser:
     def replace_thousands(self, value):
         """
         Replaces thousands
-        :param value: String value of the number
+        :param value: String value of the number: either with comma or with "Thousand" or with '.'.
         :return: String after parsing
         """
         # value = match.group()
         str_value = value
         if "," in str_value:
-            if not str_value.split(',')[1] == '000':
-                str_value = str_value.split(',')[0] + '.' + str_value.split(',')[1].rstrip(
-                    '0') + 'K'  # if not <int>,<int>{3}
+            str_after_split = str_value.split(',')
+            if not str_after_split[1] == '000':
+                thousands = str_after_split[0]
+                after_decimal_point = str_after_split[1].rstrip('0')
+                if len(after_decimal_point) > 2:     # No more than 2 digits after decimal point
+                    after_decimal_point = after_decimal_point[:2]
+                str_value = thousands + '.' + after_decimal_point + 'K'  # if not <int>,<int>{3}
             else:
-                str_value = str_value.split(',')[0] + 'K'  # if <int>,000 when x =[1-9]
+                str_value = str_value.split(',')[0] + 'K'  # if x,000 when x =[1-9]
         elif str_value.__contains__("Thousand"):
             str_value = str_value.split(' ')[0] + 'K'  # if <int> Thousand
-        elif str_value.__contains__("."):  # if number has no comma (,)
+        elif str_value.__contains__("."):  # if number has a decimal point '.'
             comma_position = str_value.find(".")
             beginning = str_value[0:comma_position - 3]
             middle = str_value[comma_position - 3:comma_position]
             end = str_value[comma_position + 1:]
-            str_value = beginning + "." + middle + end + "K"
+            after_decimal_point = middle + end
+            if len(after_decimal_point) > 2:     #No more than 2 digits after decimal point
+                after_decimal_point = after_decimal_point[:2]
+            str_value = beginning + "." + after_decimal_point + "K"
         return str_value
 
     def replace_millions(self, value):
@@ -816,9 +835,17 @@ class Parser:
                 if str_after_split[1] == '000':  # If 5,000,000
                     str_value = str_after_split[0] + 'M'
                 else:  # if 5,204,000
-                    str_value = str_after_split[0] + '.' + str_after_split[1].rstrip('0') + 'M'
+                    millions = str_after_split[0]
+                    after_decimal_point = str_after_split[1].rstrip('0')
+                    if len(after_decimal_point) > 2:       # No more than 2 digits after decimal point.
+                        after_decimal_point = after_decimal_point[:2]
+                    str_value = millions + '.' + after_decimal_point + 'M'
             else:  # if 5,203,400
-                str_value = str_after_split[0] + '.' + str_after_split[1] + str_after_split[2].rstrip('0') + "M"
+                millions = str_after_split[0]
+                after_decimal_point = str_after_split[1] + str_after_split[2].rstrip('0')
+                if len(after_decimal_point) > 2:     # No more than 2 digits after decimal point.
+                    after_decimal_point = after_decimal_point[:2]
+                str_value = millions + '.' + after_decimal_point + "M"
         elif str_value.__contains__("Million"):
             str_value = str_value.split(' ')[0] + 'M'
         elif str_value.__contains__('.'):
@@ -826,7 +853,10 @@ class Parser:
             beginning = str_value[0:comma_position - 6]
             middle = str_value[comma_position - 6:comma_position]
             end = str_value[comma_position + 1:]
-            str_value = beginning + "." + middle + end + "M"
+            after_decimal_point = middle + end
+            if len(after_decimal_point) > 2:     # No more than 2 digits after decimal point
+                after_decimal_point = after_decimal_point[:2]
+            str_value = beginning + "." + after_decimal_point + "M"
         return str_value
 
     def replace_billions(self, value):
@@ -839,14 +869,21 @@ class Parser:
         str_value = value
         if str_value.__contains__(','):
             str_after_split = str_value.split(',')
+            after_decimal_point = ''
             if str_after_split[3] == str_after_split[2] == str_after_split[1] == '000':
                 str_value = str_after_split[0] + 'B'
             elif str_after_split[3] == str_after_split[2] == '000':
-                str_value = str_after_split[0] + '.' + str_after_split[1].rstrip('0') + 'B'
+                after_decimal_point = str_after_split[1].rstrip('0')
+                # str_value = str_after_split[0] + '.' + after_decimal_point + 'B'
             elif str_after_split[3] == '000':
-                str_value = str_after_split[0] + '.' + str_after_split[1] + str_after_split[2].rstrip('0') + 'B'
+                after_decimal_point = str_after_split[1] + str_after_split[2].rstrip('0')
+                # str_value = str_after_split[0] + '.' + after_decimal_point + 'B'
             else:
-                str_value = str_after_split[0] + '.' + str_after_split[1] + str_after_split[2] + str_after_split[3].rstrip('0') + 'B'
+                after_decimal_point = str_after_split[1] + str_after_split[2] + str_after_split[3].rstrip('0')
+                # str_value = str_after_split[0] + '.' + after_decimal_point + 'B'
+            if len(after_decimal_point) > 2:     # No more than 2 digits after decimal point
+                after_decimal_point = after_decimal_point[:2]
+            str_value = str_after_split[0] + '.' + after_decimal_point + 'B'
         elif str_value.__contains__('Billion'):
             str_value = str_value.split(' ')[0] + 'B'
         return str_value

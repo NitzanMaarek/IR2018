@@ -32,12 +32,24 @@ class Token:
         self.df = params_list[1]
         self.doc_dict = self._create_doc_dict_from_string(params_string[2:])
 
+
     def _create_doc_dict_from_string(self, list_of_docs_string):
         self.doc_dict = {}
 
         for string in list_of_docs_string:
             string = string.split()
             self.doc_dict[string[0]] = string[1:]
+
+
+    def create_string_from_doc_dictionary(self):
+        dict_str = ''
+        for doc_id in self.doc_dict:
+            doc_attributes = self.doc_dict[doc_id]
+            doc_pointer = 'Pointer to document location in file'
+            #TODO: need to get pointer to doc posting file
+            dict_str = ''.join([dict_str, (''.join(['<', doc_id, ' ', doc_attributes, ' ', doc_pointer, '>', ' ']))])
+        return dict_str
+
 
     def merge_tokens(self, second_token):
         self.df += second_token.df
