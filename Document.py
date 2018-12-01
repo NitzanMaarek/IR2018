@@ -63,14 +63,14 @@ class Document:
                 self.doc_start_line = first_row_index
                 self.doc_finish_line = last_row_index
             else:
-                self.text = data[self.doc_start_line:self.doc_finish_line]
-                self.doc_pipeline(stop_words_list)
+                # self.text = data[self.doc_start_line:self.doc_finish_line]
+                self.doc_pipeline(stop_words_list, data[self.doc_start_line:self.doc_finish_line])
             # print(self.doc_num)
             q.put(self) # Inserting the document object so the listener will get it
 
-    def doc_pipeline(self, stop_words_list):
+    def doc_pipeline(self, stop_words_list, text):
         parser = Parser(stop_words_list)        # TODO: Need to give parser the stop_words list
-        self.tokens = parser.parser_pipeline(self.text, self.stem)
+        self.tokens = parser.parser_pipeline(text, self.stem)
         if self.write_to_disk: # TODO: Not sure it works in python need to check that
             self.to_json() # TODO: Change it to HDF5
 
@@ -78,7 +78,7 @@ class Document:
         dict_to_json = {}
         dict_to_json['doc_num'] = self.doc_num
         dict_to_json['HT'] = self.HT
-        dict_to_json['Text'] = self.text
+        # dict_to_json['Text'] = self.text
         dict_to_json['Tokens'] = self.tokens
         # dict_to_json['orig_data'] = data
         with open('C:\\Chen\\BGU\\2019\\2018 - Semester A\\3. Information Retrival\\Engine\\jsons\\' + self.doc_num + '.txt', 'w') as outfile:

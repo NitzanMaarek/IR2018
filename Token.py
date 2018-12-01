@@ -32,10 +32,13 @@ class Token:
         self.df = params_list[1]
         self.doc_dict = self._create_doc_dict_from_string(params_string[2:])
 
-
     def _create_doc_dict_from_string(self, list_of_docs_string):
         self.doc_dict = {}
 
         for string in list_of_docs_string:
             string = string.split()
             self.doc_dict[string[0]] = string[1:]
+
+    def merge_tokens(self, second_token):
+        self.df += second_token.df
+        self.doc_dict = {**self.doc_dict, **second_token.doc_dict}
