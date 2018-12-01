@@ -144,7 +144,7 @@ def merge_chunks(chunks_directory, num_of_chunks, stem_flag):
             for term in sorted_terms:
                 seek_offset = 0
                 term_record = Token(merged_prefix_dictionary[term])     #TODO: remove casting
-                term_documents_attributes = term_record.create_string_from_doc_dictionary()
+                term_documents_attributes = term_record.create_string_from_doc_dictionary() #TODO: Need to add pointer to documents to attributes.
                 str_for_posting = ''.join([term, term_documents_attributes])
                 #string is: term <doc_id tf first_position_in_doc doc_pointer> <doc_id tf first_position_in_doc doc_pointer>...
                 seek_offset += len(str_for_posting) + 2     #+2 to jump to next line and skip token \n
