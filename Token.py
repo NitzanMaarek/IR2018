@@ -45,9 +45,11 @@ class Token:
         dict_str = ''
         for doc_id in self.doc_dict:
             doc_attributes = self.doc_dict[doc_id]
+            tf = doc_attributes[0]
+            first_position = doc_attributes[1]
             doc_pointer = 'Pointer to document location in file'
             #TODO: need to get pointer to doc posting file
-            dict_str = ''.join([dict_str, (''.join(['<', doc_id, ' ', doc_attributes, ' ', doc_pointer, '>', ' ']))])
+            dict_str = ''.join([dict_str, (''.join(['<', doc_id, ' ', str(tf), ' ', str(first_position), ' ', doc_pointer, '>', ' ']))])
         return dict_str
 
 
