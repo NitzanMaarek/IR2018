@@ -2,7 +2,7 @@ from Parser import Parser
 import json
 
 class Document:
-    def __init__(self, file_name = None, data = None, stem = False, q = None, write_to_disk = False, stop_words_list = None, first_row_index = None, last_row_index = None, disk_string = None):
+    def __init__(self, file_name = None, data = None, stem = False, write_to_disk = False, stop_words_list = None, first_row_index = None, last_row_index = None, disk_string = None):
         if not disk_string is None:
             self._define_params_from_string(disk_string)
         else:
@@ -66,7 +66,7 @@ class Document:
                 # self.text = data[self.doc_start_line:self.doc_finish_line]
                 self.doc_pipeline(stop_words_list, data[self.doc_start_line:self.doc_finish_line])
             # print(self.doc_num)
-            q.put(self) # Inserting the document object so the listener will get it
+            # q.put(self) # Inserting the document object so the listener will get it
 
     def doc_pipeline(self, stop_words_list, text):
         parser = Parser(stop_words_list)        # TODO: Need to give parser the stop_words list
@@ -103,6 +103,10 @@ class Document:
         return ' '.join(params)
 
     def _define_params_from_string(self, params_string):
+        """
+        Used for initiating an document object using string from posting file which is written in the disk
+        :param params_string: string which represents the parameters of the object
+        """
         params_list = params_string.split()
         self.doc_num = params_list[0]
         self.file_name = params_list[1]
