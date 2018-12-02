@@ -3,10 +3,16 @@ import os
 import multiprocessing as mp
 import Indexer
 from ReadFile import ReadFile
-import time
 
 def read_directory(directory, multiprocess, batch_size=20000):
-    # file_reader = ReadFile(stem, write_to_disk, q)
+    """
+    Iterating over files in a directory and opening ReadFile object for each one.
+    The ReadFile object processes the file and creates Document objects.
+    After finishing a certain amount of Documents the function writes the data to the disk.
+    :param directory: directory to read path
+    :param multiprocess: multiprocess or sequential
+    :param batch_size: after how many files write the data to the disk
+    """
     jobs = []
     file_count = 0
     total_doc_count = 0
@@ -33,11 +39,18 @@ def read_directory(directory, multiprocess, batch_size=20000):
 
     processed_docs, next_batch_num = dump_proceesed_docs_to_disk(jobs, batch_size, next_batch_num)
     total_doc_count += processed_docs
-    print(datetime.datetime.now() - start_time)
+    print('Until merge runtime: ' + str(datetime.datetime.now() - start_time))
     Indexer.merge_chunks('pickles\\', next_batch_num + 1, stem)
     print(total_doc_count)
 
 def dump_proceesed_docs_to_disk(jobs, batch_size, next_batch_num):
+    """
+    Writing the processed data to the disk before reading more files
+    :param jobs: jobs of documents
+    :param batch_size: how many files to write to disk per batch
+    :param next_batch_num: next batch index
+    :return: count of how many documents we processed and the number of writing to disk batches we did
+    """
     doc_count = 0
     temp_doc_count = 0
     merge_jobs = []
@@ -63,12 +76,18 @@ def dump_proceesed_docs_to_disk(jobs, batch_size, next_batch_num):
     return doc_count, batch_count
 
 def batch_to_disk(batch_size, batch_num, q):
+    """
+    Writing the next given amount of documents to the disk
+    :param batch_size: how many documents should we write to the disk
+    :param batch_num: batch serial number
+    :param q: queue from which we retrieve the Document objects from
+    """
     docs = []
     count = 0
     while batch_size > count:
         docs.append(q.get())
         count += 1
-    Indexer.merge_docs(docs, batch_num)
+    Indexer.write_docs_list_to_disk(docs, batch_num)
 
 def read_stop_words_lines(directory):
     try:
@@ -103,7 +122,7 @@ if __name__ == '__main__':
     # Single file debug config
     if single_file:
         # file = ReadFile(r'C:\Users\Nitzan\Desktop\FB396001', parallel, stem, write_to_disk, q, pool)
-        read_directory(directory=r'C:\Users\Nitzan\Desktop\IR 2018 files desktop\FB396001', multiprocess=parallel, batch_size=20000)
+        read_directory(directory=r'C:\Chen\BGU\2019\2018 - Semester A\3. Information Retrival\Engine\test directory\10 files', multiprocess=parallel, batch_size=20000)
     else:
         # All files debug config
         # file = ReadFile(r'C:\Users\Nitzan\Desktop\100 file corpus', parallel)
