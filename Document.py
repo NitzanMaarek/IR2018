@@ -97,8 +97,8 @@ class Document:
         params.append(str(self.doc_start_line))
         params.append(str(self.doc_finish_line))
         # params.append(str(self.max_tf)) # TODO: add max tf parameter
-        params.append(str(self.city))
-        params.append(str(self.title_str)) # TODO: need to choose if to return the tokens of the title
+        # params.append(str(self.city))
+        # params.append(str(self.title_str)) # TODO: need to choose if to return the tokens of the title
 
         return ' '.join(params)
 
@@ -115,3 +115,21 @@ class Document:
         # self.max_tf = params_list[4] # TODO: add max tf parameter
         self.city = params_list[5]
         self.title_str = params_list[6]
+
+    def set_pointer(self, batch_num, seek_value):
+        """
+        Adds value of the pointer to the document posting
+        :param batch_num: the batch number which represents the posting file code
+        :param seek_value:
+        :return:
+        """
+        self.batch_num = batch_num
+        self.seek_value = seek_value
+
+    def get_pointer_as_string(self):
+        """
+        Function to get the document pointer
+        :return: string which represents the pointer
+        """
+        string_list = [str(self.batch_num), self.file_name[:2], str(self.seek_value)]
+        return ' '.join(string_list)

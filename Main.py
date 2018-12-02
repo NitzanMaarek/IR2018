@@ -27,7 +27,7 @@ def read_directory(directory, multiprocess, batch_size=20000):
                     job = pool.apply_async(ReadFile, (file, stem, write_to_disk, q, path, stop_words_list))
                     jobs.append(job)
                     file_count += 1
-                    if file_count == 400:
+                    if file_count == 300:
                         print('dumping files')
                         processed_docs, next_batch_num = dump_proceesed_docs_to_disk(jobs, batch_size, next_batch_num)
                         next_batch_num += 1
@@ -53,7 +53,7 @@ def dump_proceesed_docs_to_disk(jobs, batch_size, next_batch_num):
     """
     doc_count = 0
     temp_doc_count = 0
-    merge_jobs = []
+    batch_jobs = []
     batch_count = next_batch_num
     for job in jobs:
         new_docs_num = job.get().doc_count
@@ -63,14 +63,14 @@ def dump_proceesed_docs_to_disk(jobs, batch_size, next_batch_num):
             print('started batch num: ' + str(batch_count))
             job = pool.apply_async(batch_to_disk, (batch_size, batch_count, q))
             batch_count += 1
-            merge_jobs.append(job)
+            batch_jobs.append(job)
             temp_doc_count -= batch_size
 
     print('started batch num: ' + str(batch_count))
     job = pool.apply_async(batch_to_disk, (temp_doc_count, batch_count, q))
-    merge_jobs.append(job)
+    batch_jobs.append(job)
 
-    for job in merge_jobs:
+    for job in batch_jobs:
         res = job.get()
 
     return doc_count, batch_count
@@ -122,7 +122,7 @@ if __name__ == '__main__':
     # Single file debug config
     if single_file:
         # file = ReadFile(r'C:\Users\Nitzan\Desktop\FB396001', parallel, stem, write_to_disk, q, pool)
-        read_directory(directory=r'C:\Chen\BGU\2019\2018 - Semester A\3. Information Retrival\Engine\test directory\10 files', multiprocess=parallel, batch_size=20000)
+        read_directory(directory=r'C:\Chen\BGU\2019\2018 - Semester A\3. Information Retrival\Engine\test directory\300 files', multiprocess=parallel, batch_size=20000)
     else:
         # All files debug config
         # file = ReadFile(r'C:\Users\Nitzan\Desktop\100 file corpus', parallel)

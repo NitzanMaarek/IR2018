@@ -5,43 +5,55 @@ from Document import Document
 import string
 import os
 
+run_time_directory = 'C:\\Chen\\BGU\\2019\\2018 - Semester A\\3. Information Retrival\\Engine\\test directory\\created files\\'
+
 def write_docs_list_to_disk(doc_list, batch_num):
     """
     Used for merging a few documents to one dictionary of tokens and one of documents
     :param doc_list: List of document objects
     :return: dictionary of tokens
     """
-    tokens_dictionary, documents_dictionary = create_merged_dictionaries(doc_list)
+    tokens_dictionary = create_merged_dictionary_and_doc_posting(doc_list, batch_num)
     write_dictionary_by_prefix(tokens_dictionary, batch_num)
-    write_dictionary_by_prefix(documents_dictionary, batch_num, 'doc_')
 
-def create_merged_dictionaries(doc_list):
+def create_merged_dictionary_and_doc_posting(doc_list, batch_num):
     """
     Creates a dictionary for all the unique tokens in the current batch and for all the documents.
     The dictionary is created from a list of document objects which might have the duplicate terms.
     :param doc_list: Gets
     :return: merged dictionary
     """
+
     tokens_dict = {}
-    document_dictionary = {}
+    pointers_dictionary = {}
+    current_length = 0
 
-    for doc in doc_list:
-        if hasattr(doc, 'tokens'):
-            for key in doc.tokens:
-                if key in tokens_dict:
-                    tokens_dict[key].add_data(doc.tokens[key], doc.doc_num)
-                else:
-                    tokens_dict[key] = Token(key)
-                    tokens_dict[key].add_data(doc.tokens[key], doc.doc_num)
-        document_dictionary[doc.doc_num] = doc
-    return tokens_dict, document_dictionary
+    with open(run_time_directory + 'document posting\\' + 'doc_posting_' +  str(batch_num), 'w') as file:
 
-def write_dictionary_by_prefix(dict, batch_num, added_tag=''):
+        for doc in doc_list:
+            # Adding doc to posting
+            doc.set_pointer(batch_num, current_length)
+            doc_string = doc.write_to_disk_string() + '\n'
+            file.write(doc_string)
+            pointers_dictionary[doc.doc_num] = current_length
+            doc_pointer = str(batch_num) + ' ' + str(current_length)
+            current_length = len(doc_string) + 1
+
+            # Merging tokens
+            if hasattr(doc, 'tokens'):
+                    for key in doc.tokens:
+                        if key in tokens_dict:
+                            tokens_dict[key].add_data(doc_pointer, doc.tokens[key], doc.doc_num)
+                        else:
+                            tokens_dict[key] = Token(key)
+                            tokens_dict[key].add_data(doc_pointer, doc.tokens[key], doc.doc_num)
+    return tokens_dict
+
+def write_dictionary_by_prefix(dict, batch_num):
     """
     Writes to the disk all the values in the given dictionary by their 2 letters prefix or the first number
     :dict: the given dictionary
     :param batch_num: added prefix so we won't write over different batches
-    :param added_tag: added prefix tag to the file name
     """
     sorted_keys = sorted(dict)
     temp_dict = {}
@@ -59,10 +71,10 @@ def write_dictionary_by_prefix(dict, batch_num, added_tag=''):
                 continue
             else:
                 if temp_key_prefix[0].isdigit():
-                    save_obj(temp_dict, added_tag + temp_key_prefix, batch_num)
+                    save_obj(temp_dict, temp_key_prefix, batch_num)
                     temp_key_prefix = lower_case_key[0]
                 else:
-                    save_obj(temp_dict, added_tag + temp_key_prefix, batch_num)
+                    save_obj(temp_dict, temp_key_prefix, batch_num)
                     temp_key_prefix = lower_case_key[:2]
                 temp_dict = {}
                 temp_dict[key] = dict[key]
@@ -74,14 +86,14 @@ def write_dictionary_by_prefix(dict, batch_num, added_tag=''):
         temp_dict[key] = dict[key]
 
     # Writing the last dictionary to the memory:
-    save_obj(temp_dict, added_tag + temp_key_prefix, batch_num)
+    save_obj(temp_dict, temp_key_prefix, batch_num)
 
 def save_obj(obj, name, batch_num):
-    with open('pickles\\' + name + '_' + str(batch_num) + '.pkl', 'wb') as f:
+    with open(run_time_directory + 'pickles\\' + name + '_' + str(batch_num) + '.pkl', 'wb') as f:
         pickle.dump(obj, f, pickle.HIGHEST_PROTOCOL)
 
 def load_obj(name):
-    file_name = 'pickles\\' + name + '.pkl'
+    file_name = run_time_directory + 'pickles\\' + name + '.pkl'
     if os.path.isfile(file_name):
         with open(file_name, 'rb') as f:
             return pickle.load(f)
@@ -106,8 +118,6 @@ def lower_case_word(token):
         return ''.join(chars_list)
     return token
 
-
-
 def get_list_chunks_dictionary(num_of_chunks, prefix, stem_str):
     """
     reads all pickle files of given prefix and collects all dictionaries to a list
@@ -122,6 +132,34 @@ def get_list_chunks_dictionary(num_of_chunks, prefix, stem_str):
         if not dict == None:
             list_dictionaries.append(dict)
     return list_dictionaries
+
+# def create_posting_and_dictionary(chunks_directory, num_of_chunks, stem_flag):
+#     merged_documents_dict, doc_prefix_set = load_merged_documents_dictionary(chunks_directory, num_of_chunks)
+#     documents_dictionary = create_document_posting(merged_documents_dict, doc_prefix_set)
+#     tokens_dictionary = create_tokens_posting(documents_dictionary)
+#
+# def load_merged_documents_dictionary(chunks_directory, num_of_chunks):     # TODO: Create city posting
+#     doc_prefix_set = set()
+#     file_list = []
+#
+#     # Checking which file in the pickles dir are needed for the document posting
+#     for file in os.listdir(chunks_directory):
+#         if 'doc' in file:
+#             doc_prefix_set.add(file[4:6])
+#             file_list.append(file)
+#
+#     # Reading all the relevant files as dictionaries and merging them into one dictionary
+#     documents_dictionary = {}
+#     for file in file_list:
+#         documents_dictionary.update(load_obj(file))
+#
+#     return documents_dictionary, doc_prefix_set
+#
+# def create_document_posting(merged_documents_dict, doc_prefix_set):
+#     docs_names = sorted(merged_documents_dict)
+#     for prefix in doc_prefix_set:
+#
+
 
 def merge_chunks(chunks_directory, num_of_chunks, stem_flag):
     """
@@ -147,8 +185,8 @@ def merge_chunks(chunks_directory, num_of_chunks, stem_flag):
         merged_prefix_dictionary = merge_tokens_dictionaries(list_chunk_dictionaries)  #TODO: change function here to one that really merges dicitonaries
         sorted_terms = sorted(merged_prefix_dictionary)
         # Write dictionary as posting file
-        dictionary_file_name = ''.join(['pickles\\', stem_addition_for_files, 'd_', prefix])     # d_aa or sd_aa for dictionary aa or stemmed aa respectively
-        posting_file_name = ''.join(['pickles\\', stem_addition_for_files, 'tp_', prefix])        # tp_aa or stp_aa for TERM posting or stemmed posting for aa respectively
+        dictionary_file_name = ''.join([run_time_directory , stem_addition_for_files, 'd_', prefix])     # d_aa or sd_aa for dictionary aa or stemmed aa respectively
+        posting_file_name = ''.join([run_time_directory, 'terms posting\\', stem_addition_for_files, 'tp_', prefix])        # tp_aa or stp_aa for TERM posting or stemmed posting for aa respectively
         seek_offset = 0
         with open(dictionary_file_name, 'w') as d, open (posting_file_name, 'w') as tp:
             for term in sorted_terms:
@@ -163,13 +201,13 @@ def merge_chunks(chunks_directory, num_of_chunks, stem_flag):
                 tp.write(str_for_posting)
 
 # def create_documents_posting(chunks_directory, num_of_chunks):
-    
+
 
 def merge_tokens_dictionaries(dictionaries_list):
     """
     A function that merges dictionaries with tokens
-    :param dictionaries_list:
-    :return:
+    :param dictionaries_list: a list of dictionaries with token objects
+    :return: the merged tokens dictionary
     """
     merged_dict = {}
     for dict in dictionaries_list:

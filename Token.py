@@ -8,9 +8,10 @@ class Token:
             self.df = 0
             self.doc_dict = {}
 
-    def add_data(self, tuple, doc_num):
+    def add_data(self, doc_pointer, tuple, doc_num):
         self.df += 1
-        self.doc_dict[doc_num] = (tuple[0], tuple[1])
+        self.doc_dict[doc_num] = (tuple[0], tuple[1], doc_pointer)
+
 
     def string_to_disk(self):
         """
@@ -47,12 +48,14 @@ class Token:
             doc_attributes = self.doc_dict[doc_id]
             tf = doc_attributes[0]
             first_position = doc_attributes[1]
-            doc_pointer = 'Pointer to document location in file'
+            doc_pointer = doc_attributes[2]
             #TODO: need to get pointer to doc posting file
             dict_str = ''.join([dict_str, (''.join(['<', doc_id, ' ', str(tf), ' ', str(first_position), ' ', doc_pointer, '>', ' ']))])
         return dict_str
 
-
     def merge_tokens(self, second_token):
         self.df += second_token.df
         self.doc_dict = {**self.doc_dict, **second_token.doc_dict}
+
+    def add_document_pointer(self, doc_name, pointer_value):
+        self.doc_dict[doc_name] = pointer_value
