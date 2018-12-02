@@ -146,15 +146,15 @@ def merge_chunks(chunks_directory, num_of_chunks, stem_flag):
         #Write dictionary as posting file
         dictionary_file_name = ''.join(['pickles\\', stem_addition_for_files, 'd_', prefix])     # d_aa or sd_aa for dictionary aa or stemmed aa respectively
         posting_file_name = ''.join(['pickles\\', stem_addition_for_files, 'tp_', prefix])        # tp_aa or stp_aa for TERM posting or stemmed posting for aa respectively
+        seek_offset = 0
         with open(dictionary_file_name, 'w') as d, open (posting_file_name, 'w') as tp:
             for term in sorted_terms:
-                seek_offset = 0
                 term_record = merged_prefix_dictionary[term]     #TODO: remove casting
                 term_documents_attributes = term_record.create_string_from_doc_dictionary() #TODO: Need to add pointer to documents to attributes.
-                str_for_posting = ''.join([term, ' ', term_documents_attributes])
+                str_for_posting = ''.join([term, ' ', term_documents_attributes, '\n'])
                 #string is: term <doc_id tf first_position_in_doc doc_pointer> <doc_id tf first_position_in_doc doc_pointer>...
-                seek_offset += len(str_for_posting) + 2     #+2 to jump to next line and skip token \n
-                str_for_dictionary = ''.join([term, ' ', str(merged_prefix_dictionary[term].df), ' ', posting_file_name, ' ', str(seek_offset)])
+                seek_offset += len(str_for_posting)
+                str_for_dictionary = ''.join([term, ' <', str(merged_prefix_dictionary[term].df), ' ', posting_file_name, ' ', str(seek_offset), '>\n'])
                 #string is term df posting_file_name seek_position(pointer to line of term)
                 d.write(str_for_dictionary)
                 tp.write(str_for_posting)
