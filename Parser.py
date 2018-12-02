@@ -43,9 +43,8 @@ class Parser:
     def create_tokens(self, data):
         self.tokens = []
         self.data_length = len(data)
-        self.between_flag = False
+        stop_words_length = len(self.stop_words_list)
         self.between_index = 0
-        self.stop_word_flag = True
         for data_index, line in enumerate(data, start=0):
             self.data_index = data_index
             self.line = line.split()
@@ -63,12 +62,12 @@ class Parser:
                 if self.word == 'between' or self.word == 'Between':
                     self.between_index = 1
 
-                if self.between_index == 0 and self.word in self.stop_words_list:
+                if self.between_index == 0 and stop_words_length != 0 and self.word in self.stop_words_list:
                     continue
 
                 # Here we're supposed to have the word (not stop-word) without any delimiters
                 # Word is normal word and also String with delimiters in inside: number with comma, words with slash etc..
-                #TODO: Maybe remove delimiters INSIDE the word? like: england/france/spain is saved like that as token
+                # TODO: Maybe remove delimiters INSIDE the word? like: england/france/spain is saved like that as token
                 token = self.parse_strings()
 
                 if token is not None and len(token) > 0:
@@ -583,11 +582,34 @@ class Parser:
                 pattern = re.compile(r'(([1-9]\d{9,11}\.\d{1,9})|([1-9]\d{6,8}\.\d{0,9})|([1-9]\d{3,5}\.\d{1,9}))')         #Numbers with decimal point
                 token = pattern.sub(self.replace_only_numbers_regex, self.word)       #Substitute to parsed string
             elif self.is_integer(self.word):        # Normal number between 0-999 possibly
-                token = self.word
+                if len(self.word) >= 4:
+                    token = self.add_commas_to_integer(self.word)
+                    pattern = re.compile(r'(([1-9]\d{0,2},\d{3},\d{3},\d{3})|([1-9]\d{0,2},\d{3},\d{3})|([1-9]\d{0,2},\d{3}))')  # Numbers with comma
+                    token = pattern.sub(self.replace_only_numbers_regex, token)  # Substitute to parsed string
+                else:
+                    token = self.word
 
         if percent and token is not None:
             token = token + '%'
 
+        return token
+
+    def add_commas_to_integer(self, number):
+        """
+        receives integer and adds comma's to it
+        :param number:
+        :return:
+        """
+        number_length = len(number)
+        token = ''
+        i = number_length - 1
+        counter = 1
+        while i >= 0:
+            token = ''.join([number[i], token])
+            if counter % 3 == 0:
+                token = ''.join([',', token])
+            counter += 1
+            i -= 1
         return token
 
     def parse_range(self):

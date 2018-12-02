@@ -71,8 +71,8 @@ class Document:
     def doc_pipeline(self, stop_words_list, text):
         parser = Parser(stop_words_list)        # TODO: Need to give parser the stop_words list
         self.tokens = parser.parser_pipeline(text, self.stem)
-        if self.write_to_disk: # TODO: Not sure it works in python need to check that
-            self.to_json() # TODO: Change it to HDF5
+        if self.write_to_disk:  # TODO: Not sure it works in python need to check that
+            self.to_json()  # TODO: Change it to HDF5
 
     def to_json(self):
         dict_to_json = {}
