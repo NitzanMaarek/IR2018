@@ -41,10 +41,16 @@ def read_directory(directory, multiprocess, batch_size=20000):
     if len(jobs) > 0:
         processed_docs, next_batch_num = dump_proceesed_docs_to_disk(jobs, batch_size, next_batch_num)
         total_doc_count += processed_docs
+    print('total docs: ' + str(total_doc_count))
     print('Until merge runtime: ' + str(datetime.datetime.now() - start_time))
-    terms_dictionary = create_tokens_posting()
-    Indexer.save_obj(terms_dictionary, 'terms_dictionary', 0)
-    print(total_doc_count)
+    create_tokens_posting()
+    terms_dictionary = merge_tokens_dictionary()
+
+def merge_tokens_dictionary():
+    terms_dict = {}
+    for file in Preferences.main_directory + 'dictionary\\':
+        terms_dict = {**terms_dict, **Indexer.load_obj_dictionary(file)}
+    return terms_dict
 
 def dump_proceesed_docs_to_disk(jobs, batch_size, next_batch_num):
     """
@@ -97,6 +103,7 @@ def create_tokens_posting():
     prefix_tokens_dictionaries = get_list_of_files_by_prefix()
     posting_jobs = []
     counter = 0
+    batch_counter = 0
     for prefix in prefix_tokens_dictionaries:
         if counter < Preferences.posting_files_per_batch:
             counter += 1
@@ -109,13 +116,10 @@ def create_tokens_posting():
                     prefix_dict, prefix = job.get()
                     partial_terms_dictionary[prefix] = prefix_dict
 
-                # while not q.empty():
-                #     prefix_dict, prefix = q.get()
-                #     partial_terms_dictionary[prefix] = prefix_dict
+            Indexer.save_obj(partial_terms_dictionary, 'terms_dictionary', batch_counter)
+            batch_counter += 1
 
-    # terms_dictionary = merged_dictionary_pickles()
     # TODO: check if we need to get back the dictionary
-    return partial_terms_dictionary
 
 def merged_dictionary_pickles():
     for file in os.listdir(Preferences.main_directory + 'pickles\\'):

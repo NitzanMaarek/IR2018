@@ -56,12 +56,13 @@ def write_dictionary_by_prefix(dict, batch_num):
     sorted_keys = sorted(dict)
     temp_dict = {}
     temp_key_prefix = None
+    cant_write_to_disk = ['/', '\\', ':', '*', '?', '"', '>', '<', '|']
     for key in sorted_keys:
         lower_case_key = lower_case_word(key)
         if not temp_key_prefix is None:
-            if key[0] in ['/', '\\', ':', '*', '?', '"', '>', '<', '|'] or (len(key) > 1 and key[1] in ['/', '\\', ':', '*', '?', '"', '>', '<', '|']):
+            if key[0] in cant_write_to_disk or (len(key) > 1 and key[1] in cant_write_to_disk):
                 continue
-            elif (key[0].isdigit() or key[0] == '$') and key[0] == temp_key_prefix[0]:
+            elif (key[0].isdigit() or key[0] == '$' or key[0] == '%') and key[0] == temp_key_prefix[0]:
                 temp_dict[key] = dict[key]
                 continue
             elif temp_key_prefix == lower_case_key[:2]:
@@ -77,7 +78,7 @@ def write_dictionary_by_prefix(dict, batch_num):
                 temp_dict = {}
                 temp_dict[key] = dict[key]
                 continue
-        if key[0].isdigit():
+        if key[0].isdigit() or key[0] == '$' or key[0] == '%':
             temp_key_prefix = key[0]
         else:
             temp_key_prefix = lower_case_key[:2]
@@ -92,6 +93,17 @@ def save_obj(obj, name, batch_num):
 
 def load_obj(name):
     file_name = run_time_directory + 'pickles\\' + name + '.pkl'
+    if os.path.isfile(file_name):
+        with open(file_name, 'rb') as f:
+            return pickle.load(f)
+    return None
+
+def save_obj_dictionary(obj, name, batch_num):
+    with open(run_time_directory + 'dictionary\\' + name + '_' + str(batch_num) + '.pkl', 'wb') as f:
+        pickle.dump(obj, f, pickle.HIGHEST_PROTOCOL)
+
+def load_obj_dictionary(name):
+    file_name = run_time_directory + 'dictionary\\' + name
     if os.path.isfile(file_name):
         with open(file_name, 'rb') as f:
             return pickle.load(f)
@@ -169,7 +181,6 @@ def merge_chunks(chunks_directory, num_of_chunks, stem_flag):
                 # string is term df posting_file_name seek_position(pointer to line of term)
                 d.write(str_for_dictionary)
                 tp.write(str_for_posting)
-
 
 def create_prefix_posting(prefix, file_name_list, q):
 
