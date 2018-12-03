@@ -1,11 +1,9 @@
-# import h5py
+import Preferences
 import pickle
 from Token import Token
-from Document import Document
-import string
 import os
 
-run_time_directory = 'C:\\Chen\\BGU\\2019\\2018 - Semester A\\3. Information Retrival\\Engine\\test directory\\created files\\'
+run_time_directory = Preferences.main_directory
 
 def write_docs_list_to_disk(doc_list, batch_num):
     """
@@ -133,34 +131,6 @@ def get_list_chunks_dictionary(num_of_chunks, prefix, stem_str):
             list_dictionaries.append(dict)
     return list_dictionaries
 
-# def create_posting_and_dictionary(chunks_directory, num_of_chunks, stem_flag):
-#     merged_documents_dict, doc_prefix_set = load_merged_documents_dictionary(chunks_directory, num_of_chunks)
-#     documents_dictionary = create_document_posting(merged_documents_dict, doc_prefix_set)
-#     tokens_dictionary = create_tokens_posting(documents_dictionary)
-#
-# def load_merged_documents_dictionary(chunks_directory, num_of_chunks):     # TODO: Create city posting
-#     doc_prefix_set = set()
-#     file_list = []
-#
-#     # Checking which file in the pickles dir are needed for the document posting
-#     for file in os.listdir(chunks_directory):
-#         if 'doc' in file:
-#             doc_prefix_set.add(file[4:6])
-#             file_list.append(file)
-#
-#     # Reading all the relevant files as dictionaries and merging them into one dictionary
-#     documents_dictionary = {}
-#     for file in file_list:
-#         documents_dictionary.update(load_obj(file))
-#
-#     return documents_dictionary, doc_prefix_set
-#
-# def create_document_posting(merged_documents_dict, doc_prefix_set):
-#     docs_names = sorted(merged_documents_dict)
-#     for prefix in doc_prefix_set:
-#
-
-
 def merge_chunks(chunks_directory, num_of_chunks, stem_flag):
     """
     Method merges chunks into one file, i.e: aa0, aa1....aa(n-1) -> single aa posting file.
@@ -200,8 +170,39 @@ def merge_chunks(chunks_directory, num_of_chunks, stem_flag):
                 d.write(str_for_dictionary)
                 tp.write(str_for_posting)
 
-# def create_documents_posting(chunks_directory, num_of_chunks):
 
+def create_prefix_posting(prefix, file_name_list, q):
+
+    terms_dictionary = {}
+    pickle_dictionaries = get_pickles_by_file_names(file_name_list)
+    merged_prefix_dictionary = merge_tokens_dictionaries(pickle_dictionaries) # Need to return this
+    sorted_terms = sorted(merged_prefix_dictionary)
+
+    if Preferences.stem:
+        stem_addition_for_posting = '_stem'
+        stem_addition_for_files = 's'
+    else:
+        stem_addition_for_posting = ''
+        stem_addition_for_files = ''
+
+    # dictionary_file_name = ''.join(preferences.main_directory + 'main_dictionary')  # d_aa or sd_aa for dictionary aa or stemmed aa respectively
+    posting_file_name = ''.join([Preferences.main_directory, 'terms posting\\', stem_addition_for_files, 'tp_',
+                                 prefix])  # tp_aa or stp_aa for TERM posting or stemmed posting for aa respectively
+    seek_offset = 0
+    with open(posting_file_name, 'w') as tp:
+        for term in sorted_terms:
+            terms_dictionary[term] = seek_offset
+            str_for_posting = ''.join([term, ' ', merged_prefix_dictionary[term].create_string_from_doc_dictionary(), '\n'])
+            seek_offset += len(str_for_posting) + 1
+            tp.write(str_for_posting)
+
+    return merged_prefix_dictionary, prefix
+
+def get_pickles_by_file_names(file_name_list):
+    dictionaries = []
+    for file in file_name_list:
+        dictionaries.append(load_obj(file))
+    return dictionaries
 
 def merge_tokens_dictionaries(dictionaries_list):
     """

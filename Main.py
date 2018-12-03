@@ -3,6 +3,7 @@ import os
 import multiprocessing as mp
 import Indexer
 from ReadFile import ReadFile
+import Preferences
 
 def read_directory(directory, multiprocess, batch_size=20000):
     """
@@ -37,10 +38,12 @@ def read_directory(directory, multiprocess, batch_size=20000):
                 else:
                     ReadFile(file, stem, write_to_disk, q, path, stop_words_list)
 
-    processed_docs, next_batch_num = dump_proceesed_docs_to_disk(jobs, batch_size, next_batch_num)
-    total_doc_count += processed_docs
+    if len(jobs) > 0:
+        processed_docs, next_batch_num = dump_proceesed_docs_to_disk(jobs, batch_size, next_batch_num)
+        total_doc_count += processed_docs
     print('Until merge runtime: ' + str(datetime.datetime.now() - start_time))
-    Indexer.merge_chunks('pickles\\', next_batch_num + 1, stem)
+    terms_dictionary = create_tokens_posting()
+    Indexer.save_obj(terms_dictionary, 'terms_dictionary', 0)
     print(total_doc_count)
 
 def dump_proceesed_docs_to_disk(jobs, batch_size, next_batch_num):
@@ -89,6 +92,46 @@ def batch_to_disk(batch_size, batch_num, q):
         count += 1
     Indexer.write_docs_list_to_disk(docs, batch_num)
 
+def create_tokens_posting():
+    partial_terms_dictionary = {}
+    prefix_tokens_dictionaries = get_list_of_files_by_prefix()
+    posting_jobs = []
+    counter = 0
+    for prefix in prefix_tokens_dictionaries:
+        if counter < Preferences.posting_files_per_batch:
+            counter += 1
+            job = pool.apply_async(Indexer.create_prefix_posting, (prefix, prefix_tokens_dictionaries[prefix], q))
+            posting_jobs.append(job)
+
+            if counter == Preferences.posting_files_per_batch:
+                counter = 0
+                for job in posting_jobs:
+                    prefix_dict, prefix = job.get()
+                    partial_terms_dictionary[prefix] = prefix_dict
+
+                # while not q.empty():
+                #     prefix_dict, prefix = q.get()
+                #     partial_terms_dictionary[prefix] = prefix_dict
+
+    # terms_dictionary = merged_dictionary_pickles()
+    # TODO: check if we need to get back the dictionary
+    return partial_terms_dictionary
+
+def merged_dictionary_pickles():
+    for file in os.listdir(Preferences.main_directory + 'pickles\\'):
+        print('write me pls!')
+
+def get_list_of_files_by_prefix():
+    list_of_files_by_prefix = {}
+
+    for file in os.listdir(main_directory + 'pickles\\'):
+        prefix = file[:2]
+        if not prefix in list_of_files_by_prefix:
+            list_of_files_by_prefix[prefix] = []
+        list_of_files_by_prefix[prefix].append(file[:-4])# Need to trim the last 4 chars to remove the suffix
+
+    return list_of_files_by_prefix
+
 def read_stop_words_lines(directory):
     try:
         stop_words_list = {}
@@ -109,9 +152,11 @@ if __name__ == '__main__':
     # Debug configs:
     single_file = True
     write_to_disk = False
-    parallel = False
-    stem = False
+    parallel = True
+    stem = Preferences.stem
     Index = True
+
+    main_directory = Preferences.main_directory
 
     manager = mp.Manager()
     q = manager.Queue()
