@@ -19,16 +19,24 @@ class Parser:
                                  'Apr': '04', 'Jun': '06', 'Jul': '07', 'Aug': '08', 'Sep': '09', 'Oct': '10', 'Nov': '11',
                                  'Dec': '12', 'jan': '01', 'feb': '02', 'mar': '03', 'apr': '04', 'jun': '06', 'jul': '07',
                                  'aug': '08', 'sep': '09', 'oct': '10', 'nov': '11', 'dec': '12'}
-        self.data_byte_dictionary = {'bit': 'b', 'BIT': 'b', 'Bit': 'b','byte': 'B', 'BYTE': 'B', 'Byte': 'B',
+        self.data_byte_dictionary = {'bit': 'b', 'BIT': 'b', 'Bit': 'b', 'byte': 'B', 'BYTE': 'B', 'Byte': 'B',
                                      'kilobyte': 'KB', 'KILOBYTE': 'KB', 'Kilobyte': 'KB', 'megabyte': 'MB',
-                                     'MEGABYTE': 'MB', 'Megabyte': 'MB', 'terabyte': 'tb', 'TERABYTE': 'TB',
-                                     'Terabyte': 'TB', 'kilo-byte': 'KB', 'Kilo-Byte': 'KB', 'KILO-BYTE': 'KB',
-                                     'mega-byte': 'MB', 'Mega-Byte': 'MB', 'MEGA-BYTE': 'MB', 'tera-byte': 'TB',
-                                     'Tera-Byte': 'TB', 'TERA-BYTE': 'TB'}
+                                     'MEGABYTE': 'MB', 'Megabyte': 'MB', 'terabyte': 'tb', 'gigabyte': 'GB',
+                                     'Gigabyte': 'GB', 'GIGABYTE': 'GB','TERABYTE': 'TB', 'Terabyte': 'TB',
+                                     'kilo-byte': 'KB', 'Kilo-Byte': 'KB', 'KILO-BYTE': 'KB',
+                                     'mega-byte': 'MB', 'Mega-Byte': 'MB', 'MEGA-BYTE': 'MB', 'giga-byte': 'GB',
+                                     'Giga-Byte': 'GB', 'GIGA-BYTE': 'GB','tera-byte': 'TB', 'Tera-Byte': 'TB',
+                                     'TERA-BYTE': 'TB', 'bits': 'b', 'BITS': 'b', 'Bits': 'b', 'bytes': 'B',
+                                     'BYTES': 'B', 'Bytes': 'B', 'kilobytes': 'KB', 'KILOBYTES': 'KB', 'Kilobytes': 'KB',
+                                     'megabytes': 'MB', 'MEGABYTES': 'MB', 'Megabytes': 'MB', 'terabytes': 'tb', 'TERABYTES': 'TB',
+                                     'Terabytes': 'TB', 'kilo-bytes': 'KB', 'Kilo-Bytes': 'KB', 'KILO-BYTES': 'KB',
+                                     'mega-bytes': 'MB', 'Mega-Bytes': 'MB', 'MEGA-BYTES': 'MB', 'tera-bytes': 'TB',
+                                     'Tera-Bytes': 'TB', 'TERA-BYTES': 'TB'
+                                     }
         self.month_first_letter_array = ['a', 'A', 'd', 'D', 'f', 'F', 'j', 'J', 'm', 'M', 'n', 'N', 'o', 'O', 's', 'S']
         # locale.setlocale(locale.LC_ALL, 'en_US.UTF-8')
-        self.sides_delimiters = {' ', ',', '.', '/', '"', '\'', '\\', '(', ')', '[', ']', '{', '}', ':', '-', ';', '?', '!', '*', '>', '<', '&', '+', '#', '@', '^', '_', '='}
-        self.middle_delimiters = {' ', ',', '.', '/', '"', '\\', '(', ')', '[', ']', '{', '}', ':', '-', ';', '?', '!', '*', '>', '<', '&', '+', '#', '@', '^', '_', '='}
+        self.sides_delimiters = {' ', ',', '.', '/', '"', '\'', '\\', '(', ')', '[', ']', '{', '}', ':', '-', ';', '?', '!', '*', '>', '<', '&', '+', '#', '@', '^', '_', '=', '`'}
+        self.middle_delimiters = {' ', ',', '.', '/', '"', '\\', '(', ')', '[', ']', '{', '}', ':', '-', ';', '?', '!', '*', '>', '<', '&', '+', '#', '@', '^', '_', '=', '`'}
         self.token_index = 0
         self.word = ''
         self.line_index = 0     # Index of words in a line
@@ -309,10 +317,12 @@ class Parser:
             token = self.parse_dollar_with_capital_d()
         elif first_token == 'd' and token == 'dollars':
             token = self.parse_dollar_small_d()
-        elif token in self.month_dictionary.keys():
+        elif token in self.month_dictionary:
             token = self.parse_date_with_month()
         elif (first_token == 'p' or first_token == 'P') and (token == 'percent' or token == 'Percent' or token == 'percentage' or token == 'Percentage'):
             token = self.parse_percent_word()
+        elif token in self.data_byte_dictionary:
+            token = self.parse_byte_tokens()
 
         if token is None:
             return None
@@ -324,6 +334,24 @@ class Parser:
         elif 'a' < first_token < 'z':
             token = self.lower_case_word(token)
 
+        return token
+
+    def parse_byte_tokens(self):
+        """
+
+        :return:
+        """
+        token = self.word
+        if len(self.tokens) >= 1:
+            previous_number = self.tokens[-1]
+            if previous_number.__contains__(','):
+                previous_number = previous_number.replace(',', '')
+            if self.is_integer(previous_number):
+                if previous_number[-1] == 'K':
+                    previous_number = self.fix_thousands_for_dollars(previous_number)
+                units = self.data_byte_dictionary[token]
+                token = ''.join([previous_number, ' ', units])
+                self.delete_token_i(1)
         return token
 
     # TODO: Use this function maybe in PART B
@@ -582,7 +610,6 @@ class Parser:
                 self.delete_token_i(1)
                 # del self.tokens[-1]
             elif self.is_any_kind_of_number(previous_token):
-                # TODO: THIS IS NOT GOOD NEED TO FIX THIS IN CASE OF THOUSANDS SINCE THEYRE ALREADY PARSED HERE
                 price = str(previous_token)
                 if price.__contains__('K'):
                     price = self.fix_thousands_for_dollars(price)
@@ -603,6 +630,7 @@ class Parser:
     def fix_thousands_for_dollars(self, price_in_thousands):
         """
         Functions substitutes thousands of currency to correct format for currency
+        Also does the same for Bytes and Bits.
         :param price_in_thousands: string of price in thousands: 5.1k or 42k  (with comma or without)
         :return: correct string
         """
@@ -664,6 +692,8 @@ class Parser:
 
         if next_word is not None and (next_word == 'Thousand' or next_word == 'Million' or next_word == 'Billion' or next_word == 'Trillion'):     # If there's a next word check it.
             token = self.parse_numbers_with_words(next_word)
+        elif next_word is not None and next_word in self.data_byte_dictionary:  # If number is part of data presentation, don't parse it.
+            return token
         else:
             if self.word.__contains__('-'):
                 token = self.handle_range_with_number(token)
@@ -1030,7 +1060,6 @@ class Parser:
         elif str_value.__contains__('Billion'):
             str_value = str_value.split(' ')[0] + 'B'
         return str_value
-
 
 
     def change_day_format(self, s):
