@@ -13,8 +13,18 @@ class Parser:
                                  'JANUARY': '01', 'FEBRUARY': '02', 'MARCH': '03', 'APRIL': '04', 'MAY': '05', 'JUNE': '06', 'JULY': '07',
                                  'AUGUST': '08', 'SEPTEMBER': '09', 'OCTOBER': '10', 'NOVEMBER': '11', 'DECEMBER': '12',
                                  'january': '01', 'february': '02', 'march': '03', 'april': '04', 'may': '05', 'june': '06',
-                                 'july': '07', 'august': '08', 'september': '09', 'october': '10', 'november': '11', 'december': '12'}
-
+                                 'july': '07', 'august': '08', 'september': '09', 'october': '10', 'november': '11', 'december': '12',
+                                 'JAN': '01', 'FEB': '02', 'MAR': '03', 'APR': '04', 'JUN': '06', 'JUL': '07', 'AUG': '08',
+                                 'SEP': '09', 'OCT': '10', 'NOV': '11', 'DEC': '12', 'Jan': '01', 'Feb': '02', 'Mar': '03',
+                                 'Apr': '04', 'Jun': '06', 'Jul': '07', 'Aug': '08', 'Sep': '09', 'Oct': '10', 'Nov': '11',
+                                 'Dec': '12', 'jan': '01', 'feb': '02', 'mar': '03', 'apr': '04', 'jun': '06', 'jul': '07',
+                                 'aug': '08', 'sep': '09', 'oct': '10', 'nov': '11', 'dec': '12'}
+        self.data_byte_dictionary = {'bit': 'b', 'BIT': 'b', 'Bit': 'b','byte': 'B', 'BYTE': 'B', 'Byte': 'B',
+                                     'kilobyte': 'KB', 'KILOBYTE': 'KB', 'Kilobyte': 'KB', 'megabyte': 'MB',
+                                     'MEGABYTE': 'MB', 'Megabyte': 'MB', 'terabyte': 'tb', 'TERABYTE': 'TB',
+                                     'Terabyte': 'TB', 'kilo-byte': 'KB', 'Kilo-Byte': 'KB', 'KILO-BYTE': 'KB',
+                                     'mega-byte': 'MB', 'Mega-Byte': 'MB', 'MEGA-BYTE': 'MB', 'tera-byte': 'TB',
+                                     'Tera-Byte': 'TB', 'TERA-BYTE': 'TB'}
         self.month_first_letter_array = ['a', 'A', 'd', 'D', 'f', 'F', 'j', 'J', 'm', 'M', 'n', 'N', 'o', 'O', 's', 'S']
         # locale.setlocale(locale.LC_ALL, 'en_US.UTF-8')
         self.sides_delimiters = {' ', ',', '.', '/', '"', '\'', '\\', '(', ')', '[', ']', '{', '}', ':', '-', ';', '?', '!', '*', '>', '<', '&', '+', '#', '@', '^', '_', '='}
@@ -33,6 +43,12 @@ class Parser:
 
 
     def parser_pipeline(self, data, stem):
+        """
+        Main method of this class. In charge of the initializing the parsing and tokenizing process.
+        :param data: string of data you want to parse and tokenize
+        :param stem: boolean flag, True = use stemming, False otherwise.
+        :return: Dictionary of tokens as keys and its' attributes as values.
+        """
         self.data = data
         tokens = self.create_tokens(self.data)
         # tokens = self.find_key_words_in_line(tokens)
@@ -43,6 +59,11 @@ class Parser:
         return tokens
 
     def create_tokens(self, data):
+        """
+        Method iterates over data, parses it and tokenizes it.
+        :param data: String of data to parse and tokenize.
+        :return: Dictionary of tokens as keys and its' frequency and first position in doc
+        """
         self.tokens = []
         self.data_length = len(data)
         stop_words_length = len(self.stop_words_list)
@@ -69,7 +90,6 @@ class Parser:
 
                 # Here we're supposed to have the word (not stop-word) without any delimiters
                 # Word is normal word and also String with delimiters in inside: number with comma, words with slash etc..
-                # TODO: Maybe remove delimiters INSIDE the word? like: england/france/spain is saved like that as token
                 token = self.parse_strings()
 
                 if token is not None and len(token) > 0:
@@ -129,7 +149,7 @@ class Parser:
 
     def add_token_to_collections(self, token, position_list):
         """
-        adds/updates token to dictionaries
+        Method adds/updates token to dictionaries
         :param token: one token or list of tokens to add or update and list = (line_number, position_in_line)
         :param position_list: list of position in doc (lines) and position in line (words)
         """
@@ -153,7 +173,7 @@ class Parser:
 
     def remove_delimiters(self, word):
         """
-        method receives string and removes all delimiters in beginning and end of string
+        Method receives string and removes all delimiters in beginning and end of string
         :param word: string parsed by split()
         :return: word without delimiters in both ends, None if all word was delimiters
         """
@@ -173,9 +193,9 @@ class Parser:
 
     def delete_token_i(self, i):
         """
-        method deletes token i (from end of list) from both tokens list and tokens dictionary
+        Method deletes token i (from end of list) from both tokens list and tokens dictionary
         in the dictionary it decreases number of appearances by 1, if last appearance then delete from dictionary
-        :param i: number of tokens to delete from end of list
+        :param i: number of tokens from end of list to delete
         """
         token_to_operate = self.tokens[-i]
         token_frequency = self.token_dictionary_num_of_appearance.get(token_to_operate, 0)
@@ -191,7 +211,7 @@ class Parser:
         """
         If we've encountered the word between then keep track if next tokens are : between <number> and <number>
         between index 1 is 'between', 2 is the first number, 3 is 'and', and 4is the last number
-        :param parsed_token: token parsed
+        :param parsed_token: token after parse
         :return: token 'between <number> and <number>' after deletion if sequence complete, normal token otherwise
         """
         token = parsed_token
@@ -220,7 +240,7 @@ class Parser:
 
     def get_next_word(self):
         """
-        iterates over data if next word exists and returns it
+        Method iterates over data if next word exists and returns it
         :return: next word in data, None if end of text.
         """
         if len(self.line) == self.line_index + 1:                   #If current word is last in line
@@ -245,7 +265,7 @@ class Parser:
 
     def get_word_i(self, i):
         """
-        iterates over data if and returns item i from where we are if exists
+        Method iterates over data if and returns item i from where we are if exists
         i = 1 means next word, i = 2 second next word and so on.
         :return: word i in data, None if doesnt exist.
         """
@@ -258,8 +278,8 @@ class Parser:
 
     def get_next_line(self):
         """
-        Assumption that there is a next line
-        this method will iterate over empty lines until it reaches a line which is not empty
+        Assumption that there is a next line:
+        Method will iterate over empty lines until it reaches a line which is not empty
         :return: not empty line, None if there is no empty line after (end of file)
         """
         index_of_lines = self.data_index
@@ -273,7 +293,7 @@ class Parser:
 
     def parse_strings(self):
         """
-        Main parse function
+        Main parse function - parses according to specific rules.
         :return: final Token after parse according to all rules.
         """
         token = self.word
@@ -314,7 +334,7 @@ class Parser:
         :return: list of tokens?
         """
         # words_after_tokenize = word_tokenize(word)
-        print("Word before tokenization: " + word)
+        # print("Word before tokenization: " + word)
         hyphen_position = word.find('-')
         if hyphen_position >= 1:
             word_after_hyphen = word[hyphen_position + 1:]
@@ -326,7 +346,7 @@ class Parser:
             return word
         words_after_delimiters = self.replace_delimiters(word)
 
-        print('   After tokenization: ' + words_after_delimiters)
+        # print('   After tokenization: ' + words_after_delimiters)
         return word
 
     def replace_delimiters(self, word):
@@ -347,9 +367,9 @@ class Parser:
 
     def lower_case_word(self, token):
         """
-        method checks if token is an alphabetical word. If so make it lower case
+        Method checks if token is an alphabetical word. If so make it lower case
         :param token: string
-        :return: if word, then same word in lower case, otherwise same token
+        :return: if word: then same word in lower case, otherwise same token
         """
         chars_list = []    #list of strings to join after
         if token is not None:
@@ -399,7 +419,7 @@ class Parser:
 
     def handle_adjacent_words(self, token, hyphen_position):
         """
-        method handles cases when: word-word or word-number
+        Method handles cases when: word-word or word-number
         :param token: string with [a-zA-Z]-<something> when something is any kind of char or string
         :param hyphen_position: position of the hyphen
         :return: token ready to add to collection

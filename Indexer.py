@@ -7,7 +7,7 @@ import locale
 # locale.setlocale(locale.LC_ALL, 'em_US.UTF-8')
 # assert sorted((u'Ab', u'ad', u'aa'), key=)
 
-run_time_directory = Preferences.main_directory
+run_time_directory = 'C:\\Users\\Nitzan\\Desktop\\IR 2018 files desktop\\Created Files\\'
 
 def write_docs_list_to_disk(doc_list, batch_num):
     """
@@ -30,7 +30,7 @@ def create_merged_dictionary_and_doc_posting(doc_list, batch_num):
     pointers_dictionary = {}
     current_length = 0
 
-    with open(run_time_directory + 'document posting\\' + 'doc_posting_' +  str(batch_num), 'w') as file:
+    with open(run_time_directory + 'document posting\\' + 'doc_posting_' + str(batch_num), 'w') as file:
 
         for doc in doc_list:
             # Adding doc to posting

@@ -22,6 +22,7 @@ class City:
         state = ''.join['State: ', obj['name']]
         currencies = ''.join['Currencies: ', obj['currencies']]
         population_size = obj['population']
-        parsed_population = ''.join['Population: ', self.parser.create_tokens([population_size]).keys()]
-        self.city_dictionary[city_name] = ''.join[state, ' ', currencies, ' ', parsed_population]
+        parsed_population = list(self.parser.create_tokens([population_size]).keys())[0]
+        population = ''.join['Population: ', parsed_population]
+        self.city_dictionary[city_name] = ''.join[state, ' ', currencies, ' ', population]
 

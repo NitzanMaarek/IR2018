@@ -1,6 +1,6 @@
 
 # Project directory
-main_directory = 'C:\\Chen\\BGU\\2019\\2018 - Semester A\\3. Information Retrival\\Engine\\test directory\\created files\\'
+main_directory = 'C:\\Users\\Nitzan\\Desktop\\IR 2018 files desktop\\Created Files\\'
 
 # How many posting files to write in each iteration
 posting_files_per_batch = 50
