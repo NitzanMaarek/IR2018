@@ -72,11 +72,14 @@ class Document:
         parser = Parser(stop_words_list)        # TODO: Need to give parser the stop_words list
         self.tokens = parser.parser_pipeline(text, self.stem)
         self.max_tf = parser.get_max_tf()
-        title_parser = Parser(stop_words_list)
-        title_tokens = parser.parser_pipeline([self.title], self.stem)
-        for title_token in title_tokens:
-            if title_token in self.tokens:
-                self.tokens[title_token][2] = True
+        if hasattr(self, 'title'):
+            title_parser = Parser(stop_words_list)
+            title_tokens = parser.parser_pipeline([self.title], self.stem)
+            for title_token in title_tokens:
+                if title_token in self.tokens:
+                    self.tokens[title_token][2] = True
+        else:
+            print(str(self.file_name) + ' ' + str(self.doc_num))
 
     def to_json(self):
         dict_to_json = {}
@@ -119,8 +122,10 @@ class Document:
         self.doc_start_line = int(params_list[2])
         self.doc_finish_line = int(params_list[3])
         self.max_tf = params_list[4]
-        self.city = params_list[5]
-        self.title = params_list[6]
+        if hasattr(self, 'city'):
+            self.city = params_list[5]
+        if hasattr(self, 'title'):
+            self.title = params_list[6]
 
     def set_pointer(self, batch_num, seek_value):
         """

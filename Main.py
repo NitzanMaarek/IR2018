@@ -194,7 +194,7 @@ def read_stop_words_lines(directory):
 
 if __name__ == '__main__':
     # Debug configs:
-    single_file = True
+    single_file = False
     write_to_disk = False
     parallel = True
     stem = Preferences.stem

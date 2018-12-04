@@ -93,13 +93,10 @@ class CityIndexer:
 
 class CityToken:
     def __init__(self, city_name = None, disk_string = None, attr = []):
-        if disk_string is not None:
-            self._define_params_from_string(disk_string)
-        else:
-            self.city_name = city_name
-            self.df = 0
-            self.attr = attr
-            self.doc_dict = {}
+        self.city_name = city_name
+        self.df = 0
+        self.attr = attr
+        self.doc_dict = {}
 
     def add_data(self, doc_pointer, doc_num):
         self.df += 1

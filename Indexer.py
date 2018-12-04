@@ -40,8 +40,6 @@ def create_merged_dictionary_and_doc_posting(doc_list, batch_num):
             rows_count += 1
 
             if hasattr(doc, 'city'):
-                if doc.city == 'MUNICH':
-                    print('hello')
                 city = doc.city
                 if city in cities_dict:
                     cities_dict[city].add_data(doc_pointer=doc_pointer, doc_num=doc.doc_num)
@@ -253,12 +251,13 @@ def create_cities_posting():
 
     merged_dict = merge_tokens_dictionaries(cities_dictionaries)
 
-    counter = 0
+    index_counter = 0
     for city_name in merged_dict:
         attr = cities_indexer.get_city_attributes(city_name)
-        if not attr is None:
+        if not attr is None: # Don't save it as a city if its not a real city
             merged_dict[city_name].attr = attr
-        cities_index[city_name] = counter
+            cities_index[city_name] = index_counter
+            index_counter += 1
 
     sorted_terms = sorted(merged_dict, key=lambda k: (k.upper(), k[0].islower()))
 
