@@ -14,9 +14,11 @@ class Parser:
                                  'AUGUST': '08', 'SEPTEMBER': '09', 'OCTOBER': '10', 'NOVEMBER': '11', 'DECEMBER': '12',
                                  'january': '01', 'february': '02', 'march': '03', 'april': '04', 'may': '05', 'june': '06',
                                  'july': '07', 'august': '08', 'september': '09', 'october': '10', 'november': '11', 'december': '12'}
+
         self.month_first_letter_array = ['a', 'A', 'd', 'D', 'f', 'F', 'j', 'J', 'm', 'M', 'n', 'N', 'o', 'O', 's', 'S']
         # locale.setlocale(locale.LC_ALL, 'en_US.UTF-8')
-        self.delimiters = {' ', ',', '.', '/', '"', '\'', '\\', '(', ')', '[', ']', '{', '}', ':', '-', ';', '?', '!', '*', '>', '<', '&', '+', '#', '@', '^', '_', '='}
+        self.sides_delimiters = {' ', ',', '.', '/', '"', '\'', '\\', '(', ')', '[', ']', '{', '}', ':', '-', ';', '?', '!', '*', '>', '<', '&', '+', '#', '@', '^', '_', '='}
+        self.middle_delimiters = {' ', ',', '.', '/', '"', '\\', '(', ')', '[', ']', '{', '}', ':', '-', ';', '?', '!', '*', '>', '<', '&', '+', '#', '@', '^', '_', '='}
         self.token_index = 0
         self.word = ''
         self.line_index = 0     # Index of words in a line
@@ -112,7 +114,8 @@ class Parser:
 
     def merge_and_sort_dictionaries(self):
         """
-        :return:
+        Method merges dictionaries of token first_position and frequency.
+        :return: one merged dictionary.
         """
         if self.token_dictionary_first_position.__sizeof__() > 1:
             merged_sorted_dictionary = {}
@@ -128,7 +131,7 @@ class Parser:
         """
         adds/updates token to dictionaries
         :param token: one token or list of tokens to add or update and list = (line_number, position_in_line)
-        :param position_list: list of poisition in doc (lines) and position in line (words)
+        :param position_list: list of position in doc (lines) and position in line (words)
         """
         if type(token) is list:
             for item in token:
@@ -157,10 +160,10 @@ class Parser:
         last = len(word) - 1
         first = 0
 
-        while first <= last and (word[last] in self.delimiters or word[first] in self.delimiters):  # loop to remove delimiters
-            if word[first] in self.delimiters:
+        while first <= last and (word[last] in self.sides_delimiters or word[first] in self.sides_delimiters):  # loop to remove delimiters
+            if word[first] in self.sides_delimiters:
                 first += 1
-            if word[last] in self.delimiters:
+            if word[last] in self.sides_delimiters:
                 last -= 1
         if first > last:  # Means all word was delimiters and need to ignore it.
             return None
@@ -228,14 +231,14 @@ class Parser:
                 first_word_next_line = next_line.split()[0]
                 if first_word_next_line is not None:
                     last_char_next_word = first_word_next_line[-1]
-                    if last_char_next_word in self.delimiters:  # Check if next word contains delimiter as last char.
+                    if last_char_next_word in self.sides_delimiters:  # Check if next word contains delimiter as last char.
                         first_word_next_line = first_word_next_line[:-1]
                 return first_word_next_line          #Take next word in next line in case its important
         else:
             next_word = self.line[self.line_index + 1]
             if next_word is not None:
                 last_char_next_word = next_word[-1]
-                if last_char_next_word in self.delimiters:  # Check if next word contains delimiter as last char.
+                if last_char_next_word in self.sides_delimiters:  # Check if next word contains delimiter as last char.
                     next_word = next_word[:-1]
             return next_word           # Not last in line? return the next word in line then
         return None
@@ -300,20 +303,47 @@ class Parser:
             self.token_upper_case_dictionary[token] = 0
         elif 'a' < first_token < 'z':
             token = self.lower_case_word(token)
-        # else:
-        #     token = self.tokenize_unknown_word(token)
+
         return token
 
-    def tokenize_unnkown_word(self, word):
+    # TODO: Use this function maybe in PART B
+    def tokenize_unknown_word(self, word):
         """
         Tokenizes an unknown word and parses tokens
         :param word:
         :return: list of tokens?
         """
-        words_after_tokenize = word_tokenize(word)
-        print("Word before tokenization: " + word + '   After tokenization: ' + words_after_tokenize)
+        # words_after_tokenize = word_tokenize(word)
+        print("Word before tokenization: " + word)
+        hyphen_position = word.find('-')
+        if hyphen_position >= 1:
+            word_after_hyphen = word[hyphen_position + 1:]
+            # if len(word_after_hyphen) == 0:
+            #     print('delete me')
+            if word_after_hyphen[0] == '0' or word_after_hyphen[0] == '1' or word_after_hyphen[0] == '2' or word_after_hyphen[0] == '3' or word_after_hyphen[0] == '4' or word_after_hyphen[0] == '5' or word_after_hyphen[0] == '6' or word_after_hyphen[0] == '7' or word_after_hyphen[0] == '8' or word_after_hyphen[0] == '9':
+                word = self.handle_range_with_number(word)     # If it's a combination word-number then number should be added to dict
+                return word                             # Either way it returns the same token as it was before.
+            return word
+        words_after_delimiters = self.replace_delimiters(word)
 
+        print('   After tokenization: ' + words_after_delimiters)
+        return word
 
+    def replace_delimiters(self, word):
+        """
+        Replaces in word all delimiters with space
+        :param word: string
+        :return: single string with space instead of delimiters
+        """
+        ans = ''
+        if word is not None:
+            for char in word:
+                if char in self.middle_delimiters:
+                    ans = ''.join([ans, ' '])
+                else:
+                    ans = ''.join([ans, char])
+
+        return ans
 
     def lower_case_word(self, token):
         """
@@ -323,32 +353,77 @@ class Parser:
         """
         chars_list = []    #list of strings to join after
         if token is not None:
-            for char in token:
-                char_int_rep = ord(char)
-                if 65 <= char_int_rep <= 90:     #if char is UPPER case, make it lower case
-                    chars_list.append(chr(char_int_rep + 32))
-                elif 97 <= char_int_rep <= 122:     #if char is not a letter then abort and return original token.
-                    chars_list.append(char)
-                else:
-                    return token
-            return ''.join(chars_list)
+            hyphen_count = token.count('-')
+            if hyphen_count == 1:
+                hyphen_position = token.find('-')
+                token = self.handle_adjacent_words(token, hyphen_position)
+            else:
+                for i, char in enumerate(token, start=0):
+                    char_int_rep = ord(char)
+                    if 65 <= char_int_rep <= 90:     #if char is UPPER case, make it lower case
+                        chars_list.append(chr(char_int_rep + 32))
+                    # elif 97 <= char_int_rep <= 122:     #if char is not a letter then abort and return original token.
+                    else:
+                        chars_list.append(char)
+                    # else:
+                    #     token = self.tokenize_unknown_word(token)
+                    #     return token
+                token = ''.join(chars_list)
         return token
 
     def upper_case_word(self, token):
+        """
+        Method turns word to uppercase if and only if the entire word contains alphabetical letters.
+        :param token: string
+        :return: upper-case word if entire word is alphabetical, if not it returns same token.
+        """
         chars_list = []  # list of strings to join after
         if token is not None:
-            for char in token:
-                char_int_rep = ord(char)
-                if 97 <= char_int_rep <= 122:  # if char is LOWER case, make it lower case
-                    chars_list.append(chr(char_int_rep - 32))
-                elif 65 <= char_int_rep <= 90:  # if char is not a letter then abort and return original token.
-                    chars_list.append(char)
-                else:
-                    return token
-            return ''.join(chars_list)
+            hyphen_count = token.count('-')
+            if hyphen_count == 1:
+                hyphen_position = token.find('-')
+                token = self.handle_adjacent_words(token, hyphen_position)
+            else:
+                for char in token:
+                    char_int_rep = ord(char)
+                    if 97 <= char_int_rep <= 122:  # if char is LOWER case, make it upper case
+                        chars_list.append(chr(char_int_rep - 32))
+                    # elif 65 <= char_int_rep <= 90:  # if char is upper case then just use it.
+                    else:
+                        chars_list.append(char)
+                    # else:                           # if char is not a letter then abort and return original token.
+                    #     token = self.tokenize_unknown_word(token)
+                    #     return token
+                token = ''.join(chars_list)
         return token
 
-    def check_if_token_is_numer_range(self, token):
+    def handle_adjacent_words(self, token, hyphen_position):
+        """
+        method handles cases when: word-word or word-number
+        :param token: string with [a-zA-Z]-<something> when something is any kind of char or string
+        :param hyphen_position: position of the hyphen
+        :return: token ready to add to collection
+        """
+        if token is None or hyphen_position <= 0:
+            return None
+        # print('Handling token: ' + token)
+        first_str = token[:hyphen_position]
+        second_str = token[hyphen_position+1:]
+        parser = Parser([])
+        parse_me = ''.join([first_str, ' ', second_str])
+        parsed_str_dic = parser.create_tokens([parse_me])
+        parsed_list = list(parsed_str_dic.keys())
+        first_str = parsed_list[0]
+        if len(parsed_list) <= 1:
+            second_str = parsed_list[0]
+        else:
+            second_str = parsed_list[1]
+        if self.is_any_kind_of_number(second_str):
+            self.add_token_to_collections(second_str, (self.data_index, self.line_index))
+        return ''.join([first_str, '-', second_str])
+
+    # TODO: remove this function IF NOT IN USE
+    def check_if_token_is_number_range(self, token):
         """
         Checks if given token is <parsed_number>-<parsed_number> and if so count it as a number
         :param token: some text with '-' in it
@@ -557,7 +632,7 @@ class Parser:
         """
         Method checks and parses the given string if it fits to conditions.
         :return: The current word being parsed if it doesn't need to be parsed by the numbers rules
-                    example: 138.31.21 could be self.word and would not fit to rules, but needs to be tokenized lik this.
+                    example: 138.31.21 could be self.word and would not fit to rules, but needs to be tokenized like this.
                     or the number after parse under the given rules.
         """
         token = self.word
@@ -571,7 +646,7 @@ class Parser:
             token = self.parse_numbers_with_words(next_word)
         else:
             if self.word.__contains__('-'):
-                token = self.word
+                token = self.handle_range_with_number(token)
                 #TODO: add to line both numbers in range to get parsed again.
             elif self.word.__contains__('/'):
                 token = self.parse_fraction()
@@ -592,6 +667,32 @@ class Parser:
         if percent and token is not None:
             token = token + '%'
 
+        return token
+
+    def handle_range_with_number(self, token):
+        """
+        Method parses one or two numbers in range and adds them to collection
+        :param token:  <number>-aString
+        :return: the range token after parse
+        """
+        range_tokens = token.split('-')
+        if len(range_tokens) == 2:
+            parser = Parser([''])
+            # parsed_tokens = self.create_tokens([''.join([range_tokens[0], ' ', range_tokens[1]])])
+            parsed_tokens = parser.create_tokens([''.join([range_tokens[0], ' ', range_tokens[1]])])
+            list_keys = list(parsed_tokens.keys())
+            first_word = list_keys[0]
+            second_word = ''
+
+            if self.is_any_kind_of_number(first_word):
+                self.add_token_to_collections(first_word, (self.data_index, self.line_index))
+
+            if len(list_keys) == 2:             # *** There is case when: <number>-percent, because of a conflict in rules
+                second_word = list_keys[1]      # we decided to go with the rule of <number>%
+                if self.is_any_kind_of_number(second_word):
+                    self.add_token_to_collections(second_word, (self.data_index, self.line_index))
+
+            token = ''.join([first_word, '-', second_word])
         return token
 
     def add_commas_to_integer(self, number):
@@ -636,8 +737,8 @@ class Parser:
                         return previous_word + ' ' + self.word
                     else:
                         return self.word
-        else:
-            return self.word
+
+        return self.word
 
     def parse_numbers_with_words(self, next_word):
         """
