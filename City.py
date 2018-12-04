@@ -7,6 +7,7 @@ class City:
         self.city_dictionary = {}
         self.inverted_index = {}
         self.parser = Parser([])
+        self.not_cities = {}
 
     def get_city_attributes(self, city_name):
         if city_name is None or len(city_name) == 0:

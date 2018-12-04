@@ -59,5 +59,5 @@ class Token:
         self.df += second_token.df
         self.doc_dict = {**self.doc_dict, **second_token.doc_dict}
 
-    def add_document_pointer(self, doc_name, pointer_value):
-        self.doc_dict[doc_name] = pointer_value
+    # def add_document_pointer(self, doc_name, pointer_value):
+    #     self.doc_dict[doc_name] = pointer_value

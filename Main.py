@@ -60,10 +60,14 @@ def read_directory(directory, multiprocess, batch_size=20000):
     print('Trying to save and load dictionary')
     Indexer.save_obj_dictionary(terms_dictionary, 'main terms dictionary')
     test = Indexer.load_obj_dictionary('main terms dictionary.pkl')
-    print(test)
+    # print(test)
     cities_posting.get()
 
 def merge_tokens_dictionary():
+    """
+    Merges tokens dictionaries
+    :return: merged dictionary
+    """
     terms_dict = {}
     for file in os.listdir(Preferences.main_directory + 'dictionary\\'):
         terms_dict = {**terms_dict, **Indexer.load_obj_dictionary(file)}
@@ -81,7 +85,6 @@ def dump_proceesed_docs_to_disk(jobs, batch_size, next_batch_num):
     temp_doc_count = 0
     batch_jobs = []
     batch_count = next_batch_num
-    partial_cities_set = set()
 
     for job in jobs:
         new_docs_num = job.get().doc_count
@@ -112,7 +115,6 @@ def batch_to_disk(batch_size, batch_num, q):
     """
     docs = []
     count = 0
-    cities_dict = {}
     while batch_size > count:
         doc = q.get()
         docs.append(doc)

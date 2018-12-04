@@ -26,18 +26,18 @@ def create_merged_dictionary_and_doc_posting(doc_list, batch_num):
     tokens_dict = {}
     pointers_dictionary = {}
     cities_dict = {}
-    current_length = 0
+    rows_count = 0
 
     with open(run_time_directory + 'document posting\\' + 'doc_posting_' + str(batch_num), 'w') as file:
 
         for doc in doc_list:
             # Adding doc to posting
-            doc.set_pointer(batch_num, current_length)
+            doc.set_pointer(batch_num, rows_count)
             doc_string = doc.write_to_disk_string() + '\n'
             file.write(doc_string)
-            pointers_dictionary[doc.doc_num] = current_length
-            doc_pointer = str(batch_num) + ' ' + str(current_length)
-            current_length = len(doc_string) + 1
+            pointers_dictionary[doc.doc_num] = rows_count
+            doc_pointer = str(batch_num) + ' ' + str(rows_count)
+            rows_count += 1
 
             if hasattr(doc, 'city'):
                 city = doc.city
