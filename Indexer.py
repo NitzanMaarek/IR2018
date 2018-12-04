@@ -2,6 +2,10 @@ import Preferences
 import pickle
 from Token import Token
 import os
+import locale
+
+# locale.setlocale(locale.LC_ALL, 'em_US.UTF-8')
+# assert sorted((u'Ab', u'ad', u'aa'), key=)
 
 run_time_directory = Preferences.main_directory
 
@@ -125,8 +129,6 @@ def lower_case_word(token):
             char_int_rep = ord(char)
             if 65 <= char_int_rep <= 90:     #if char is UPPER case, make it lower case
                 chars_list.append(chr(char_int_rep + 32))
-            elif 97 <= char_int_rep <= 122:     #if char is not a letter then abort and return original token.
-                chars_list.append(char)
             else:
                 chars_list.append(char)
         return ''.join(chars_list)
@@ -191,7 +193,7 @@ def create_prefix_posting(prefix, file_name_list):
     terms_dictionary = {}
     pickle_dictionaries = get_pickles_by_file_names(file_name_list)
     merged_prefix_dictionary = merge_tokens_dictionaries(pickle_dictionaries) # Need to return this
-    sorted_terms = sorted(merged_prefix_dictionary)
+    sorted_terms = sorted(merged_prefix_dictionary, key=lambda k: (k.upper(), k[0].islower()))
 
     if Preferences.stem:
         stem_addition_for_posting = '_stem'
@@ -200,25 +202,41 @@ def create_prefix_posting(prefix, file_name_list):
         stem_addition_for_posting = ''
         stem_addition_for_files = ''
 
-    # dictionary_file_name = ''.join(preferences.main_directory + 'main_dictionary')  # d_aa or sd_aa for dictionary aa or stemmed aa respectively
     posting_file_name = ''.join([Preferences.main_directory, 'terms posting\\', stem_addition_for_files, 'tp_',
                                  prefix])  # tp_aa or stp_aa for TERM posting or stemmed posting for aa respectively
+    last_seek_offset = 0
     seek_offset = 0
     posting_file = []
-    # with open(posting_file_name, 'w') as tp:
+    last_term = ''
     for term in sorted_terms:
+
+        if term == last_term.lower():
+            # Deleting the upper case token from all relevant locations
+            upper_case_term = merged_prefix_dictionary.pop(last_term)
+            terms_dictionary.pop(last_term)
+            del posting_file[-1]
+            # Merging tokens
+            merged_prefix_dictionary[term].merge_tokens(upper_case_term)
+            # Fixing the offset
+            seek_offset = last_seek_offset
+
         terms_dictionary[term] = (seek_offset, merged_prefix_dictionary[term].df)
         str_for_posting = ''.join([term, ' ', merged_prefix_dictionary[term].create_string_from_doc_dictionary()])
+        last_seek_offset = seek_offset
         seek_offset += len(str_for_posting) + 1
         posting_file.append(str_for_posting)
-            # tp.write(str_for_posting)
+        last_term = term
     with open(posting_file_name, 'w') as tp:
         tp.writelines(posting_file)
 
     save_obj_dictionary(terms_dictionary, prefix)
-    # return merged_prefix_dictionary, prefix
 
 def get_pickles_by_file_names(file_name_list):
+    """
+    loading
+    :param file_name_list:
+    :return:
+    """
     dictionaries = []
     for file in file_name_list:
         dictionaries.append(load_obj(file))

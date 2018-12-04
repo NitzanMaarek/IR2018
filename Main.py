@@ -43,7 +43,7 @@ def read_directory(directory, multiprocess, batch_size=20000):
         total_doc_count += processed_docs
     print('total docs: ' + str(total_doc_count))
     print('Until merge runtime: ' + str(datetime.datetime.now() - start_time))
-    always_50()
+    merge_pickles_to_terms_dictionary()
     # terms_dictionary = merge_tokens_dictionary()
     # Indexer.save_obj_dictionary(terms_dictionary, 'main terms dictionary')
     # test = Indexer.load_obj_dictionary('main terms dictionary.pkl')
@@ -124,53 +124,15 @@ def create_tokens_posting():
 
     # TODO: check if we need to get back the dictionary
 
-def always_50():
-    partial_terms_dictionary = {}
+def merge_pickles_to_terms_dictionary():
     prefix_tokens_dictionaries = get_list_of_files_by_prefix()
-
-    # prefixes = []
     posting_jobs = []
     for key in prefix_tokens_dictionaries.keys():
         job = pool.apply_async(Indexer.create_prefix_posting, (key, prefix_tokens_dictionaries[key]))
         posting_jobs.append(job)
-        # prefixes.append(key)
 
     for job in posting_jobs:
         job.get()
-
-    # prefixes_without_first_num_of_files = prefixes[Preferences.posting_files_per_batch:]
-    # posting_jobs = []
-    #
-    # for i in range(0, Preferences.posting_files_per_batch):
-    #     job = pool.apply_async(Indexer.create_prefix_posting, (prefixes[i], prefix_tokens_dictionaries[prefixes[i]]))
-    #     posting_jobs.append(job)
-    #
-    # counter = 0
-    # batch_counter = 0
-    # next_job_index = 0
-    # for prefix in prefixes_without_first_num_of_files:
-    #     posting_jobs[next_job_index].get()
-    #     next_job_index += 1
-    #     # counter += 1
-    #     # if counter == Preferences.posting_files_per_batch:
-    #     #     Indexer.save_obj_dictionary(partial_terms_dictionary, 'terms_dictionary', batch_counter)
-    #     #     partial_terms_dictionary = {}
-    #     #     batch_counter += 1
-    #     #     counter = 0
-    #     job = pool.apply_async(Indexer.create_prefix_posting, (prefix, prefix_tokens_dictionaries[prefix]))
-    #     posting_jobs.append(job)
-    #
-    #
-    # while next_job_index < len(posting_jobs):
-    #     posting_jobs[next_job_index].get()
-    #     # partial_terms_dictionary[finished_prefix] = prefix_dict
-    #     next_job_index += 1
-        # counter += 1
-        # if counter == Preferences.posting_files_per_batch:
-        #     Indexer.save_obj_dictionary(partial_terms_dictionary, 'terms_dictionary', batch_counter)
-        #     partial_terms_dictionary = {}
-        #     batch_counter += 1
-        #     counter = 0
 
 def get_list_of_files_by_prefix():
     list_of_files_by_prefix = {}
@@ -201,7 +163,7 @@ def read_stop_words_lines(directory):
 
 if __name__ == '__main__':
     # Debug configs:
-    single_file = False
+    single_file = True
     write_to_disk = False
     parallel = True
     stem = Preferences.stem
@@ -215,11 +177,10 @@ if __name__ == '__main__':
 
     start_time = datetime.datetime.now()
 
-    # always_50()
     # Single file debug config
     if single_file:
         # file = ReadFile(r'C:\Users\Nitzan\Desktop\FB396001', parallel, stem, write_to_disk, q, pool)
-        read_directory(directory=r'C:\Chen\BGU\2019\2018 - Semester A\3. Information Retrival\Engine\test directory\300 files', multiprocess=parallel, batch_size=20000)
+        read_directory(directory=r'C:\Chen\BGU\2019\2018 - Semester A\3. Information Retrival\Engine\test directory\10 files', multiprocess=parallel, batch_size=20000)
     else:
         # All files debug config
         # file = ReadFile(r'C:\Users\Nitzan\Desktop\100 file corpus', parallel)
