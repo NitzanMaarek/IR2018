@@ -6,6 +6,15 @@ import Preferences
 class Document:
     def __init__(self, file_name = None, data = None, stem = False, write_to_disk = False, stop_words_list = None,
                  first_row_index = None, last_row_index = None, disk_string = None):
+        """
+        Creating a document object which contains the following parameters
+        :param file_name: the file name which the document is from
+        :param stem: boolean parameter that indicates if we use stem or not
+        :param stop_words_list: stop words list for the parser
+        :param first_row_index: the row number that the document is starting in it's document
+        :param last_row_index: the row number in which the document ends in
+        :param disk_string: string if we want to load the document from a string which was written in the disk
+        """
         if not disk_string is None:
             self._define_params_from_string(disk_string)
         else:
@@ -13,7 +22,6 @@ class Document:
             self.stem = stem
             self.doc_num = self.get_doc_parameter(data[0], 'DOCNO')
             self.HT = self.get_doc_parameter(data[1], 'HT')
-            self.write_to_disk = write_to_disk
             self.doc_start_line = -1
             self.doc_finish_line = -1
             # TODO: create a function out of this
@@ -25,9 +33,9 @@ class Document:
                 if '<F P=104>' in data[i]:
                     after_split = data[i].split()
                     if len(after_split) > 2:
-                        # self.city = after_split[2].upper()
                         self.city = after_split[2].upper()
-                        # cities_index.get_city_attributes(self.city, self.doc_num)
+                        if self.city == 'ST.' or self.city == 'ST':
+                            self.city = ''.join([self.city, after_split[3].upper()])
                     continue
                 if '<F P=101>' in data[i]:
                     after_split = data[i].split()
@@ -63,12 +71,15 @@ class Document:
                 self.doc_start_line = first_row_index
                 self.doc_finish_line = last_row_index
             else:
-                # self.text = data[self.doc_start_line:self.doc_finish_line]
                 self.doc_pipeline(stop_words_list, data[self.doc_start_line:self.doc_finish_line])
-            # print(self.doc_num)
-            # q.put(self) # Inserting the document object so the listener will get it
 
     def doc_pipeline(self, stop_words_list, text):
+        """
+        Set of actions we want to get the document and it's data through.
+        Includes parsing the text, checking if the tokens from the parsing are in the title
+        :param stop_words_list: stop words list for the parser
+        :param text: the document text, list of strings, each string is a line in the document
+        """
         parser = Parser(stop_words_list)        # TODO: Need to give parser the stop_words list
         self.tokens = parser.parser_pipeline(text, self.stem)
         self.max_tf = parser.get_max_tf()
@@ -82,22 +93,34 @@ class Document:
             print(str(self.file_name) + ' ' + str(self.doc_num))
 
     def to_json(self):
+        """
+        Writes the document and it's parameter to json - WE DON'T USE IT ANYMORE
+        """
         dict_to_json = {}
         dict_to_json['doc_num'] = self.doc_num
         dict_to_json['HT'] = self.HT
-        # dict_to_json['Text'] = self.text
         dict_to_json['Tokens'] = self.tokens
-        # dict_to_json['orig_data'] = data
         with open('C:\\Chen\\BGU\\2019\\2018 - Semester A\\3. Information Retrival\\Engine\\jsons\\' + self.doc_num + '.txt', 'w') as outfile:
             json.dump(dict_to_json, outfile)
 
     def get_doc_parameter(self, line, label):
+        """
+        Finds a parameter in a given line by the given tag
+        :param line: string - text of the line we want to extract the parameter from.
+        :param label: string - label we want to remove from the line string
+        :return: the tag as a string
+        """
         start_label = '<' + label + '>'
         start_index = line.find('<' + label + '>')
         end_index = line.find('</' + label + '>')
         return line[start_index + len(start_label):end_index].rstrip().lstrip()
 
     def write_to_disk_string(self):
+        """
+        NOT BEING USED - creates a string of all the parameters of the document so we can
+        create from the string a document object
+        :return: parameter string
+        """
         params = []
         params.append(str(self.doc_num))
         params.append(str(self.file_name))
