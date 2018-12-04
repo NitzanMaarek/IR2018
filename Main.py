@@ -124,6 +124,7 @@ def create_tokens_posting():
 
     # TODO: check if we need to get back the dictionary
 
+# Test
 def merge_pickles_to_terms_dictionary():
     prefix_tokens_dictionaries = get_list_of_files_by_prefix()
     posting_jobs = []
