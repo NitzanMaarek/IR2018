@@ -98,12 +98,16 @@ def load_obj(name):
             return pickle.load(f)
     return None
 
-def save_obj_dictionary(obj, name, batch_num):
-    with open(run_time_directory + 'dictionary\\' + name + '_' + str(batch_num) + '.pkl', 'wb') as f:
+def save_obj_dictionary(obj, name, batch_num=''):
+    if batch_num == '':
+        file_name = run_time_directory + 'dictionary\\' + name + str(batch_num) + '.pkl'
+    else:
+        file_name = run_time_directory + 'dictionary\\' + name + '_' + str(batch_num) + '.pkl'
+    with open(file_name, 'wb') as f:
         pickle.dump(obj, f, pickle.HIGHEST_PROTOCOL)
 
 def load_obj_dictionary(name):
-    file_name = run_time_directory + 'dictionary\\' + name
+    file_name = run_time_directory + 'dictionary\\' + str(name)
     if os.path.isfile(file_name):
         with open(file_name, 'rb') as f:
             return pickle.load(f)
@@ -182,7 +186,7 @@ def merge_chunks(chunks_directory, num_of_chunks, stem_flag):
                 d.write(str_for_dictionary)
                 tp.write(str_for_posting)
 
-def create_prefix_posting(prefix, file_name_list, q):
+def create_prefix_posting(prefix, file_name_list):
 
     terms_dictionary = {}
     pickle_dictionaries = get_pickles_by_file_names(file_name_list)
@@ -200,14 +204,19 @@ def create_prefix_posting(prefix, file_name_list, q):
     posting_file_name = ''.join([Preferences.main_directory, 'terms posting\\', stem_addition_for_files, 'tp_',
                                  prefix])  # tp_aa or stp_aa for TERM posting or stemmed posting for aa respectively
     seek_offset = 0
+    posting_file = []
+    # with open(posting_file_name, 'w') as tp:
+    for term in sorted_terms:
+        terms_dictionary[term] = (seek_offset, merged_prefix_dictionary[term].df)
+        str_for_posting = ''.join([term, ' ', merged_prefix_dictionary[term].create_string_from_doc_dictionary()])
+        seek_offset += len(str_for_posting) + 1
+        posting_file.append(str_for_posting)
+            # tp.write(str_for_posting)
     with open(posting_file_name, 'w') as tp:
-        for term in sorted_terms:
-            terms_dictionary[term] = seek_offset
-            str_for_posting = ''.join([term, ' ', merged_prefix_dictionary[term].create_string_from_doc_dictionary(), '\n'])
-            seek_offset += len(str_for_posting) + 1
-            tp.write(str_for_posting)
+        tp.writelines(posting_file)
 
-    return merged_prefix_dictionary, prefix
+    save_obj_dictionary(terms_dictionary, prefix)
+    # return merged_prefix_dictionary, prefix
 
 def get_pickles_by_file_names(file_name_list):
     dictionaries = []

@@ -44,14 +44,16 @@ class Token:
 
     def create_string_from_doc_dictionary(self):
         dict_str = ''
+        doc_strings = []
         for doc_id in self.doc_dict:
             doc_attributes = self.doc_dict[doc_id]
-            tf = doc_attributes[0]
-            first_position = doc_attributes[1]
-            doc_pointer = doc_attributes[2]
+            # tf = doc_attributes[0]
+            # first_position = doc_attributes[1]
+            # doc_pointer = doc_attributes[2]
             #TODO: need to get pointer to doc posting file
-            dict_str = ''.join([dict_str, (''.join(['<', doc_id, ' ', str(tf), ' ', str(first_position), ' ', doc_pointer, '>', ' ']))])
-        return dict_str
+            doc_strings.append(''.join(['<', doc_id, ' ', str(doc_attributes[0]), ' ', str(doc_attributes[1]), ' ', doc_attributes[2], '>', ' ']))
+        doc_strings.append('\n')
+        return ''.join(doc_strings)
 
     def merge_tokens(self, second_token):
         self.df += second_token.df
