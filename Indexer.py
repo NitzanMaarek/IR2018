@@ -2,12 +2,9 @@ import Preferences
 import pickle
 from Token import Token
 import os
-import locale
+from City import City
 
-# locale.setlocale(locale.LC_ALL, 'em_US.UTF-8')
-# assert sorted((u'Ab', u'ad', u'aa'), key=)
-
-run_time_directory = 'C:\\Users\\Nitzan\\Desktop\\IR 2018 files desktop\\Created Files\\'
+run_time_directory = Preferences.main_directory
 
 def write_docs_list_to_disk(doc_list, batch_num):
     """
@@ -28,6 +25,7 @@ def create_merged_dictionary_and_doc_posting(doc_list, batch_num):
 
     tokens_dict = {}
     pointers_dictionary = {}
+    cities_dict = {}
     current_length = 0
 
     with open(run_time_directory + 'document posting\\' + 'doc_posting_' + str(batch_num), 'w') as file:
@@ -41,6 +39,13 @@ def create_merged_dictionary_and_doc_posting(doc_list, batch_num):
             doc_pointer = str(batch_num) + ' ' + str(current_length)
             current_length = len(doc_string) + 1
 
+            if hasattr(doc, 'city'):
+                city = doc.city
+                if not city in cities_dict:
+                    cities_dict[city] = Token(token_name=city)
+                else:
+                    cities_dict[city].add_data(doc_pointer=doc_pointer, tuple=(0, 0), doc_num=doc.doc_num)
+
             # Merging tokens
             if hasattr(doc, 'tokens'):
                     for key in doc.tokens:
@@ -49,6 +54,9 @@ def create_merged_dictionary_and_doc_posting(doc_list, batch_num):
                         else:
                             tokens_dict[key] = Token(key)
                             tokens_dict[key].add_data(doc_pointer, doc.tokens[key], doc.doc_num)
+
+    save_obj(cities_dict, 'cities_dict', batch_num, 'cities')
+
     return tokens_dict
 
 def write_dictionary_by_prefix(dict, batch_num):
@@ -91,12 +99,16 @@ def write_dictionary_by_prefix(dict, batch_num):
     # Writing the last dictionary to the memory:
     save_obj(temp_dict, temp_key_prefix, batch_num)
 
-def save_obj(obj, name, batch_num):
-    with open(run_time_directory + 'pickles\\' + name + '_' + str(batch_num) + '.pkl', 'wb') as f:
+def save_obj(obj, name, batch_num='', directory='pickles'):
+    if batch_num == '':
+        file_name = run_time_directory + directory + '\\' + name + str(batch_num) + '.pkl'
+    else:
+        file_name = run_time_directory + directory + '\\' + name + '_' + str(batch_num) + '.pkl'
+    with open(file_name, 'wb') as f:
         pickle.dump(obj, f, pickle.HIGHEST_PROTOCOL)
 
-def load_obj(name):
-    file_name = run_time_directory + 'pickles\\' + name + '.pkl'
+def load_obj(name, directory='pickles'):
+    file_name = run_time_directory + directory + '\\' + name + '.pkl'
     if os.path.isfile(file_name):
         with open(file_name, 'rb') as f:
             return pickle.load(f)
@@ -149,49 +161,16 @@ def get_list_chunks_dictionary(num_of_chunks, prefix, stem_str):
             list_dictionaries.append(dict)
     return list_dictionaries
 
-def merge_chunks(chunks_directory, num_of_chunks, stem_flag):
+
+def create_prefix_posting(prefix, file_name_list, directory='pickles'):
     """
-    Method merges chunks into one file, i.e: aa0, aa1....aa(n-1) -> single aa posting file.
-    :param chunks_path: directory with all chunks in it
-    :param num_of_chunks: total number of chunks
+    Creates posting file to a given prefix and writes it to the disk as txt file
+    The function also creates pickle file which contains the dictionary that was made for the posting file
+    :param prefix: given prefix
+    :param file_name_list: list of file names which contains the data that we make the posting from
     """
 
-    if chunks_directory is None or num_of_chunks == 0:
-        return None
-
-    prefix_list = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'aa', 'ab', 'ac', 'ad', 'ae', 'af', 'ag', 'ah', 'ai', 'aj', 'ak', 'al', 'am', 'an', 'ao', 'ap', 'aq', 'ar', 'as', 'at', 'au', 'av', 'aw', 'ax', 'ay', 'az', 'ba', 'bb', 'bc', 'bd', 'be', 'bf', 'bg', 'bh', 'bi', 'bj', 'bk', 'bl', 'bm', 'bn', 'bo', 'bp', 'bq', 'br', 'bs', 'bt', 'bu', 'bv', 'bw', 'bx', 'by', 'bz', 'ca', 'cb', 'cc', 'cd', 'ce', 'cf', 'cg', 'ch', 'ci', 'cj', 'ck', 'cl', 'cm', 'cn', 'co', 'cp', 'cq', 'cr', 'cs', 'ct', 'cu', 'cv', 'cw', 'cx', 'cy', 'cz', 'da', 'db', 'dc', 'dd', 'de', 'df', 'dg', 'dh', 'di', 'dj', 'dk', 'dl', 'dm', 'dn', 'do', 'dp', 'dq', 'dr', 'ds', 'dt', 'du', 'dv', 'dw', 'dx', 'dy', 'dz', 'ea', 'eb', 'ec', 'ed', 'ee', 'ef', 'eg', 'eh', 'ei', 'ej', 'ek', 'el', 'em', 'en', 'eo', 'ep', 'eq', 'er', 'es', 'et', 'eu', 'ev', 'ew', 'ex', 'ey', 'ez', 'fa', 'fb', 'fc', 'fd', 'fe', 'ff', 'fg', 'fh', 'fi', 'fj', 'fk', 'fl', 'fm', 'fn', 'fo', 'fp', 'fq', 'fr', 'fs', 'ft', 'fu', 'fv', 'fw', 'fx', 'fy', 'fz', 'ga', 'gb', 'gc', 'gd', 'ge', 'gf', 'gg', 'gh', 'gi', 'gj', 'gk', 'gl', 'gm', 'gn', 'go', 'gp', 'gq', 'gr', 'gs', 'gt', 'gu', 'gv', 'gw', 'gx', 'gy', 'gz', 'ha', 'hb', 'hc', 'hd', 'he', 'hf', 'hg', 'hh', 'hi', 'hj', 'hk', 'hl', 'hm', 'hn', 'ho', 'hp', 'hq', 'hr', 'hs', 'ht', 'hu', 'hv', 'hw', 'hx', 'hy', 'hz', 'ia', 'ib', 'ic', 'id', 'ie', 'if', 'ig', 'ih', 'ii', 'ij', 'ik', 'il', 'im', 'in', 'io', 'ip', 'iq', 'ir', 'is', 'it', 'iu', 'iv', 'iw', 'ix', 'iy', 'iz', 'ja', 'jb', 'jc', 'jd', 'je', 'jf', 'jg', 'jh', 'ji', 'jj', 'jk', 'jl', 'jm', 'jn', 'jo', 'jp', 'jq', 'jr', 'js', 'jt', 'ju', 'jv', 'jw', 'jx', 'jy', 'jz', 'ka', 'kb', 'kc', 'kd', 'ke', 'kf', 'kg', 'kh', 'ki', 'kj', 'kk', 'kl', 'km', 'kn', 'ko', 'kp', 'kq', 'kr', 'ks', 'kt', 'ku', 'kv', 'kw', 'kx', 'ky', 'kz', 'la', 'lb', 'lc', 'ld', 'le', 'lf', 'lg', 'lh', 'li', 'lj', 'lk', 'll', 'lm', 'ln', 'lo', 'lp', 'lq', 'lr', 'ls', 'lt', 'lu', 'lv', 'lw', 'lx', 'ly', 'lz', 'ma', 'mb', 'mc', 'md', 'me', 'mf', 'mg', 'mh', 'mi', 'mj', 'mk', 'ml', 'mm', 'mn', 'mo', 'mp', 'mq', 'mr', 'ms', 'mt', 'mu', 'mv', 'mw', 'mx', 'my', 'mz', 'na', 'nb', 'nc', 'nd', 'ne', 'nf', 'ng', 'nh', 'ni', 'nj', 'nk', 'nl', 'nm', 'nn', 'no', 'np', 'nq', 'nr', 'ns', 'nt', 'nu', 'nv', 'nw', 'nx', 'ny', 'nz', 'oa', 'ob', 'oc', 'od', 'oe', 'of', 'og', 'oh', 'oi', 'oj', 'ok', 'ol', 'om', 'on', 'oo', 'op', 'oq', 'or', 'os', 'ot', 'ou', 'ov', 'ow', 'ox', 'oy', 'oz', 'pa', 'pb', 'pc', 'pd', 'pe', 'pf', 'pg', 'ph', 'pi', 'pj', 'pk', 'pl', 'pm', 'pn', 'po', 'pp', 'pq', 'pr', 'ps', 'pt', 'pu', 'pv', 'pw', 'px', 'py', 'pz', 'qa', 'qb', 'qc', 'qd', 'qe', 'qf', 'qg', 'qh', 'qi', 'qj', 'qk', 'ql', 'qm', 'qn', 'qo', 'qp', 'qq', 'qr', 'qs', 'qt', 'qu', 'qv', 'qw', 'qx', 'qy', 'qz', 'ra', 'rb', 'rc', 'rd', 're', 'rf', 'rg', 'rh', 'ri', 'rj', 'rk', 'rl', 'rm', 'rn', 'ro', 'rp', 'rq', 'rr', 'rs', 'rt', 'ru', 'rv', 'rw', 'rx', 'ry', 'rz', 'sa', 'sb', 'sc', 'sd', 'se', 'sf', 'sg', 'sh', 'si', 'sj', 'sk', 'sl', 'sm', 'sn', 'so', 'sp', 'sq', 'sr', 'ss', 'st', 'su', 'sv', 'sw', 'sx', 'sy', 'sz', 'ta', 'tb', 'tc', 'td', 'te', 'tf', 'tg', 'th', 'ti', 'tj', 'tk', 'tl', 'tm', 'tn', 'to', 'tp', 'tq', 'tr', 'ts', 'tt', 'tu', 'tv', 'tw', 'tx', 'ty', 'tz', 'ua', 'ub', 'uc', 'ud', 'ue', 'uf', 'ug', 'uh', 'ui', 'uj', 'uk', 'ul', 'um', 'un', 'uo', 'up', 'uq', 'ur', 'us', 'ut', 'uu', 'uv', 'uw', 'ux', 'uy', 'uz', 'va', 'vb', 'vc', 'vd', 've', 'vf', 'vg', 'vh', 'vi', 'vj', 'vk', 'vl', 'vm', 'vn', 'vo', 'vp', 'vq', 'vr', 'vs', 'vt', 'vu', 'vv', 'vw', 'vx', 'vy', 'vz', 'wa', 'wb', 'wc', 'wd', 'we', 'wf', 'wg', 'wh', 'wi', 'wj', 'wk', 'wl', 'wm', 'wn', 'wo', 'wp', 'wq', 'wr', 'ws', 'wt', 'wu', 'wv', 'ww', 'wx', 'wy', 'wz', 'xa', 'xb', 'xc', 'xd', 'xe', 'xf', 'xg', 'xh', 'xi', 'xj', 'xk', 'xl', 'xm', 'xn', 'xo', 'xp', 'xq', 'xr', 'xs', 'xt', 'xu', 'xv', 'xw', 'xx', 'xy', 'xz', 'ya', 'yb', 'yc', 'yd', 'ye', 'yf', 'yg', 'yh', 'yi', 'yj', 'yk', 'yl', 'ym', 'yn', 'yo', 'yp', 'yq', 'yr', 'ys', 'yt', 'yu', 'yv', 'yw', 'yx', 'yy', 'yz', 'za', 'zb', 'zc', 'zd', 'ze', 'zf', 'zg', 'zh', 'zi', 'zj', 'zk', 'zl', 'zm', 'zn', 'zo', 'zp', 'zq', 'zr', 'zs', 'zt', 'zu', 'zv', 'zw', 'zx', 'zy', 'zz']
-    stem_addition_for_prefix = ''
-    stem_addition_for_files = ''
-    if stem_flag:
-        stem_addition_for_prefix = '_stem'
-        stem_addition_for_files = 's'
-
-    for prefix in prefix_list:
-        list_chunk_dictionaries = get_list_chunks_dictionary(num_of_chunks, prefix, stem_addition_for_prefix)
-        if len(list_chunk_dictionaries) == 0:       # No terms in this prefix.
-            continue
-        merged_prefix_dictionary = merge_tokens_dictionaries(list_chunk_dictionaries)  #TODO: change function here to one that really merges dicitonaries
-        sorted_terms = sorted(merged_prefix_dictionary)
-        # Write dictionary as posting file
-        dictionary_file_name = ''.join([run_time_directory , stem_addition_for_files, 'd_', prefix])     # d_aa or sd_aa for dictionary aa or stemmed aa respectively
-        posting_file_name = ''.join([run_time_directory, 'terms posting\\', stem_addition_for_files, 'tp_', prefix])        # tp_aa or stp_aa for TERM posting or stemmed posting for aa respectively
-        seek_offset = 0
-        with open(dictionary_file_name, 'w') as d, open (posting_file_name, 'w') as tp:
-            for term in sorted_terms:
-                term_record = merged_prefix_dictionary[term]     #TODO: remove casting
-                term_documents_attributes = term_record.create_string_from_doc_dictionary() #TODO: Need to add pointer to documents to attributes.
-                str_for_posting = ''.join([term, ' ', term_documents_attributes, '\n'])
-                # string is: term <doc_id tf first_position_in_doc doc_pointer> <doc_id tf first_position_in_doc doc_pointer>...
-                str_for_dictionary = ''.join([term, ' <', str(merged_prefix_dictionary[term].df), ' ', posting_file_name, ' ', str(seek_offset), '>\n'])
-                seek_offset += len(str_for_posting)
-                # string is term df posting_file_name seek_position(pointer to line of term)
-                d.write(str_for_dictionary)
-                tp.write(str_for_posting)
-
-def create_prefix_posting(prefix, file_name_list):
-
-    terms_dictionary = {}
-    pickle_dictionaries = get_pickles_by_file_names(file_name_list)
+    pickle_dictionaries = get_pickles_by_file_names(file_name_list, directory)
     merged_prefix_dictionary = merge_tokens_dictionaries(pickle_dictionaries) # Need to return this
     sorted_terms = sorted(merged_prefix_dictionary, key=lambda k: (k.upper(), k[0].islower()))
 
@@ -204,24 +183,29 @@ def create_prefix_posting(prefix, file_name_list):
 
     posting_file_name = ''.join([Preferences.main_directory, 'terms posting\\', stem_addition_for_files, 'tp_',
                                  prefix])  # tp_aa or stp_aa for TERM posting or stemmed posting for aa respectively
+
+    create_posting_file(sorted_terms, merged_prefix_dictionary, posting_file_name, prefix)
+
+def create_posting_file(sorted_terms, merged_dict, posting_file_name, tag):
+    terms_dictionary = {}
     last_seek_offset = 0
     seek_offset = 0
     posting_file = []
     last_term = ''
-    for term in sorted_terms:
 
-        if term == last_term.lower():
+    for term in sorted_terms:
+        if not last_term == '' and not last_term[0].isdigit() and term == lower_case_word(last_term):
             # Deleting the upper case token from all relevant locations
-            upper_case_term = merged_prefix_dictionary.pop(last_term)
+            upper_case_term = merged_dict.pop(last_term)
             terms_dictionary.pop(last_term)
             del posting_file[-1]
             # Merging tokens
-            merged_prefix_dictionary[term].merge_tokens(upper_case_term)
+            merged_dict[term].merge_tokens(upper_case_term)
             # Fixing the offset
             seek_offset = last_seek_offset
 
-        terms_dictionary[term] = (seek_offset, merged_prefix_dictionary[term].df)
-        str_for_posting = ''.join([term, ' ', merged_prefix_dictionary[term].create_string_from_doc_dictionary()])
+        terms_dictionary[term] = (seek_offset, merged_dict[term].df)
+        str_for_posting = ''.join([term, ' ', merged_dict[term].create_string_from_doc_dictionary()])
         last_seek_offset = seek_offset
         seek_offset += len(str_for_posting) + 1
         posting_file.append(str_for_posting)
@@ -229,17 +213,17 @@ def create_prefix_posting(prefix, file_name_list):
     with open(posting_file_name, 'w') as tp:
         tp.writelines(posting_file)
 
-    save_obj_dictionary(terms_dictionary, prefix)
+    save_obj(terms_dictionary, tag, directory='dictionary')
 
-def get_pickles_by_file_names(file_name_list):
+def get_pickles_by_file_names(file_name_list, directory='pickles'):
     """
-    loading
-    :param file_name_list:
-    :return:
+    Loading and appending into list pickles which are dictionaries
+    :param file_name_list: list of file names
+    :return: list of dictionaries
     """
     dictionaries = []
     for file in file_name_list:
-        dictionaries.append(load_obj(file))
+        dictionaries.append(load_obj(file, directory))
     return dictionaries
 
 def merge_tokens_dictionaries(dictionaries_list):
@@ -256,3 +240,21 @@ def merge_tokens_dictionaries(dictionaries_list):
             else:
                 merged_dict[key] = dict[key]
     return merged_dict
+
+def create_cities_posting():
+    cities_index = City()
+    cities_dictionaries = []
+    for file in os.listdir(Preferences.main_directory + 'cities'):
+        cities_dictionaries.append(load_obj(file[:-4], directory='cities'))
+
+    merged_dict = merge_tokens_dictionaries(cities_dictionaries)
+    sorted_terms = sorted(merged_dict, key=lambda k: (k.upper(), k[0].islower()))
+
+    posting_file_name = Preferences.main_directory + 'cities\\cities posting'
+
+    create_posting_file(sorted_terms, merged_dict, posting_file_name, 'cities')
+
+    for city_token in merged_dict.values():
+        cities_index.add_city_to_dictionary(city_token.token_name)
+
+    save_obj(cities_index.city_dictionary, 'cities dictionary', directory='cities')

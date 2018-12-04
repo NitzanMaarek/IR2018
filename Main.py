@@ -4,6 +4,9 @@ import multiprocessing as mp
 import Indexer
 from ReadFile import ReadFile
 import Preferences
+from Token import Token
+from City import City
+
 
 def read_directory(directory, multiprocess, batch_size=20000):
     """
@@ -18,6 +21,7 @@ def read_directory(directory, multiprocess, batch_size=20000):
     file_count = 0
     total_doc_count = 0
     next_batch_num = 0
+
     for root, dirs, files in os.walk(directory):
         # TODO: Read also stop_words.txt from this directory and forward list to parser init
         stop_words_list = read_stop_words_lines(directory) # TODO: Figure out what is this
@@ -41,13 +45,23 @@ def read_directory(directory, multiprocess, batch_size=20000):
     if len(jobs) > 0:
         processed_docs, next_batch_num = dump_proceesed_docs_to_disk(jobs, batch_size, next_batch_num)
         total_doc_count += processed_docs
+
+    cities_posting = pool.apply_async(Indexer.create_cities_posting,)
+
     print('total docs: ' + str(total_doc_count))
     print('Until merge runtime: ' + str(datetime.datetime.now() - start_time))
+
     merge_pickles_to_terms_dictionary()
-    # terms_dictionary = merge_tokens_dictionary()
-    # Indexer.save_obj_dictionary(terms_dictionary, 'main terms dictionary')
-    # test = Indexer.load_obj_dictionary('main terms dictionary.pkl')
-    # print(test)
+    print('Until saving dictionary by prefixes' + str(datetime.datetime.now() - start_time))
+
+    terms_dictionary = merge_tokens_dictionary()
+    print('Until saving dictionary as one file' + str(datetime.datetime.now() - start_time))
+
+    print('Trying to save and load dictionary')
+    Indexer.save_obj_dictionary(terms_dictionary, 'main terms dictionary')
+    test = Indexer.load_obj_dictionary('main terms dictionary.pkl')
+    print(test)
+    cities_posting.get()
 
 def merge_tokens_dictionary():
     terms_dict = {}
@@ -67,6 +81,8 @@ def dump_proceesed_docs_to_disk(jobs, batch_size, next_batch_num):
     temp_doc_count = 0
     batch_jobs = []
     batch_count = next_batch_num
+    partial_cities_set = set()
+
     for job in jobs:
         new_docs_num = job.get().doc_count
         doc_count += new_docs_num
@@ -83,7 +99,7 @@ def dump_proceesed_docs_to_disk(jobs, batch_size, next_batch_num):
     batch_jobs.append(job)
 
     for job in batch_jobs:
-        res = job.get()
+        rs = job.get()
 
     return doc_count, batch_count
 
@@ -96,12 +112,17 @@ def batch_to_disk(batch_size, batch_num, q):
     """
     docs = []
     count = 0
+    cities_dict = {}
     while batch_size > count:
-        docs.append(q.get())
+        doc = q.get()
+        docs.append(doc)
         count += 1
     Indexer.write_docs_list_to_disk(docs, batch_num)
 
 def create_tokens_posting():
+    """
+    Creates the token's posting file which are in a certain location in the disk
+    """
     partial_terms_dictionary = {}
     prefix_tokens_dictionaries = get_list_of_files_by_prefix()
     posting_jobs = []
@@ -124,8 +145,10 @@ def create_tokens_posting():
 
     # TODO: check if we need to get back the dictionary
 
-# Test
 def merge_pickles_to_terms_dictionary():
+    """
+    Merging a given list of pickles by the prefix of the files and tokens
+    """
     prefix_tokens_dictionaries = get_list_of_files_by_prefix()
     posting_jobs = []
     for key in prefix_tokens_dictionaries.keys():
@@ -136,6 +159,10 @@ def merge_pickles_to_terms_dictionary():
         job.get()
 
 def get_list_of_files_by_prefix():
+    """
+    Aggregate file names into groups by their prefix
+    :return:
+    """
     list_of_files_by_prefix = {}
 
     for file in os.listdir(Preferences.main_directory + 'pickles\\'):
@@ -147,6 +174,11 @@ def get_list_of_files_by_prefix():
     return list_of_files_by_prefix
 
 def read_stop_words_lines(directory):
+    """
+    Reads stop words file
+    :param directory: file location
+    :return: returns list of stop words
+    """
     try:
         stop_words_list = {}
         stop_words_file = open(directory + '\\' + 'stop_words.txt', 'r')
@@ -161,7 +193,6 @@ def read_stop_words_lines(directory):
         print(e)
         print('File not found: ' + directory + 'stop_words.txt')
 
-
 if __name__ == '__main__':
     # Debug configs:
     single_file = True
@@ -175,6 +206,7 @@ if __name__ == '__main__':
     manager = mp.Manager()
     q = manager.Queue()
     pool = mp.Pool(processes=mp.cpu_count())
+
 
     start_time = datetime.datetime.now()
 

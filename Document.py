@@ -1,8 +1,11 @@
 from Parser import Parser
 import json
+import Preferences
+
 
 class Document:
-    def __init__(self, file_name = None, data = None, stem = False, write_to_disk = False, stop_words_list = None, first_row_index = None, last_row_index = None, disk_string = None):
+    def __init__(self, file_name = None, data = None, stem = False, write_to_disk = False, stop_words_list = None,
+                 first_row_index = None, last_row_index = None, disk_string = None):
         if not disk_string is None:
             self._define_params_from_string(disk_string)
         else:
@@ -22,7 +25,9 @@ class Document:
                 if '<F P=104>' in data[i]:
                     after_split = data[i].split()
                     if len(after_split) > 2:
+                        # self.city = after_split[2].upper()
                         self.city = after_split[2].upper()
+                        # cities_index.get_city_attributes(self.city, self.doc_num)
                     continue
                 if '<F P=101>' in data[i]:
                     after_split = data[i].split()
@@ -71,8 +76,7 @@ class Document:
     def doc_pipeline(self, stop_words_list, text):
         parser = Parser(stop_words_list)        # TODO: Need to give parser the stop_words list
         self.tokens = parser.parser_pipeline(text, self.stem)
-        if self.write_to_disk:  # TODO: Not sure it works in python need to check that
-            self.to_json()  # TODO: Change it to HDF5
+        self.max_tf = parser.get_max_tf()
 
     def to_json(self):
         dict_to_json = {}
@@ -96,8 +100,10 @@ class Document:
         params.append(str(self.file_name))
         params.append(str(self.doc_start_line))
         params.append(str(self.doc_finish_line))
-        # params.append(str(self.max_tf)) # TODO: add max tf parameter
-        # params.append(str(self.city))
+        if hasattr(self, 'max_tf'):
+            params.append(str(self.max_tf))
+        if hasattr(self, 'city'):
+            params.append(str(self.city))
         # params.append(str(self.title_str)) # TODO: need to choose if to return the tokens of the title
 
         return ' '.join(params)
@@ -112,7 +118,7 @@ class Document:
         self.file_name = params_list[1]
         self.doc_start_line = int(params_list[2])
         self.doc_finish_line = int(params_list[3])
-        # self.max_tf = params_list[4] # TODO: add max tf parameter
+        self.max_tf = params_list[4]
         self.city = params_list[5]
         self.title_str = params_list[6]
 

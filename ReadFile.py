@@ -19,7 +19,8 @@ class ReadFile:
             elif "</DOC>" in line:
                 doc_count += 1
                 doc = Document(data=lines[start + 1: i - 1], file_name=self.file_name , stem=self.stem,
-                               write_to_disk=self.write_to_disk, stop_words_list=stop_words_list, first_row_index=start, last_row_index=i-1)
+                               write_to_disk=self.write_to_disk, stop_words_list=stop_words_list, first_row_index=start,
+                               last_row_index=i-1)
                 q.put(doc)  # Inserting the document object so the listener will get it
         file.close()
         return doc_count
