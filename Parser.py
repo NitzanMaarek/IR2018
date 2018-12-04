@@ -1,5 +1,6 @@
 from nltk import word_tokenize
 from nltk.stem.porter import *
+import Preferences
 
 class Parser:
     def __init__(self, stop_words_list):
@@ -59,9 +60,6 @@ class Parser:
         tokens = self.create_tokens(self.data)
         # tokens = self.find_key_words_in_line(tokens)
         #TODO: Need to fix stemming
-        if stem:
-            stemmer = PorterStemmer()
-            tokens = [stemmer.stem(term) for term in tokens]
         return tokens
 
     def create_tokens(self, data):
@@ -70,6 +68,9 @@ class Parser:
         :param data: String of data to parse and tokenize.
         :return: Dictionary of tokens as keys and its' frequency and first position in doc
         """
+        if Preferences.stem:
+            stemmer = PorterStemmer()
+
         self.tokens = []
         self.data_length = len(data)
         stop_words_length = len(self.stop_words_list)
@@ -101,6 +102,7 @@ class Parser:
                 if token is not None and len(token) > 0:
                     if self.between_index >= 1:
                         token = self.parse_handle_between_token(token)   # If we've encountered the word between then keep track if next tokens are : between <number> and <number>
+
                     self.add_token_to_collections(token, (data_index, line_index))
         self.correct_upper_lower_cases()
 
@@ -142,6 +144,8 @@ class Parser:
         """
         Method merges dictionaries of token first_position and frequency.
         Also calculates maximum term frequency when iterating dictionaries during merge.
+        We add another boolean value which will represents if the token appears in the title or not, it is initialized
+        to False and will be changed in the future according to the document title.
         :return: one merged dictionary.
         """
         if self.token_dictionary_first_position.__sizeof__() > 1:
@@ -150,13 +154,13 @@ class Parser:
             merged_sorted_dictionary = {}
             for (key_p, value_p), (key_f, value_f) in zip(self.token_dictionary_first_position.items(), self.token_dictionary_num_of_appearance.items()):
                 # key_p, value_p = items in dictionary of first Position
-                # key_f, value_f = items in dictionary of Frequency/appearences
+                # key_f, value_f = items in dictionary of Frequency/appearances
                 if key_f != max_tf_token:
                     if value_f > max_tf_count:
                         max_tf_token = key_f
                         max_tf_count = value_f
 
-                merged_sorted_dictionary[key_p] = (self.token_dictionary_num_of_appearance[key_f], self.token_dictionary_first_position[key_p])
+                merged_sorted_dictionary[key_p] = [self.token_dictionary_num_of_appearance[key_f], self.token_dictionary_first_position[key_p], False]
 
             self.max_tf = max_tf_count
             return merged_sorted_dictionary
@@ -175,8 +179,13 @@ class Parser:
         :param token: one token or list of tokens to add or update and list = (line_number, position_in_line)
         :param position_list: list of position in doc (lines) and position in line (words)
         """
+        if Preferences.stem:
+            stemmer = PorterStemmer()
+
         if type(token) is list:
             for item in token:
+                if Preferences.stem:
+                    item = stemmer.stem(item)
                 if self.token_dictionary_first_position.__contains__(item):
                     self.token_dictionary_num_of_appearance[item] += 1
                 else:
@@ -184,6 +193,8 @@ class Parser:
                     self.token_dictionary_first_position[item] = position_list
                 self.tokens.append(item)
         else:
+            if Preferences.stem:
+                token = stemmer.stem(token)
 
             if self.token_dictionary_first_position.__contains__(token):
                 self.token_dictionary_num_of_appearance[token] += 1
@@ -786,7 +797,7 @@ class Parser:
         counter = 1
         while i >= 0:
             token = ''.join([number[i], token])
-            if counter % 3 == 0:
+            if counter % 3 == 0 and i != 0:
                 token = ''.join([',', token])
             counter += 1
             i -= 1

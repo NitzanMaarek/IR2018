@@ -35,24 +35,20 @@ class Document:
                         self.topic = after_split[2].upper()
                     continue
                 # Title section:
-                # TODO: remove self.title_str if not needed in the end
                 if '<H3>' in data[i]:
                     title = data[i].replace('<H3>', '')
                     title = title.replace('</H3>', '')
                     title = title.replace('<TI>', '')
                     title = title.replace('</TI>', '')
-                    self.title_str = title
-                    self.title = title.split()
+                    self.title = title
                     continue
                 if '<HEADLINE>' in data[i]:
                     if 'LA' in self.doc_num:
-                        self.title_str = data[i + 2]
-                        self.title = data[i + 2].split()
+                        self.title = data[i + 2]
                         continue
                     else:
                         title = data[i + 1][data[i + 1].find('/') + 1:]
-                        self.title_str = title
-                        self.title = title.split()
+                        self.title = title
                         continue
                 if (start == -1 and '<TEXT>' in data[i]) or ('[Text]' in data[i]):
                     self.doc_start_line = i +1
@@ -61,7 +57,6 @@ class Document:
                     self.doc_finish_line = i
                     break
 
-            # print(self.doc_num + ': ' + self.title_str)
             data[i] = data[i].replace('[Text]', '')
             data[i] = data[i].replace('<TEXT>', '')
             if self.doc_start_line == -1 and self.doc_finish_line == -1:
@@ -77,6 +72,11 @@ class Document:
         parser = Parser(stop_words_list)        # TODO: Need to give parser the stop_words list
         self.tokens = parser.parser_pipeline(text, self.stem)
         self.max_tf = parser.get_max_tf()
+        title_parser = Parser(stop_words_list)
+        title_tokens = parser.parser_pipeline([self.title], self.stem)
+        for title_token in title_tokens:
+            if title_token in self.tokens:
+                self.tokens[title_token][2] = True
 
     def to_json(self):
         dict_to_json = {}
@@ -104,7 +104,7 @@ class Document:
             params.append(str(self.max_tf))
         if hasattr(self, 'city'):
             params.append(str(self.city))
-        # params.append(str(self.title_str)) # TODO: need to choose if to return the tokens of the title
+        # params.append(str(self.title)) # TODO: need to choose if to return the tokens of the title
 
         return ' '.join(params)
 
@@ -120,7 +120,7 @@ class Document:
         self.doc_finish_line = int(params_list[3])
         self.max_tf = params_list[4]
         self.city = params_list[5]
-        self.title_str = params_list[6]
+        self.title = params_list[6]
 
     def set_pointer(self, batch_num, seek_value):
         """

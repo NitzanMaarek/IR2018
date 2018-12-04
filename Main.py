@@ -4,9 +4,6 @@ import multiprocessing as mp
 import Indexer
 from ReadFile import ReadFile
 import Preferences
-from Token import Token
-from City import City
-
 
 def read_directory(directory, multiprocess, batch_size=20000):
     """

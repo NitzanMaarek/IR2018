@@ -8,10 +8,9 @@ class Token:
             self.df = 0
             self.doc_dict = {}
 
-    def add_data(self, doc_pointer, tuple, doc_num):
+    def add_data(self, doc_pointer, list, doc_num):
         self.df += 1
-        self.doc_dict[doc_num] = (tuple[0], tuple[1], doc_pointer)
-
+        self.doc_dict[doc_num] = (list[0], list[1], list[2], doc_pointer)
 
     def string_to_disk(self):
         """
@@ -51,7 +50,8 @@ class Token:
             # first_position = doc_attributes[1]
             # doc_pointer = doc_attributes[2]
             #TODO: need to get pointer to doc posting file
-            doc_strings.append(''.join(['<', doc_id, ' ', str(doc_attributes[0]), ' ', str(doc_attributes[1]), ' ', doc_attributes[2], '>', ' ']))
+            doc_strings.append(''.join(['<', doc_id, ' ', str(doc_attributes[0]), ' ', str(doc_attributes[1]), ' ',
+                                        str(doc_attributes[2]), str(doc_attributes[3]), '>', ' ']))
         doc_strings.append('\n')
         return ''.join(doc_strings)
 
