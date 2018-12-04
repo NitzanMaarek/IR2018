@@ -371,7 +371,7 @@ class Parser:
         :param token: string
         :return: if word: then same word in lower case, otherwise same token
         """
-        chars_list = []    #list of strings to join after
+        chars_list = []    #list of strings to join after.
         if token is not None:
             hyphen_count = token.count('-')
             if hyphen_count == 1:

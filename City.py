@@ -14,7 +14,7 @@ class City:
             return self.city_dictionary[city_name]
         else:
             response = requests.get(r'https://restcountries.eu/rest/v2/capital/' + city_name)
-            if response.ok:     # If connection to API server succeeded
+            if response.ok:     # If connection to API server succeeded.
                 self.add_city_to_dictionary(response, city_name)
 
     def add_city_to_dictionary(self, response, city_name):
