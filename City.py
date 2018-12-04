@@ -63,34 +63,6 @@ class CityIndexer:
             return self.state_dictionary[self.city_dictionary[city_name]]
         return None
 
-    # def add_city_to_inverted_index(self, city_token):
-    #     if city_token.token_name in self.city_dictionary:
-    #         self.inverted_index[city_token.token_name]
-
-
-    # def get_city_attributes(self, city_name):
-    #     if city_name is None or len(city_name) == 0:
-    #         return None
-    #     if city_name in self.city_dictionary:
-    #         return self.city_dictionary[city_name]
-    #     else:
-    #         response = requests.get(r'https://restcountries.eu/rest/v2/capital/' + city_name)
-    #         if response.ok:     # If connection to API server succeeded.
-    #             self.add_city_to_dictionary(response, city_name)
-
-    def add_city_to_dictionary(self, city_name):
-        if not city_name in self.city_dictionary:
-            response = requests.get(r'https://restcountries.eu/rest/v2/capital/' + city_name)
-            if response.ok:
-                obj = json.loads(response.content.decode('utf-8'))[0]
-                state = ''.join(['State: ', str(obj['name'])])
-                currencies = ''.join(['Currencies: '] + [d['name'] for d in obj['currencies']])
-                population_size = obj['population']
-                # pop = list(self.parser.create_tokens([population_size]).keys())
-                # parsed_population = list(self.parser.create_tokens([population_size]).keys())[0]
-                population = ''.join(['Population: ', str(population_size)])
-                self.city_dictionary[city_name] = ''.join([state, ' ', currencies, ' ', population])
-
 class CityToken:
     def __init__(self, city_name = None, disk_string = None, attr = []):
         self.city_name = city_name
