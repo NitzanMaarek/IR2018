@@ -48,6 +48,7 @@ class Parser:
         self.token_dictionary_num_of_appearance = {}        #Contains final tokens with number of appearences
         self.token_dictionary_first_position = {}           #Contains final tokens with first position appeared
         self.token_upper_case_dictionary = {}
+        self.max_tf = 0
 
 
     def parser_pipeline(self, data, stem):
@@ -106,7 +107,7 @@ class Parser:
                     self.add_token_to_collections(token, (data_index, line_index))
         self.correct_upper_lower_cases()
 
-        return self.merge_and_sort_dictionaries()
+        return self.merge_dictionaries()
 
         # return self.tokens
 
@@ -140,20 +141,36 @@ class Parser:
                     del self.token_dictionary_first_position[upper_case_token]
 
 
-    def merge_and_sort_dictionaries(self):
+    def merge_dictionaries(self):
         """
         Method merges dictionaries of token first_position and frequency.
+        Also calculates maximum term frequency when iterating dictionaries during merge.
         :return: one merged dictionary.
         """
         if self.token_dictionary_first_position.__sizeof__() > 1:
+            max_tf_count = 0
+            max_tf_token = ''
             merged_sorted_dictionary = {}
             for (key_p, value_p), (key_f, value_f) in zip(self.token_dictionary_first_position.items(), self.token_dictionary_num_of_appearance.items()):
                 # key_p, value_p = items in dictionary of first Position
                 # key_f, value_f = items in dictionary of Frequency/appearences
+                if key_f != max_tf_token:
+                    if value_f > max_tf_count:
+                        max_tf_token = key_f
+                        max_tf_count = value_f
+
                 merged_sorted_dictionary[key_p] = (self.token_dictionary_num_of_appearance[key_f], self.token_dictionary_first_position[key_p])
 
+            self.max_tf = max_tf_count
             return merged_sorted_dictionary
         return None
+
+    def get_max_tf(self):
+        """
+        Method returns the maximum term frequency in the given data
+        :return: maximum term frequency in data
+        """
+        return self.max_tf
 
     def add_token_to_collections(self, token, position_list):
         """
@@ -338,8 +355,9 @@ class Parser:
 
     def parse_byte_tokens(self):
         """
-
-        :return:
+        Method handles when a binary "data_type" key word is found: self.data_byte_dictionary
+        If token before keyword is a number then delete that token and tokenie key word and number together to one token.
+        :return: Token: <number> <data_byte_unit>
         """
         token = self.word
         if len(self.tokens) >= 1:
@@ -488,10 +506,10 @@ class Parser:
 
     def check_if_day_is_range(self, token):
         """
-                Checks if given token is <parsed_number>-<parsed_number> and if so count it as a number
-                :param token: some text with '-' in it
-                :return: True if <parsed_number>-<parsed_number>. False otherwise
-                """
+        Checks if given token is <parsed_number>-<parsed_number> and if so count it as a number
+        :param token: some text with '-' in it
+        :return: True if <parsed_number>-<parsed_number>. False otherwise
+        """
         if token is not None:
             after_split = token.split('-')
             if len(after_split) == 2:
@@ -538,7 +556,7 @@ class Parser:
 
     def parse_year_after_month(self, date_list):
         """
-        method marks to skip 1 token and return correct token
+        Method marks to skip 1 token and return correct token
         :param date_list: (month, year)
         :return: token = <year>-<month>
         """
@@ -548,7 +566,7 @@ class Parser:
 
     def parse_day_after_month(self, date_list):
         """
-        method marks to skip next tokenize and returns correct token
+        Method marks to skip next tokenize and returns correct token
         :param date_list: (day, month)
         :return: token = <month>-<day>
         """
@@ -558,7 +576,7 @@ class Parser:
 
     def parse_day_before_month_no_year(self, date_list):
         """
-        this method deletes previous (day) and returns <month>-<day>
+        Method deletes previous (day) and returns <month>-<day>
         :param date_list: (day, month) = no need to check input
         :return: token = <month>-<day>
         """
@@ -569,7 +587,7 @@ class Parser:
 
     def parse_day_month_year(self, date_list):
         """
-        this method will delete previous (day), mark to skip next (year), add 2 tokens and return the thirds to be appended.
+        Method will delete previous (day), mark to skip next (year), add 2 tokens and return the thirds to be appended.
         :param date_list: (day, month, year) = no need to check input
         :return: token: <year>-<month_number>-<day>
         """
@@ -583,6 +601,10 @@ class Parser:
         return token
 
     def parse_percent_word(self):
+        """
+        Method deletes previous token if it is a number and creates one token of the previous number and the sign %.
+        :return: token = <number>%
+        """
         token = self.word
         if len(self.tokens) >= 1:
             previous_token = self.tokens[-1]
@@ -594,6 +616,12 @@ class Parser:
         return token
 
     def parse_dollar_with_capital_d(self):
+        """
+        Method handles situations when:     1. price Dollars
+                                            2. price m Dollars
+                                            3. price bn Dollars
+        :return: if sequence is correct then <number=price> Dollars, otherwise the same token given.
+        """
         token = self.word
         if len(self.tokens) >= 1:
             previous_token = self.tokens[-1]
@@ -632,7 +660,7 @@ class Parser:
         Functions substitutes thousands of currency to correct format for currency
         Also does the same for Bytes and Bits.
         :param price_in_thousands: string of price in thousands: 5.1k or 42k  (with comma or without)
-        :return: correct string
+        :return: Instead of a number with K to mark thousand, a  normal number without K.
         """
         k_position = price_in_thousands.find('K')
         if price_in_thousands.__contains__('.'):  # If number is: 3.1K or 4.12K or 5.123K
@@ -651,6 +679,10 @@ class Parser:
         return price_in_thousands
 
     def parse_dollar_small_d(self):
+        """
+        Method handles situations where:    1. price million/billion/trillion U.S dollars
+        :return: <number=price> Dollars
+        """
         token = self.word
         indicator = False           #indicator if in face we tokenized dollar like in rules and so need to delete previouse tokens.
         if len(self.tokens) >= 3:
@@ -747,7 +779,7 @@ class Parser:
 
     def add_commas_to_integer(self, number):
         """
-        receives integer and adds comma's to it
+        Method receives integer and adds comma's to it
         :param number:
         :return:
         """
@@ -833,7 +865,7 @@ class Parser:
 
     def parse_numbers_for_dollar_sign(self, price):
         """
-        parses the number of the dollar by demand - ONLY IF IT IS A NUMBER, if not it returns $andwhateverwashere
+        Method parses the number of the dollar by demand - ONLY IF IT IS A NUMBER, if not it returns $andwhateverwashere
         :param price: the number only without $ sign
         :return: <number> Dollars
         """
@@ -909,7 +941,7 @@ class Parser:
 
     def replace_numbers_with_words_regex(self, match):
         """
-        Function which replaces each case of number to the correct representation
+        Method which replaces each case of number to the correct representation
         :param match: The match found by the regex
         :return: After substitute
         """
@@ -926,6 +958,11 @@ class Parser:
             return self.replace_trillion(value_str)
 
     def replace_only_numbers_regex(self, match):
+        """
+        Method is called when regex for normal numbers has a match
+        :param match: string
+        :return: parsed number
+        """
         value = match.group()
         value_str = str(value)
         value_int = float(value_str.replace(',', ''))
@@ -937,6 +974,11 @@ class Parser:
             return self.replace_billions(value_str)
 
     def replace_only_millions_above_dollars_regex(self, match):
+        """
+        Method is called when regex for numbers for currency (dollars) parsing
+        :param match: string
+        :return: parsed number according to dollars rules
+        """
         value = match.group()
         value_str = str(value)
         value_int = float(value_str.replace(',', ''))
@@ -946,6 +988,11 @@ class Parser:
             return self.replace_billions(value_str)
 
     def replace_only_thousands_dollars_regex(selfs, match):
+        """
+        Method is called when regex for thousands of currency (dollars) found a match.
+        :param match: string
+        :return: parsed number
+        """
         value = match.group()
         value_str = str(value)
         value_int = float(value_str.replace(',', ''))
@@ -954,7 +1001,7 @@ class Parser:
 
     def replace_trillion(self, value):
         """
-        Replaces Trillions
+        Replaces Trillions: when regex found a number in trillions and parses it according to the rules.
         :param value: String value of the number
         :return: String after parsing
         """
@@ -965,7 +1012,7 @@ class Parser:
 
     def replace_thousands(self, value):
         """
-        Replaces thousands
+        Replaces thousands: when regex found a number in thousands and parses it according to the rules.
         :param value: String value of the number: either with comma or with "Thousand" or with '.'.
         :return: String after parsing
         """
@@ -996,7 +1043,7 @@ class Parser:
 
     def replace_millions(self, value):
         """
-        Replaces millions
+        Replaces millions: when regex found a match for millions and it parses it according to the rules.
         :param value: String value of the number
         :return: String after parsing
         """
@@ -1034,7 +1081,7 @@ class Parser:
 
     def replace_billions(self, value):
         """
-        Replaces billions
+        Replaces billions: when regex found a match and parses it acording to the rules.
         :param value: String value of the number
         :return: String after parsing
         """
@@ -1069,6 +1116,11 @@ class Parser:
             return s
 
     def is_any_kind_of_number(self, s):
+        """
+        Method checks if given string s is either Integer, Float or a parsed number
+        :param s:
+        :return:
+        """
         if s is None or len(s) == 0:
             return False
         return self.is_number_k_m_b_t(s) or self.is_integer(s) or self.is_float(s)
