@@ -4,7 +4,7 @@ import Preferences
 
 
 class Document:
-    def __init__(self, file_name = None, data = None, stem = False, write_to_disk = False, stop_words_list = None,
+    def __init__(self, file_name = None, data = None, stop_words_list = None,
                  first_row_index = None, last_row_index = None, disk_string = None):
         """
         Creating a document object which contains the following parameters
@@ -19,7 +19,7 @@ class Document:
             self._define_params_from_string(disk_string)
         else:
             self.file_name = file_name
-            self.stem = stem
+            self.stem = Preferences.stem
             self.doc_num = self.get_doc_parameter(data[0], 'DOCNO')
             self.HT = self.get_doc_parameter(data[1], 'HT')
             self.doc_start_line = -1
@@ -30,6 +30,11 @@ class Document:
                 if 'DATE1' in data[i]:
                     self.date = self.get_doc_parameter(data[i], 'DATE1')
                     continue
+                if '<F P=101>' in data[i]:
+                    after_split = data[i].split()
+                    if len(after_split) > 2:
+                        self.topic = after_split[2].upper()
+                    continue
                 if '<F P=104>' in data[i]:
                     after_split = data[i].split()
                     if len(after_split) > 2:
@@ -37,10 +42,8 @@ class Document:
                         if self.city == 'ST.' or self.city == 'ST':
                             self.city = ''.join([self.city, after_split[3].upper()])
                     continue
-                if '<F P=101>' in data[i]:
-                    after_split = data[i].split()
-                    if len(after_split) > 2:
-                        self.topic = after_split[2].upper()
+                if '<F P=105>' in data[i]:
+                    self.language = self.get_doc_parameter(data[i], 'F P=105').split()[0]
                     continue
                 # Title section:
                 if '<H3>' in data[i]:
@@ -89,8 +92,6 @@ class Document:
             for title_token in title_tokens:
                 if title_token in self.tokens:
                     self.tokens[title_token][2] = True
-        else:
-            print(str(self.file_name) + ' ' + str(self.doc_num))
 
     def to_json(self):
         """
@@ -130,6 +131,8 @@ class Document:
             params.append(str(self.max_tf))
         if hasattr(self, 'city'):
             params.append(str(self.city))
+        if hasattr(self, 'language'):
+            params.append(str(self.language))
         # params.append(str(self.title)) # TODO: need to choose if to return the tokens of the title
 
         return ' '.join(params)
@@ -149,6 +152,8 @@ class Document:
             self.city = params_list[5]
         if hasattr(self, 'title'):
             self.title = params_list[6]
+        if hasattr(self, 'language'):
+            self.language = params_list[7]
 
     def set_pointer(self, batch_num, seek_value):
         """

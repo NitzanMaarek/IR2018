@@ -205,7 +205,8 @@ def create_posting_file(sorted_terms, merged_dict, posting_file_name, tag):
             # Fixing the offset
             seek_offset = last_seek_offset
 
-        terms_dictionary[term] = (seek_offset, merged_dict[term].df)
+        terms_dictionary[term] = merged_dict[term]
+        # terms_dictionary[term] = (seek_offset, merged_dict[term].df)
         str_for_posting = ''.join([term, ' ', merged_dict[term].create_string_from_doc_dictionary()])
         last_seek_offset = seek_offset
         seek_offset += len(str_for_posting) + 1

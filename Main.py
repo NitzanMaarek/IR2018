@@ -4,6 +4,7 @@ import multiprocessing as mp
 import Indexer
 from ReadFile import ReadFile
 import Preferences
+import csv
 
 def read_directory(directory, multiprocess, batch_size=20000):
     """
@@ -18,6 +19,7 @@ def read_directory(directory, multiprocess, batch_size=20000):
     file_count = 0
     total_doc_count = 0
     next_batch_num = 0
+    language_set = set()
 
     for root, dirs, files in os.walk(directory):
         # TODO: Read also stop_words.txt from this directory and forward list to parser init
@@ -26,22 +28,30 @@ def read_directory(directory, multiprocess, batch_size=20000):
             if not file == 'stop_words.txt':
                 path = os.path.join(root, file)
                 if multiprocess:
-                    job = pool.apply_async(ReadFile, (file, stem, write_to_disk, q, path, stop_words_list))
+                    job = pool.apply_async(ReadFile, (file, q, path, stop_words_list))
                     jobs.append(job)
                     file_count += 1
                     if file_count == 300:
                         print('dumping files')
-                        processed_docs, next_batch_num = dump_proceesed_docs_to_disk(jobs, batch_size, next_batch_num)
+                        processed_docs, next_batch_num, partial_language_set = dump_proceesed_docs_to_disk(jobs, batch_size, next_batch_num)
+                        language_set = language_set.union(partial_language_set)
                         next_batch_num += 1
                         total_doc_count += processed_docs
                         jobs = []
                         file_count = 0
                 else:
-                    ReadFile(file, stem, write_to_disk, q, path, stop_words_list)
+                    ReadFile(file, q, path, stop_words_list)
+
 
     if len(jobs) > 0:
-        processed_docs, next_batch_num = dump_proceesed_docs_to_disk(jobs, batch_size, next_batch_num)
+        processed_docs, next_batch_num, partial_language_set = dump_proceesed_docs_to_disk(jobs, batch_size, next_batch_num)
+        language_set = language_set.union(partial_language_set)
         total_doc_count += processed_docs
+
+    with open(Preferences.main_directory + 'languages list.csv', 'w') as cities_file:
+        wr = csv.writer(cities_file, quoting=csv.QUOTE_ALL)
+        wr.writerow(list(language_set))
+        # cities_file.writelines()
 
     cities_posting = pool.apply_async(Indexer.create_cities_posting,)
 
@@ -49,10 +59,10 @@ def read_directory(directory, multiprocess, batch_size=20000):
     print('Until merge runtime: ' + str(datetime.datetime.now() - start_time))
 
     merge_pickles_to_terms_dictionary()
-    print('Until saving dictionary by prefixes' + str(datetime.datetime.now() - start_time))
+    print('Until saving dictionary by prefixes: ' + str(datetime.datetime.now() - start_time))
 
     terms_dictionary = merge_tokens_dictionary()
-    print('Until saving dictionary as one file' + str(datetime.datetime.now() - start_time))
+    print('Until saving dictionary as one file: ' + str(datetime.datetime.now() - start_time))
 
     print('Trying to save and load dictionary')
     Indexer.save_obj_dictionary(terms_dictionary, 'main terms dictionary')
@@ -98,10 +108,12 @@ def dump_proceesed_docs_to_disk(jobs, batch_size, next_batch_num):
     job = pool.apply_async(batch_to_disk, (temp_doc_count, batch_count, q))
     batch_jobs.append(job)
 
+    language_set = set()
     for job in batch_jobs:
-        rs = job.get()
+        partial_language_set = job.get()
+        language_set = language_set.union(partial_language_set)
 
-    return doc_count, batch_count
+    return doc_count, batch_count, language_set
 
 def batch_to_disk(batch_size, batch_num, q):
     """
@@ -112,11 +124,15 @@ def batch_to_disk(batch_size, batch_num, q):
     """
     docs = []
     count = 0
+    languages_partial_set = set()
     while batch_size > count:
         doc = q.get()
+        if hasattr(doc, 'language'):
+            languages_partial_set.add(doc.language)
         docs.append(doc)
         count += 1
     Indexer.write_docs_list_to_disk(docs, batch_num)
+    return languages_partial_set
 
 def create_tokens_posting():
     """
@@ -194,11 +210,9 @@ def read_stop_words_lines(directory):
 
 if __name__ == '__main__':
     # Debug configs:
-    single_file = False
-    write_to_disk = False
+    single_file = True
     parallel = True
-    stem = Preferences.stem
-    Index = True
+    # stem = Preferences.stem
 
     main_directory = Preferences.main_directory
 
