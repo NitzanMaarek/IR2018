@@ -7,3 +7,6 @@ posting_files_per_batch = 50
 
 # If we stem or not
 stem = False
+
+# Ignore tags like: <P> and </P>:
+ignore_tag_p = False

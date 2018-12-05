@@ -1,4 +1,3 @@
-from nltk import word_tokenize
 from nltk.stem.porter import *
 import Preferences
 
@@ -68,8 +67,6 @@ class Parser:
         :param data: String of data to parse and tokenize.
         :return: Dictionary of tokens as keys and its' frequency and first position in doc
         """
-        if Preferences.stem:
-            stemmer = PorterStemmer()
 
         self.tokens = []
         self.data_length = len(data)
@@ -84,6 +81,10 @@ class Parser:
                     continue
                 self.line_index = line_index
                 self.word = word
+
+                if Preferences.ignore_tag_p:
+                    if self.word == '<P>' or self.word == '</P>':
+                        continue
 
                 self.word = self.remove_delimiters(self.word)
                 if self.word is None:
@@ -788,8 +789,8 @@ class Parser:
     def add_commas_to_integer(self, number):
         """
         Method receives integer and adds comma's to it
-        :param number:
-        :return:
+        :param number: string
+        :return: string number with correct comma seperation.
         """
         number_length = len(number)
         token = ''
