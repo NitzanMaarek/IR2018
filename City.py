@@ -24,22 +24,23 @@ class CityIndexer:
         if response.ok:
             obj = json.loads(response.content.decode('utf-8'))
             for country_dict in obj:
-                state_code = country_dict['alpha2Code']
+                # state_code = country_dict['alpha2Code']
                 state_name = country_dict['name']
                 state_capital = country_dict['capital']
                 state_raw_population = country_dict['population']   # Need to parse population
                 state_parsed_population = list((self.parser.create_tokens([str(state_raw_population)])).keys())[0]
                 state_currencies = country_dict['currencies']  # [{'code': NIS, 'name': 'New Israeli Shekels', 'symbol': ''}]
-                self.city_dictionary[state_capital] = state_code
-                currencies_list = []
-                for state_currency in state_currencies:
-                    for k, v in state_currency.items():
-                        currency_list = []
-                        if not v is None:
-                            currency_list.append(k + ': ' + v)
-                    currencies_list.append(' '.join(currency_list))
+                self.city_dictionary[state_capital] = state_name
+                currency_dir = state_currencies[0]
+                currencies_list = [''.join(['Currency: ', ': ', currency_dir['name']])]
+                # for state_currency in state_currencies:
+                #     for k, v in state_currency.items():
+                #         currency_list = []
+                #         if not v is None:
+                #             currency_list.append(k + ': ' + v)
+                #     currencies_list.append(' '.join(currency_list))
                 # currencies_list = [k + ': ' + v for k, v in state_currencies[0].items()]
-                self.state_dictionary[state_code] = ' '.join([state_name] + currencies_list + [state_parsed_population])
+                self.state_dictionary[state_name] = ' '.join([state_name] + currencies_list + [state_parsed_population])
 
     def load_city_state_json(self):
         """
@@ -51,7 +52,7 @@ class CityIndexer:
             data = json.loads(url.read().decode())
             for state in data:
                 for city in data[state]:
-                    if not city in self.city_dictionary:
+                    if city not in self.city_dictionary:
                         self.city_dictionary[city] = state
 
 
