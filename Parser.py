@@ -2,7 +2,14 @@ from nltk.stem.porter import *
 import Preferences
 
 class Parser:
+    """
+
+    """
     def __init__(self, stop_words_list):
+        """
+
+        :param stop_words_list:
+        """
         self.percent_key_words = {'%', 'percent', 'percentage'}
         self.dollar_key_words = {'$', 'Dollars', 'dollars'}
         self.month_dictionary = {'January': '01', 'February': '02', 'March': '03', 'April': '04', 'May': '05', 'June': '06',
@@ -28,9 +35,13 @@ class Parser:
                                      'megabytes': 'MB', 'MEGABYTES': 'MB', 'Megabytes': 'MB', 'terabytes': 'tb', 'TERABYTES': 'TB',
                                      'Terabytes': 'TB', 'kilo-bytes': 'KB', 'Kilo-Bytes': 'KB', 'KILO-BYTES': 'KB',
                                      'mega-bytes': 'MB', 'Mega-Bytes': 'MB', 'MEGA-BYTES': 'MB', 'tera-bytes': 'TB',
-                                     'Tera-Bytes': 'TB', 'TERA-BYTES': 'TB'
-                                     }
-        self.month_first_letter_array = ['a', 'A', 'd', 'D', 'f', 'F', 'j', 'J', 'm', 'M', 'n', 'N', 'o', 'O', 's', 'S']
+                                     'Tera-Bytes': 'TB', 'TERA-BYTES': 'TB', 'kilobit': 'kb', 'kilo-bit': 'kb', 'KILOBIT': 'kb',
+                                     'Kilobit': 'kb', 'kilobits': 'kb', 'kilo-bits': 'kb', 'KILOBITS': 'kb',
+                                     'Kilobits': 'kb', 'megabit': 'mb', 'megabits': 'mb', 'MEGABIT': 'mb', 'MEGABITS': 'mb',
+                                     'mega-bit': 'mb', 'mega-bits': 'mb', 'gigabit': 'gb', 'gigabits': 'gb', 'GIGABIT': 'gb',
+                                     'GIGABITS': 'gb', 'giga-bit': 'gb', 'giga-bits': 'gb', 'terabit': 'tb', 'terabits': 'tb',
+                                     'tera-bit': 'tb', 'tera-bits': 'tb'}
+
         # locale.setlocale(locale.LC_ALL, 'en_US.UTF-8')
         self.sides_delimiters = {' ', ',', '.', '/', '"', '\'', '\\', '(', ')', '[', ']', '{', '}', ':', '-', ';', '?', '!', '*', '>', '<', '&', '+', '#', '@', '^', '_', '=', '`'}
         self.middle_delimiters = {' ', ',', '.', '/', '"', '\\', '(', ')', '[', ']', '{', '}', ':', '-', ';', '?', '!', '*', '>', '<', '&', '+', '#', '@', '^', '_', '=', '`'}
@@ -58,7 +69,6 @@ class Parser:
         self.data = data
         tokens = self.create_tokens(self.data)
         # tokens = self.find_key_words_in_line(tokens)
-        #TODO: Need to fix stemming
         return tokens
 
     def create_tokens(self, data):
@@ -381,45 +391,6 @@ class Parser:
                 self.delete_token_i(1)
         return token
 
-    # TODO: Use this function maybe in PART B
-    def tokenize_unknown_word(self, word):
-        """
-        Tokenizes an unknown word and parses tokens
-        :param word:
-        :return: list of tokens?
-        """
-        # words_after_tokenize = word_tokenize(word)
-        # print("Word before tokenization: " + word)
-        hyphen_position = word.find('-')
-        if hyphen_position >= 1:
-            word_after_hyphen = word[hyphen_position + 1:]
-            # if len(word_after_hyphen) == 0:
-            #     print('delete me')
-            if word_after_hyphen[0] == '0' or word_after_hyphen[0] == '1' or word_after_hyphen[0] == '2' or word_after_hyphen[0] == '3' or word_after_hyphen[0] == '4' or word_after_hyphen[0] == '5' or word_after_hyphen[0] == '6' or word_after_hyphen[0] == '7' or word_after_hyphen[0] == '8' or word_after_hyphen[0] == '9':
-                word = self.handle_range_with_number(word)     # If it's a combination word-number then number should be added to dict
-                return word                             # Either way it returns the same token as it was before.
-            return word
-        words_after_delimiters = self.replace_delimiters(word)
-
-        # print('   After tokenization: ' + words_after_delimiters)
-        return word
-
-    def replace_delimiters(self, word):
-        """
-        Replaces in word all delimiters with space
-        :param word: string
-        :return: single string with space instead of delimiters
-        """
-        ans = ''
-        if word is not None:
-            for char in word:
-                if char in self.middle_delimiters:
-                    ans = ''.join([ans, ' '])
-                else:
-                    ans = ''.join([ans, char])
-
-        return ans
-
     def lower_case_word(self, token):
         """
         Method checks if token is an alphabetical word. If so make it lower case
@@ -437,12 +408,9 @@ class Parser:
                     char_int_rep = ord(char)
                     if 65 <= char_int_rep <= 90:     #if char is UPPER case, make it lower case
                         chars_list.append(chr(char_int_rep + 32))
-                    # elif 97 <= char_int_rep <= 122:     #if char is not a letter then abort and return original token.
                     else:
                         chars_list.append(char)
-                    # else:
-                    #     token = self.tokenize_unknown_word(token)
-                    #     return token
+
                 token = ''.join(chars_list)
         return token
 
@@ -463,12 +431,8 @@ class Parser:
                     char_int_rep = ord(char)
                     if 97 <= char_int_rep <= 122:  # if char is LOWER case, make it upper case
                         chars_list.append(chr(char_int_rep - 32))
-                    # elif 65 <= char_int_rep <= 90:  # if char is upper case then just use it.
                     else:
                         chars_list.append(char)
-                    # else:                           # if char is not a letter then abort and return original token.
-                    #     token = self.tokenize_unknown_word(token)
-                    #     return token
                 token = ''.join(chars_list)
         return token
 
@@ -496,22 +460,6 @@ class Parser:
         if self.is_any_kind_of_number(second_str):
             self.add_token_to_collections(second_str, (self.data_index, self.line_index))
         return ''.join([first_str, '-', second_str])
-
-    # TODO: remove this function IF NOT IN USE
-    def check_if_token_is_number_range(self, token):
-        """
-        Checks if given token is <parsed_number>-<parsed_number> and if so count it as a number
-        :param token: some text with '-' in it
-        :return: True if <parsed_number>-<parsed_number>. False otherwise
-        """
-        if token is not None:
-            after_split = token.split('-')
-            if len(after_split) == 2:
-                first_number = after_split[0]
-                second_number = after_split[1]
-                if self.is_any_kind_of_number(first_number) and self.is_any_kind_of_number(second_number):
-                    return True
-        return False
 
     def check_if_day_is_range(self, token):
         """
@@ -662,8 +610,6 @@ class Parser:
 
         return token
 
-
-
     def fix_thousands_for_dollars(self, price_in_thousands):
         """
         Functions substitutes thousands of currency to correct format for currency
@@ -812,6 +758,7 @@ class Parser:
                 # if it's <number>-<number> or <number>-<word or something not an umber>
                 return self.word
 
+    # TODO: Go over this function, check if you want maybe to parse the numbers in the fration or not.
     def parse_fraction(self):
         """
         Parses fraction number
@@ -1119,6 +1066,11 @@ class Parser:
 
 
     def change_day_format(self, s):
+        """
+        If s is a number between 1-9 add the digit 0 at beginning
+        :param s: string
+        :return: string day representation according to rules
+        """
         if len(s) == 1:
             return '0' + s
         else:
