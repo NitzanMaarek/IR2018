@@ -14,6 +14,7 @@ class CityIndexer:
         self.parser = Parser([])
         self.load_capital_cities()
         self.load_city_state_json()
+        print('nizo')
 
     def load_capital_cities(self):
         """
@@ -27,8 +28,12 @@ class CityIndexer:
                 # state_code = country_dict['alpha2Code']
                 state_name = country_dict['name']
                 state_capital = country_dict['capital']
+                if len(state_capital) == 0:
+                    continue
+                state_capital = self.lower_case_word(state_capital) #Change city to lower case for easier comparison
                 state_raw_population = country_dict['population']   # Need to parse population
-                state_parsed_population = list((self.parser.create_tokens([str(state_raw_population)])).keys())[0]
+                parser = Parser([])
+                state_parsed_population = list((parser.create_tokens([str(state_raw_population)])).keys())[0]
                 state_currencies = country_dict['currencies']  # [{'code': NIS, 'name': 'New Israeli Shekels', 'symbol': ''}]
                 self.city_dictionary[state_capital] = state_name
                 currency_dir = state_currencies[0]
@@ -52,6 +57,7 @@ class CityIndexer:
             data = json.loads(url.read().decode())
             for state in data:
                 for city in data[state]:
+                    city = self.lower_case_word(city)
                     if city not in self.city_dictionary:
                         self.city_dictionary[city] = state
 
@@ -63,9 +69,29 @@ class CityIndexer:
         :param city_name:
         :return:
         """
-        if city_name in self.city_dictionary:
-            return self.state_dictionary[self.city_dictionary[city_name]]
+        if city_name is not None:
+            city_name = self.lower_case_word(city_name)
+            if city_name in self.city_dictionary:
+                return self.state_dictionary[self.city_dictionary[city_name]]
         return None
+
+    def lower_case_word(self, token):
+        """
+        Method checks if token is an alphabetical word. If so make it lower case
+        :param token: string
+        :return: if word: then same word in lower case, otherwise same token
+        """
+        chars_list = []    #list of strings to join after.
+        if token is not None:
+            for i, char in enumerate(token, start=0):
+                char_int_rep = ord(char)
+                if 65 <= char_int_rep <= 90:     #if char is UPPER case, make it lower case
+                    chars_list.append(chr(char_int_rep + 32))
+                else:
+                    chars_list.append(char)
+
+            token = ''.join(chars_list)
+        return token
 
 class CityToken:
     def __init__(self, city_name = None, disk_string = None, attr = []):
