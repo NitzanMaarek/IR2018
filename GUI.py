@@ -22,6 +22,7 @@ class GUI:
         Initializes root window, frames, labels, entries, buttons
         """
         self.term_dictionary = {}
+
         # TODO: add list to drop_down_menu
         self.root = Tk()
         self.root.title('IR2018')
@@ -47,7 +48,8 @@ class GUI:
         self.result3_entry = Entry(self.top_frame)
 
         # *** Stem checkbox ***
-        self.stem_checkbox = Checkbutton(self.top_frame, text="Use stem")
+        self.stem_flag = IntVar()  # 0 = unchecked,   1 = checked
+        self.stem_checkbox = Checkbutton(self.top_frame, text="Use stem", variable=self.stem_flag)
 
         # *** Buttons ***
         self.activate_button = Button(self.bottom_frame, text='Activate', height=2, width=7, command=self.activate_button_clicked)
@@ -127,6 +129,7 @@ class GUI:
             if self.check_paths(output_path, 'Dictionary and Posting'):
                 # activate readfile with both paths.
                 print('Activate button is activated')
+                Preferences.stem = bool(self.stem_flag.get())
                 read_directory(corpus_path, True, 20000)
 
 
@@ -134,10 +137,10 @@ class GUI:
         """
         Method deletes all posting files and dictionary. Also cleans main memory.
         """
-        # TODO: Needs to delete all files in the second path given (posting and dictionary)
         output_path = self.dictionary_posting_entry.get()
         if self.check_paths(output_path):
             # self.delete_files_in_directory()
+            # TODO: Check deletion time and change to directories from 'Browse' button
             shutil.rmtree(r'C:\Users\Nitzan\Desktop\IR 2018 files desktop\Created Files')
             self.term_dictionary.clear()
             messagebox.showinfo("Reset Results", 'Posting and dictionary files have been deleted successfully')
