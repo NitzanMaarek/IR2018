@@ -44,6 +44,8 @@ class Parser:
 
         # locale.setlocale(locale.LC_ALL, 'en_US.UTF-8')
         self.sides_delimiters = {' ', ',', '.', '/', '"', '\'', '\\', '(', ')', '[', ']', '{', '}', ':', '-', ';', '?', '!', '*', '>', '<', '&', '+', '#', '@', '^', '_', '=', '`'}
+        self.beginning_delimiters = {'%',' ', ',', '.', '/', '"', '\'', '\\', '(', ')', '[', ']', '{', '}', ':', '-', ';', '?', '!', '*', '>', '<', '&', '+', '#', '@', '^', '_', '=', '`'}
+        self.end_delimiters = {'$', ' ', ',', '.', '/', '"', '\'', '\\', '(', ')', '[', ']', '{', '}', ':', '-', ';', '?', '!', '*', '>', '<', '&', '+', '#', '@', '^', '_', '=', '`'}
         self.middle_delimiters = {' ', ',', '.', '/', '"', '\\', '(', ')', '[', ']', '{', '}', ':', '-', ';', '?', '!', '*', '>', '<', '&', '+', '#', '@', '^', '_', '=', '`'}
         self.token_index = 0
         self.word = ''
@@ -150,7 +152,6 @@ class Parser:
                     del self.token_dictionary_num_of_appearance[upper_case_token]
                     del self.token_dictionary_first_position[upper_case_token]
 
-
     def merge_dictionaries(self):
         """
         Method merges dictionaries of token first_position and frequency.
@@ -214,7 +215,6 @@ class Parser:
                 self.token_dictionary_first_position[token] = position_list
             self.tokens.append(token)
 
-
     def remove_delimiters(self, word):
         """
         Method receives string and removes all delimiters in beginning and end of string
@@ -223,8 +223,7 @@ class Parser:
         """
         last = len(word) - 1
         first = 0
-
-        while first <= last and (word[last] in self.sides_delimiters or word[first] in self.sides_delimiters):  # loop to remove delimiters
+        while first <= last and (word[last] in self.end_delimiters or word[first] in self.beginning_delimiters):  # loop to remove delimiters
             if word[first] in self.sides_delimiters:
                 first += 1
             if word[last] in self.sides_delimiters:
@@ -249,7 +248,6 @@ class Parser:
             del self.token_dictionary_num_of_appearance[token_to_operate]
             del self.token_dictionary_first_position[token_to_operate]
         del self.tokens[-i]
-
 
     def parse_handle_between_token(self, parsed_token):
         """
@@ -280,7 +278,6 @@ class Parser:
         else:
             self.between_index += 1
         return token
-
 
     def get_next_word(self):
         """
@@ -766,11 +763,11 @@ class Parser:
         """
         after_split = self.word.split('/')
         if len(after_split) == 2:
-            if self.is_integer(after_split[0]) and self.is_integer(after_split[1]):     #If it's <int>/<int>
+            if self.is_integer(after_split[0]) and self.is_integer(after_split[1]):  # If it's <int>/<int>
                 if len(self.tokens) >= 1:
-                    previous_word = self.tokens[-1]      # TODO: Need to check previous_word != '\n'
+                    previous_word = self.tokens[-1]  # TODO: Need to check previous_word != '\n'
                     if self.is_any_kind_of_number(previous_word):
-                        self.delete_token_i(1)      #Delete tokenized number to tokenize number with fraction as single token
+                        self.delete_token_i(1)  # Delete tokenized number to tokenize number with fraction as single token
                         # del self.tokens[-1]
                         return previous_word + ' ' + self.word
                     else:

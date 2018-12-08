@@ -14,7 +14,6 @@ class CityIndexer:
         self.parser = Parser([])
         self.load_capital_cities()
         self.load_city_state_json()
-        print('nizo')
 
     def load_capital_cities(self):
         """

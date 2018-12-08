@@ -197,6 +197,9 @@ class GUI:
         scrollbar.config(command=listbox.yview)
 
     def display_treeview_dictionary(self):
+        """
+        Method initializes a table of contents to show terms dictionary
+        """
         window = Toplevel(self.root)
         window.geometry('500x500')
         self.tree_view = Treeview(window)
@@ -220,16 +223,17 @@ class GUI:
         self.tree_view.configure(yscrollcommand=self.scrollbar.set)
         self.scrollbar.config(command=self.tree_view.yview)
 
-        # TODO: Need to fix dictionary values, not dictionary values are only posittion without df and pointer
+        # TODO: Need to fix dictionary values, not dictionary values are only df and pointer perhaps
         # self.insert_dictionary_to_table()
 
     def insert_dictionary_to_table(self):
         """
         Method inserts the dictionary fields into the table
+        Dictionary: Key = term, Value = list of: df, total_tf, pointer to posting
         """
         for i, term in enumerate(self.term_dictionary.keys(), start=0):
             term_attributes = self.term_dictionary[term]
-            self.tree_view.insert('', 'end', text=i, values=tuple(term, term_attributes[0], term_attributes[1], term_attributes[2], term_attributes[3]))
+            self.tree_view.insert('', 'end', text=i, values=tuple(term, term_attributes[0], term_attributes[1],  term_attributes[3]))
 
 
     def load_dictionary_button_clicked(self):
