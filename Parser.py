@@ -224,9 +224,9 @@ class Parser:
         last = len(word) - 1
         first = 0
         while first <= last and (word[last] in self.end_delimiters or word[first] in self.beginning_delimiters):  # loop to remove delimiters
-            if word[first] in self.sides_delimiters:
+            if word[first] in self.beginning_delimiters:
                 first += 1
-            if word[last] in self.sides_delimiters:
+            if word[last] in self.end_delimiters:
                 last -= 1
         if first > last:  # Means all word was delimiters and need to ignore it.
             return None
