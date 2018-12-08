@@ -263,7 +263,7 @@ def create_cities_posting():
     for city_name in merged_dict:
         attr = cities_indexer.get_city_attributes(city_name.lower())
         if not attr is None: # Don't save it as a city if its not a real city
-            merged_dict[city_name].attr = attr
+            merged_dict[city_name].set_attr(attr)
             cities_index[city_name] = index_counter
             index_counter += 1
 

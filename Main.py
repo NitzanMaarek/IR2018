@@ -436,12 +436,12 @@ def read_stop_words_lines(directory):
 
 
 def restart_files():
-    directory_list = ['pickles', 'cities', 'dictionary', 'document posting', 'terms posting', 'languages list.csv']
+    directory_list = ['pickles', 'cities', 'dictionary', 'document posting', 'terms posting']
 
     for dir in directory_list:
         if os.path.isdir(Preferences.main_directory + dir):
             shutil.rmtree(Preferences.main_directory + dir)
-            os.mkdir(Preferences.main_directory + dir)
+        os.mkdir(Preferences.main_directory + dir)
     if os.path.isfile(Preferences.main_directory + 'languages list.csv'):
         os.remove(Preferences.main_directory + 'languages list.csv')
 

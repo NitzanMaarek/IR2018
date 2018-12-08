@@ -25,11 +25,11 @@ class CityIndexer:
             obj = json.loads(response.content.decode('utf-8'))
             for country_dict in obj:
                 state_code = country_dict['alpha2Code']
-                state_name = country_dict['name']
-                state_capital = country_dict['capital']
+                state_name = self.lower_case_word(country_dict['name'])
+                state_capital = self.lower_case_word(country_dict['capital'])
                 if len(state_capital) == 0:
                     continue
-                state_capital = self.lower_case_word(state_capital) #Change city to lower case for easier comparison
+                # state_capital = self.lower_case_word(state_capital) #Change city to lower case for easier comparison
                 state_raw_population = country_dict['population']   # Need to parse population
                 parser = Parser([])
                 state_parsed_population = list((parser.create_tokens([str(state_raw_population)])).keys())[0]
@@ -71,7 +71,12 @@ class CityIndexer:
         if city_name is not None:
             city_name = self.lower_case_word(city_name)
             if city_name in self.city_dictionary:
-                return self.state_dictionary[self.city_dictionary[city_name]]
+                state = self.lower_case_word(self.city_dictionary[city_name])
+                if state == 'united states' or state == 'usa':
+                    state = 'united states of america'
+                if state == 'russia':
+                    state = 'russian federation'
+                return self.state_dictionary[state]
         return None
 
     def lower_case_word(self, token):
@@ -128,8 +133,11 @@ class CityToken:
         for doc_id in self.doc_dict:
             doc_strings.append(''.join(['< ', doc_id, ' ', str(self.doc_dict[doc_id]), ' >', ' ']))
         doc_strings.append('\n')
-        return ' '.join(doc_strings)
+        return ''.join(doc_strings)
 
     def merge_tokens(self, second_city):
         self.df += second_city.df
         self.doc_dict = {**self.doc_dict, **second_city.doc_dict}
+
+    def set_attr(self, attr):
+        self.attr = attr
