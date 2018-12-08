@@ -74,15 +74,24 @@ class CityIndexer:
                 state = self.lower_case_word(self.city_dictionary[city_name])
                 if state == 'united states' or state == 'usa':
                     state = 'united states of america'
-                if state == 'russia':
+                elif state == 'russia':
                     state = 'russian federation'
-                if state == 'bolivia':
+                elif state == 'bolivia':
                     state = 'bolivia (plurinational state of)'
-                if state == 'united kingdom':
+                elif state == 'united kingdom':
                     state = 'united kingdom of great britain and northern ireland'
-                if state == 'tanzania':
+                elif state == 'iran':
+                    state = 'iran (islamic republic of)'
+                elif state == 'venezuela':
+                    state = 'venezuela (bolivarian republic of)'
+                elif state == 'republic of moldova':
+                    state = 'moldova (republic of)'
+                # elif state == 'tanzania':
+                #     return None
+                if state in self.state_dictionary:
+                    return self.state_dictionary[state]
+                else:
                     return None
-                return self.state_dictionary[state]
         return None
 
     def lower_case_word(self, token):
