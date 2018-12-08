@@ -3,6 +3,7 @@ import pickle
 from Token import Token
 import os
 from City import CityToken, CityIndexer
+import codecs
 
 run_time_directory = Preferences.main_directory
 
@@ -219,7 +220,7 @@ def create_posting_file(sorted_terms, merged_dict, posting_file_name, tag):
         seek_offset += len(str_for_posting) + 1
         posting_file.append(str_for_posting)
         last_term = term
-    with open(posting_file_name, 'w') as tp:
+    with codecs.open(posting_file_name, 'w', 'utf-8') as tp:
         tp.writelines(posting_file)
 
     save_obj(terms_dictionary, tag, directory='dictionary')

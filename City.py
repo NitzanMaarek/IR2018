@@ -76,6 +76,12 @@ class CityIndexer:
                     state = 'united states of america'
                 if state == 'russia':
                     state = 'russian federation'
+                if state == 'bolivia':
+                    state = 'bolivia (plurinational state of)'
+                if state == 'united kingdom':
+                    state = 'united kingdom of great britain and northern ireland'
+                if state == 'tanzania':
+                    return None
                 return self.state_dictionary[state]
         return None
 
