@@ -3,6 +3,7 @@ import pickle
 from Token import Token
 import os
 from City import CityToken, CityIndexer
+import codecs
 
 run_time_directory = Preferences.main_directory
 
@@ -106,7 +107,7 @@ def write_dictionary_by_prefix(dict, batch_num):
 
 def save_obj(obj, name, batch_num='', directory='pickles'):
     if batch_num == '':
-        file_name = run_time_directory + directory + '\\' + name + str(batch_num) + '.pkl'
+        file_name = run_time_directory + directory + '\\' + name + '.pkl'
     else:
         file_name = run_time_directory + directory + '\\' + name + '_' + str(batch_num) + '.pkl'
     with open(file_name, 'wb') as f:
@@ -191,7 +192,7 @@ def create_prefix_posting(prefix, file_name_list, directory='pickles'):
 
     create_posting_file(sorted_terms, merged_prefix_dictionary, posting_file_name, prefix)
 
-def create_posting_file(sorted_terms, merged_dict, posting_file_name, tag):
+def create_posting_file(sorted_terms, merged_dict, posting_file_name, tag, save_directory='dictionary'):
     terms_dictionary = {}
     last_seek_offset = 0
     seek_offset = 0
@@ -219,10 +220,10 @@ def create_posting_file(sorted_terms, merged_dict, posting_file_name, tag):
         seek_offset += len(str_for_posting) + 1
         posting_file.append(str_for_posting)
         last_term = term
-    with open(posting_file_name, 'w') as tp:
+    with codecs.open(posting_file_name, 'w', 'utf-8') as tp:
         tp.writelines(posting_file)
 
-    save_obj(terms_dictionary, tag, directory='dictionary')
+    save_obj(terms_dictionary, tag, directory=save_directory)
 
 def get_pickles_by_file_names(file_name_list, directory='pickles'):
     """
@@ -271,6 +272,6 @@ def create_cities_posting():
 
     posting_file_name = Preferences.main_directory + 'cities\\cities posting'
 
-    create_posting_file(sorted_terms, merged_dict, posting_file_name, 'cities')
+    create_posting_file(sorted_terms, merged_dict, posting_file_name, 'cities', save_directory='cities')
 
-    save_obj(cities_index, 'cities dictionary', directory='cities')
+    save_obj(obj=cities_index, name='cities dictionary', directory='cities')
