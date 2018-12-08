@@ -86,8 +86,6 @@ class CityIndexer:
                     state = 'venezuela (bolivarian republic of)'
                 elif state == 'republic of moldova':
                     state = 'moldova (republic of)'
-                # elif state == 'tanzania':
-                #     return None
                 if state in self.state_dictionary:
                     return self.state_dictionary[state]
                 else:

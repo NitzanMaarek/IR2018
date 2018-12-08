@@ -22,6 +22,7 @@ class Token:
         params = []
         params.append(str(self.token_name))
         params.append(str(self.df))
+        params.append(str(self.tf))
 
         for k, v in self.doc_dict:
             params.append(k + ' ' + v + ',')
@@ -32,7 +33,8 @@ class Token:
         params_list = params_string.split()
         self.token_name = params_list[0]
         self.df = params_list[1]
-        self.doc_dict = self._create_doc_dict_from_string(params_string[2:])
+        self.tf = params_list[2]
+        self.doc_dict = self._create_doc_dict_from_string(params_string[3:])
 
 
     def _create_doc_dict_from_string(self, list_of_docs_string):
@@ -58,6 +60,7 @@ class Token:
         return ''.join(doc_strings)
 
     def merge_tokens(self, second_token):
+        self.tf += second_token.tf
         self.df += second_token.df
         self.doc_dict = {**self.doc_dict, **second_token.doc_dict}
 
