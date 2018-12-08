@@ -25,7 +25,7 @@ class CityIndexer:
         if response.ok:
             obj = json.loads(response.content.decode('utf-8'))
             for country_dict in obj:
-                # state_code = country_dict['alpha2Code']
+                state_code = country_dict['alpha2Code']
                 state_name = country_dict['name']
                 state_capital = country_dict['capital']
                 if len(state_capital) == 0:

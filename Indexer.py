@@ -42,19 +42,23 @@ def create_merged_dictionary_and_doc_posting(doc_list, batch_num):
             if hasattr(doc, 'city'):
                 city = doc.city
                 if city in cities_dict:
-                    cities_dict[city].add_data(doc_pointer=doc_pointer, doc_num=doc.doc_num)
+                    cities_dict[city].add_data(doc_num=doc.doc_num, doc_pointer=doc_pointer)
                 else:
                     cities_dict[city] = CityToken(city_name=city)
-                    cities_dict[city].add_data(doc_pointer=doc_pointer, doc_num=doc.doc_num)
+                    cities_dict[city].add_data(doc_num=doc.doc_num, doc_pointer=doc_pointer)
 
             # Merging tokens
             if hasattr(doc, 'tokens'):
                     for key in doc.tokens:
                         if key in tokens_dict:
-                            tokens_dict[key].add_data(doc_pointer, doc.tokens[key], doc.doc_num)
+                            if doc.tokens[key][0] == 0:
+                                print('stop')
+                            tokens_dict[key].add_data(doc_num=doc.doc_num, doc_pointer=doc_pointer, list=doc.tokens[key])
                         else:
+                            if doc.tokens[key][0] == 0:
+                                print('stop')
                             tokens_dict[key] = Token(key)
-                            tokens_dict[key].add_data(doc_pointer=doc_pointer, list=doc.tokens[key], doc_num=doc.doc_num)
+                            tokens_dict[key].add_data(doc_num=doc.doc_num, doc_pointer=doc_pointer, list=doc.tokens[key])
 
     save_obj(cities_dict, 'cities_dict', batch_num, 'cities')
 
@@ -205,8 +209,11 @@ def create_posting_file(sorted_terms, merged_dict, posting_file_name, tag):
             # Fixing the offset
             seek_offset = last_seek_offset
 
-        terms_dictionary[term] = merged_dict[term]
-        # terms_dictionary[term] = (seek_offset, merged_dict[term].df)
+        # terms_dictionary[term] = merged_dict[term]
+        if hasattr(merged_dict[term], 'tf'):
+            terms_dictionary[term] = (seek_offset, merged_dict[term].df, merged_dict[term].tf)
+        else:
+            terms_dictionary[term] = (seek_offset, merged_dict[term].df)
         str_for_posting = ''.join([term, ' ', merged_dict[term].create_string_from_doc_dictionary()])
         last_seek_offset = seek_offset
         seek_offset += len(str_for_posting) + 1
@@ -254,7 +261,7 @@ def create_cities_posting():
 
     index_counter = 0
     for city_name in merged_dict:
-        attr = cities_indexer.get_city_attributes(city_name)
+        attr = cities_indexer.get_city_attributes(city_name.lower())
         if not attr is None: # Don't save it as a city if its not a real city
             merged_dict[city_name].attr = attr
             cities_index[city_name] = index_counter

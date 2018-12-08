@@ -9,7 +9,7 @@ class Token:
             self.doc_dict = {}
             self.tf = 0
 
-    def add_data(self, doc_pointer, list, doc_num):
+    def add_data(self, doc_num, doc_pointer, list):
         self.df += 1
         self.tf += list[0]
         self.doc_dict[doc_num] = (list[0], list[1], list[2], doc_pointer)
