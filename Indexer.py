@@ -5,7 +5,7 @@ import os
 from City import CityToken, CityIndexer
 import codecs
 
-run_time_directory = Preferences.main_directory
+run_time_directory = ''
 
 def write_docs_list_to_disk(doc_list, batch_num):
     """
@@ -94,6 +94,7 @@ def write_dictionary_by_prefix(dict, batch_num):
                     save_obj(temp_dict, temp_key_prefix, batch_num)
                     temp_key_prefix = lower_case_key[:2]
                 temp_dict = {}
+                temp_dict[key] = dict[key]
                 temp_dict[key] = dict[key]
                 continue
         if lower_case_key[0].isdigit() or lower_case_key[0] == '$' or key[0] == '%':
@@ -266,7 +267,7 @@ def create_cities_posting(print_countries_num=False):
     cities_index = {}
     cities_indexer = CityIndexer()
     cities_dictionaries = []
-    for file in os.listdir(Preferences.main_directory + 'cities'):
+    for file in os.listdir(run_time_directory + 'cities'):
         cities_dictionaries.append(load_obj(file[:-4], directory='cities'))
 
     merged_dict = merge_tokens_dictionaries(cities_dictionaries)

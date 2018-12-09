@@ -4,6 +4,8 @@ from tkinter import filedialog
 import datetime
 import os
 import multiprocessing as mp
+from tkinter.ttk import Treeview
+
 import Indexer
 from ReadFile import ReadFile
 import Preferences
@@ -20,6 +22,7 @@ class GUI:
         Initializes root window, frames, labels, entries, buttons
         """
         self.term_dictionary = {}
+
         # TODO: add list to drop_down_menu
         self.root = Tk()
         self.root.title('IR2018')
@@ -45,7 +48,8 @@ class GUI:
         self.result3_entry = Entry(self.top_frame)
 
         # *** Stem checkbox ***
-        self.stem_checkbox = Checkbutton(self.top_frame, text="Use stem")
+        self.stem_flag = IntVar()  # 0 = unchecked,   1 = checked
+        self.stem_checkbox = Checkbutton(self.top_frame, text="Use stem", variable=self.stem_flag)
 
         # *** Buttons ***
         self.activate_button = Button(self.bottom_frame, text='Activate', height=2, width=7, command=self.activate_button_clicked)
@@ -124,50 +128,42 @@ class GUI:
         if self.check_paths(corpus_path, 'Corpus and stop-words'):
             if self.check_paths(output_path, 'Dictionary and Posting'):
                 # activate readfile with both paths.
-                print('Activate button is activated')
-                read_directory(corpus_path, True, 20000)
+                output_path = output_path + '/'
+                # print('Activate button is activated')
+                Preferences.stem = bool(self.stem_flag.get())
+                Preferences.main_directory = output_path
+                Indexer.run_time_directory = output_path
+                restart_files()
+                read_directory(directory=corpus_path, multiprocess=parallel, batch_size=20000)
 
 
     def reset_button_clicked(self):
         """
         Method deletes all posting files and dictionary. Also cleans main memory.
         """
-        # TODO: Needs to delete all files in the second path given (posting and dictionary)
         output_path = self.dictionary_posting_entry.get()
         if self.check_paths(output_path):
             # self.delete_files_in_directory()
-            shutil.rmtree(r'C:\Users\Nitzan\Desktop\IR 2018 files desktop\Created Files')
+            # TODO: Check deletion time and change to directories from 'Browse' button
+            # shutil.rmtree(r'C:\Users\Nitzan\Desktop\IR 2018 files desktop\Created Files')
             self.term_dictionary.clear()
             messagebox.showinfo("Reset Results", 'Posting and dictionary files have been deleted successfully')
 
-    def delete_files_in_directory(self, path):
-        """
-        Method deletes all files in given directory.
-        Directory here exists for sure.
-        :param path: Directory
-        :return True if operation was success, False otherwise
-        """
-        for file in os.listdir(path):
-            file_path = os.path.join(path, file)
-            try:
-                if os.path.isfile(file_path):
-                    os.unlink(file_path)
-            except Exception as e:
-                print(e)
-                return False
-        return True
 
     def view_dictionary_button_clicked(self):
         """
         Method opens a window with dictionary in it.
         """
+
+        # self.display_treeview_dictionary()
+        # TODO: Need to check if need to show dictionary of stemming or not.
+
         if len(self.term_dictionary) != 0:
-            # self.term_dictionary = self.load_dictionary_button_clicked()
-            # self.term_dictionary = {'s': 'a', 'b': 'jay'}
-            self.display_dictionary()
+            # self.display_dictionary()
+            self.display_treeview_dictionary()
+
         else:
             messagebox.showerror('Error Message', 'No dictionary to show.\nPlease load dictionary to memory first.')
-        # TODO: Show self.dictionary on a new window
 
     def display_dictionary(self):
         """
@@ -188,6 +184,44 @@ class GUI:
         listbox.config(yscrollcommand=scrollbar.set)
         scrollbar.config(command=listbox.yview)
 
+    def display_treeview_dictionary(self):
+        """
+        Method initializes a table of contents to show terms dictionary
+        """
+        window = Toplevel(self.root)
+        window.geometry('500x500')
+        self.tree_view = Treeview(window)
+        self.tree_view['columns'] = ('Term', 'df', 'Pointer', 'Total freq.')
+        self.tree_view.heading("#0", text='Index', anchor='center')
+        self.tree_view.column("#0", anchor='w', width=70)
+        self.tree_view.heading('Term', text='Term')
+        self.tree_view.column('Term', anchor='w', width=150)
+        self.tree_view.heading('df', text='df')
+        self.tree_view.column('df', anchor='center', width=50)
+        self.tree_view.heading('Pointer', text='Pointer')
+        self.tree_view.column('Pointer', anchor='center', width=100)
+        self.tree_view.heading('Total freq.', text='Total freq.')
+        self.tree_view.column('Total freq.', anchor='center', width=50)
+
+        self.tree_view.pack(side=LEFT, fill='both', expand=TRUE)
+
+        self.scrollbar = Scrollbar(window)
+        self.scrollbar.pack(side=RIGHT, fill=Y)
+
+        self.tree_view.configure(yscrollcommand=self.scrollbar.set)
+        self.scrollbar.config(command=self.tree_view.yview)
+
+        self.insert_dictionary_to_table()
+
+    def insert_dictionary_to_table(self):
+        """
+        Method inserts the dictionary fields into the table
+        Dictionary: Key = term, Value = list of: df, total_tf, pointer to posting
+        """
+        for i, term in enumerate(self.term_dictionary.keys(), start=0):
+            term_attributes = self.term_dictionary[term]
+            # term_attributes: [pointer, df, total freq.]
+            self.tree_view.insert('', 'end', text=i, values=[term, term_attributes[1], term_attributes[0],  term_attributes[2]])
 
     def load_dictionary_button_clicked(self):
         """
@@ -249,7 +283,7 @@ def read_directory(directory, multiprocess, batch_size=20000):
 
     for root, dirs, files in os.walk(directory):
         # TODO: Read also stop_words.txt from this directory and forward list to parser init
-        stop_words_list = read_stop_words_lines(directory) # TODO: Figure out what is this
+        stop_words_list = read_stop_words_lines(directory)  # TODO: Figure out what is this
         for file in files:
             if not file == 'stop_words.txt':
                 path = os.path.join(root, file)
@@ -324,7 +358,6 @@ def dump_proceesed_docs_to_disk(jobs, batch_size, next_batch_num):
     for job in jobs:
         new_docs_num = job.get().doc_count
         doc_count += new_docs_num
-        temp_doc_count += new_docs_num
         if temp_doc_count > batch_size:
             print('started batch num: ' + str(batch_count))
             job = pool.apply_async(batch_to_disk, (batch_size, batch_count, q))
@@ -451,12 +484,11 @@ if __name__ == '__main__':
     # Debug configs:
     single_file = True
     write_to_disk = False
-    parallel = True
+    parallel = False
     # stem = Preferences.stem
 
     main_directory = Preferences.main_directory
 
-    restart_files()
 
     manager = mp.Manager()
     q = manager.Queue()
@@ -465,16 +497,16 @@ if __name__ == '__main__':
 
     start_time = datetime.datetime.now()
 
-    # gui = GUI()
+    gui = GUI()
 
     # Single file debug config
-    if single_file:
-        # file = ReadFile(r'C:\Users\Nitzan\Desktop\FB396001', parallel, stem, write_to_disk, q, pool)
-        read_directory(directory=r'C:\Users\Nitzan\Desktop\IR 2018 files desktop\FB396001', multiprocess=parallel, batch_size=20000)
-    else:
-        # All files debug config
-        # file = ReadFile(r'C:\Users\Nitzan\Desktop\100 file corpus', parallel)
-        read_directory(directory=r'C:\Users\Nitzan\Desktop\IR 2018 files desktop\FB396001', multiprocess=parallel)
+    # if single_file:
+    #     # file = ReadFile(r'C:\Users\Nitzan\Desktop\FB396001', parallel, stem, write_to_disk, q, pool)
+    #     read_directory(directory=r'C:\Users\Nitzan\Desktop\IR 2018 files desktop\FB396001', multiprocess=parallel, batch_size=20000)
+    # else:
+    #     # All files debug config
+    #     # file = ReadFile(r'C:\Users\Nitzan\Desktop\100 file corpus', parallel)
+    #     read_directory(directory=r'C:\Users\Nitzan\Desktop\IR 2018 files desktop\100 file corpus', multiprocess=parallel)
 
     finish_time = datetime.datetime.now()
     print(finish_time - start_time)

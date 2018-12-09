@@ -176,11 +176,9 @@ class Parser:
 
             self.max_tf = max_tf_count
 
-            if 'between' in merged_sorted_dictionary:
-                del merged_sorted_dictionary['between']
-
-            if 'and' in merged_sorted_dictionary:
-                del merged_sorted_dictionary['and']
+            for stop_word in self.stop_words_list:
+                if stop_word in merged_sorted_dictionary:
+                    del merged_sorted_dictionary[stop_word]
 
             return merged_sorted_dictionary
         return None
@@ -214,7 +212,6 @@ class Parser:
         else:
             if Preferences.stem and not self.is_any_kind_of_number(token):
                 token = stemmer.stem(token)
-
             if self.token_dictionary_first_position.__contains__(token):
                 self.token_dictionary_num_of_appearance[token] += 1
             else:
