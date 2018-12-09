@@ -5,7 +5,7 @@ from Parser import Parser
 
 class CityIndexer:
     """
-
+    Indexer which helps with the cities indexing, the Indexer receives data from 2 API
     """
     def __init__(self):
         self.city_dictionary = {}       # Key = city_name, Value = state_name
@@ -18,7 +18,6 @@ class CityIndexer:
     def load_capital_cities(self):
         """
         Method loads all state names, currencies and populations of capital cities
-        :return:
         """
         response = requests.get(r'https://restcountries.eu/rest/v2/all')
         if response.ok:
@@ -37,19 +36,11 @@ class CityIndexer:
                 self.city_dictionary[state_capital] = state_name
                 currency_dir = state_currencies[0]
                 currencies_list = [''.join(['Currency: ', ': ', currency_dir['name']])]
-                # for state_currency in state_currencies:
-                #     for k, v in state_currency.items():
-                #         currency_list = []
-                #         if not v is None:
-                #             currency_list.append(k + ': ' + v)
-                #     currencies_list.append(' '.join(currency_list))
-                # currencies_list = [k + ': ' + v for k, v in state_currencies[0].items()]
                 self.state_dictionary[state_name] = ' '.join([state_name] + currencies_list + [state_parsed_population])
 
     def load_city_state_json(self):
         """
-        Method adds to dictionary all cities:
-        :return:
+        Method adds to dictionary all cities from the cities API
         """
         with urllib.request.urlopen('https://raw.githubusercontent.com/russ666/all-countries-and-cities-json/'
                                     '6ee538beca8914133259b401ba47a550313e8984/countries.json') as url:
@@ -65,7 +56,7 @@ class CityIndexer:
         """
         Method returns attributes with given city.
         :param city_name:
-        :return:
+        :return: city attributes as a list
         """
         if city_name is not None:
             city_name = self.lower_case_word(city_name)
@@ -112,6 +103,9 @@ class CityIndexer:
         return token
 
 class CityToken:
+    """
+    City object that represents a city we encounter in one of the document's tags
+    """
     def __init__(self, city_name = None, disk_string = None, attr = []):
         self.city_name = city_name
         self.df = 0
@@ -119,13 +113,19 @@ class CityToken:
         self.doc_dict = {}
 
     def add_data(self, doc_pointer, doc_num):
+        """
+        Adding data from a document to the city
+        :param doc_num: document ID
+        :param doc_pointer: document pointer
+        :param list: list of parameter regarding the token from the document
+        """
         self.df += 1
         self.doc_dict[doc_num] = doc_pointer
 
     def string_to_disk(self):
         """
         Converting a token object to string for writing to the disk without the pointers to the posting files
-        :return:
+        :return: string with all the city's parameters
         """
         params = []
         params.append(str(self.city_name))
@@ -139,6 +139,10 @@ class CityToken:
         return ' '.join(params)
 
     def create_string_from_doc_dictionary(self):
+        """
+        Creates a string with all the parameters o the documents that are in the city's dictionary
+        :return: String with all the parameters
+        """
         dict_str = ''
         doc_strings = []
         if hasattr(self, 'attr'):
@@ -150,8 +154,17 @@ class CityToken:
         return ''.join(doc_strings)
 
     def merge_tokens(self, second_city):
+        """
+        Merging two city tokens, used when we encounter two tokens with the same name from different batches
+        and we want to make them into one city token.
+        :param second_city: Second city token to merge into the first one
+        """
         self.df += second_city.df
         self.doc_dict = {**self.doc_dict, **second_city.doc_dict}
 
     def set_attr(self, attr):
+        """
+        Setting the attributes given to the city by the City Indexer
+        :param attr: list of attributes
+        """
         self.attr = attr

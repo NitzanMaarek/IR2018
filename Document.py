@@ -129,6 +129,8 @@ class Document:
         params.append(str(self.file_name))
         params.append(str(self.doc_start_line))
         params.append(str(self.doc_finish_line))
+        if hasattr(self, 'tokens'):
+            params.append(str(len(self.tokens)))
         if hasattr(self, 'max_tf'):
             params.append(str(self.max_tf))
         if hasattr(self, 'city'):

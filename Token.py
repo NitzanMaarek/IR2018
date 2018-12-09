@@ -1,5 +1,8 @@
 
 class Token:
+    """
+    Token object represents a token at the beginning of the run and term in the end
+    """
     def __init__(self, token_name = None, disk_string = None):
         if disk_string is not None:
             self._define_params_from_string(disk_string)
@@ -10,6 +13,12 @@ class Token:
             self.tf = 0
 
     def add_data(self, doc_num, doc_pointer, list):
+        """
+        Adding data from a document to the token
+        :param doc_num: document ID
+        :param doc_pointer: document pointer
+        :param list: list of parameter regarding the token from the document
+        """
         self.df += 1
         self.tf += list[0]
         self.doc_dict[doc_num] = (list[0], list[1], list[2], doc_pointer)
@@ -30,6 +39,10 @@ class Token:
         return ' '.join(params)
 
     def _define_params_from_string(self, params_string):
+        """
+        Define token's parameter from a string
+        :param params_string: string with parameters
+        """
         params_list = params_string.split()
         self.token_name = params_list[0]
         self.df = params_list[1]
@@ -38,6 +51,10 @@ class Token:
 
 
     def _create_doc_dict_from_string(self, list_of_docs_string):
+        """
+        Creates token's documents dictionary fro a string
+        :param list_of_docs_string: string with parameters of the documents
+        """
         self.doc_dict = {}
 
         for string in list_of_docs_string:
@@ -46,6 +63,10 @@ class Token:
 
 
     def create_string_from_doc_dictionary(self):
+        """
+        Creates a string with all the parameters o the documents that are in the token's dictionary
+        :return: String with all the parameters
+        """
         dict_str = ''
         doc_strings = []
         for doc_id in self.doc_dict:
@@ -56,9 +77,11 @@ class Token:
         return ''.join(doc_strings)
 
     def merge_tokens(self, second_token):
+        """
+        Merging two tokens, used when we encounter two tokens with the same name from different batches
+        and we want to make them into a term.
+        :param second_token: Second token to merge into the first one
+        """
         self.tf += second_token.tf
         self.df += second_token.df
         self.doc_dict = {**self.doc_dict, **second_token.doc_dict}
-
-    # def add_document_pointer(self, doc_name, pointer_value):
-    #     self.doc_dict[doc_name] = pointer_value

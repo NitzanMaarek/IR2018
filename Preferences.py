@@ -1,6 +1,10 @@
+Nitsan = False
 
-# Project directory
-main_directory = 'C:\\Users\\Nitzan\\Desktop\\IR 2018 files desktop\\Created Files\\'
+# if Nitsan:
+#     main_directory = ''
+# else:
+    # Project directory
+    # main_directory = 'C:\\Chen\\BGU\\2019\\2018 - Semester A\\3. Information Retrival\\Engine\\test directory\\created files\\'
 
 # How many posting files to write in each iteration
 posting_files_per_batch = 50
@@ -9,4 +13,6 @@ posting_files_per_batch = 50
 stem = False
 
 # Ignore tags like: <P> and </P>:
-ignore_tag_p = False
+ignore_tag_p = True
+
+save_results = False

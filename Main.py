@@ -128,24 +128,29 @@ class GUI:
         if self.check_paths(corpus_path, 'Corpus and stop-words'):
             if self.check_paths(output_path, 'Dictionary and Posting'):
                 # activate readfile with both paths.
-                output_path = output_path + '/'
-                # print('Activate button is activated')
+                output_path = output_path + '\\'
+                self.main_dir = output_path
                 Preferences.stem = bool(self.stem_flag.get())
-                Preferences.main_directory = output_path
-                Indexer.run_time_directory = output_path
-                restart_files()
-                read_directory(directory=corpus_path, multiprocess=parallel, batch_size=20000)
-
+                restart_files(output_path)
+                start_time = datetime.datetime.now()
+                read_directory(main_dir=output_path, directory=corpus_path, multiprocess=parallel, batch_size=20000)
+                finish_time = datetime.datetime.now()
+                messagebox.showinfo("Activation Finished", 'Activation finished successfully')
+                self.result1_entry.delete(0,END)
+                self.result1_entry.insert(INSERT, str(total_docs))
+                self.result2_entry.delete(0, END)
+                self.result2_entry.insert(INSERT, str(length_of_terms_dictionary))
+                self.result3_entry.delete(0, END)
+                self.result3_entry.insert(INSERT, finish_time-start_time)
 
     def reset_button_clicked(self):
         """
         Method deletes all posting files and dictionary. Also cleans main memory.
         """
-        output_path = self.dictionary_posting_entry.get()
-        if self.check_paths(output_path):
+        output_path = self.dictionary_posting_entry.get() + '\\'
+        if self.check_paths(output_path, 'Dictionary and Posting'):
             # self.delete_files_in_directory()
-            # TODO: Check deletion time and change to directories from 'Browse' button
-            # shutil.rmtree(r'C:\Users\Nitzan\Desktop\IR 2018 files desktop\Created Files')
+            remove_files(output_path)
             self.term_dictionary.clear()
             messagebox.showinfo("Reset Results", 'Posting and dictionary files have been deleted successfully')
 
@@ -227,7 +232,8 @@ class GUI:
         """
         Method loads dictionary to memory.
         """
-        self.term_dictionary = Indexer.load_obj('main terms dictionary', 'dictionary')
+        self.term_dictionary = Indexer.load_obj(self.main_dir, 'main terms dictionary', '')
+        messagebox.showinfo("Load successful", 'Dictionary loaded.')
 
     def update_option_menu(self, alist):
         """
@@ -266,7 +272,7 @@ class GUI:
     # def display_dictionary(self):
 
 
-def read_directory(directory, multiprocess, batch_size=20000):
+def read_directory(main_dir, directory, multiprocess, batch_size=20000):
     """
     Iterating over files in a directory and opening ReadFile object for each one.
     The ReadFile object processes the file and creates Document objects.
@@ -283,7 +289,7 @@ def read_directory(directory, multiprocess, batch_size=20000):
 
     for root, dirs, files in os.walk(directory):
         # TODO: Read also stop_words.txt from this directory and forward list to parser init
-        stop_words_list = read_stop_words_lines(directory)  # TODO: Figure out what is this
+        stop_words_list = read_stop_words_lines(directory) # TODO: Figure out what is this
         for file in files:
             if not file == 'stop_words.txt':
                 path = os.path.join(root, file)
@@ -293,7 +299,7 @@ def read_directory(directory, multiprocess, batch_size=20000):
                     file_count += 1
                     if file_count == 300:
                         print('dumping files')
-                        processed_docs, next_batch_num, partial_language_set = dump_proceesed_docs_to_disk(jobs, batch_size, next_batch_num)
+                        processed_docs, next_batch_num, partial_language_set = dump_proceesed_docs_to_disk(main_dir, jobs, batch_size, next_batch_num)
                         language_set = language_set.union(partial_language_set)
                         next_batch_num += 1
                         total_doc_count += processed_docs
@@ -304,45 +310,47 @@ def read_directory(directory, multiprocess, batch_size=20000):
 
 
     if len(jobs) > 0:
-        processed_docs, next_batch_num, partial_language_set = dump_proceesed_docs_to_disk(jobs, batch_size, next_batch_num)
+        processed_docs, next_batch_num, partial_language_set = dump_proceesed_docs_to_disk(main_dir, jobs, batch_size, next_batch_num)
         language_set = language_set.union(partial_language_set)
         total_doc_count += processed_docs
 
-    with open(Preferences.main_directory + 'languages list.csv', 'w') as cities_file:
+    with open(main_dir + 'languages list.csv', 'w') as cities_file:
         wr = csv.writer(cities_file, quoting=csv.QUOTE_ALL)
         wr.writerow(list(language_set))
         # cities_file.writelines()
 
-    cities_posting = pool.apply_async(Indexer.create_cities_posting, (False, ))
+    cities_posting = pool.apply_async(Indexer.create_cities_posting, (main_dir, False, ))
 
     print('total docs: ' + str(total_doc_count))
     print('Until merge runtime: ' + str(datetime.datetime.now() - start_time))
 
-    merge_pickles_to_terms_dictionary()
+    merge_pickles_to_terms_dictionary(main_dir)
     print('Until saving dictionary by prefixes: ' + str(datetime.datetime.now() - start_time))
 
-    terms_dictionary = merge_tokens_dictionary()
+    terms_dictionary = merge_tokens_dictionary(main_dir)
     print('Until saving dictionary as one file: ' + str(datetime.datetime.now() - start_time))
 
     print('Trying to save and load dictionary')
-    Indexer.save_obj(obj=terms_dictionary, name='main terms dictionary', directory='')
-    test = Indexer.load_obj(name='main terms dictionary.pkl', directory='')
+    Indexer.save_obj(main_dir, obj=terms_dictionary, name='main terms dictionary', directory='')
+    test = Indexer.load_obj(main_dir, name='main terms dictionary', directory='')
     # print(test)
     cities_posting.get()
+    total_docs = total_doc_count
+    length_of_terms_dictionary = len(test)
 
-def merge_tokens_dictionary():
+def merge_tokens_dictionary(main_dir):
     """
     Merges tokens dictionaries
     :return: merged dictionary
     """
     terms_dict = {}
-    for file in os.listdir(Preferences.main_directory + 'dictionary\\'):
-        temp_dict = Indexer.load_obj(file[:-4], directory='dictionary')
+    for file in os.listdir(main_dir + 'dictionary\\'):
+        temp_dict = Indexer.load_obj(main_dir, file[:-4], directory='dictionary')
         if not temp_dict is None:
             terms_dict = {**terms_dict, **temp_dict}
     return terms_dict
 
-def dump_proceesed_docs_to_disk(jobs, batch_size, next_batch_num):
+def dump_proceesed_docs_to_disk(main_dir, jobs, batch_size, next_batch_num):
     """
     Writing the processed data to the disk before reading more files
     :param jobs: jobs of documents
@@ -358,15 +366,16 @@ def dump_proceesed_docs_to_disk(jobs, batch_size, next_batch_num):
     for job in jobs:
         new_docs_num = job.get().doc_count
         doc_count += new_docs_num
+        temp_doc_count += new_docs_num
         if temp_doc_count > batch_size:
             print('started batch num: ' + str(batch_count))
-            job = pool.apply_async(batch_to_disk, (batch_size, batch_count, q))
+            job = pool.apply_async(batch_to_disk, (main_dir, batch_size, batch_count, q))
             batch_count += 1
             batch_jobs.append(job)
             temp_doc_count -= batch_size
 
     print('started batch num: ' + str(batch_count))
-    job = pool.apply_async(batch_to_disk, (temp_doc_count, batch_count, q))
+    job = pool.apply_async(batch_to_disk, (main_dir, temp_doc_count, batch_count, q))
     batch_jobs.append(job)
 
     language_set = set()
@@ -376,7 +385,7 @@ def dump_proceesed_docs_to_disk(jobs, batch_size, next_batch_num):
 
     return doc_count, batch_count, language_set
 
-def batch_to_disk(batch_size, batch_num, q):
+def batch_to_disk(main_dir, batch_size, batch_num, q):
     """
     Writing the next given amount of documents to the disk
     :param batch_size: how many documents should we write to the disk
@@ -392,15 +401,15 @@ def batch_to_disk(batch_size, batch_num, q):
             languages_partial_set.add(doc.language)
         docs.append(doc)
         count += 1
-    Indexer.write_docs_list_to_disk(docs, batch_num)
+    Indexer.write_docs_list_to_disk(main_dir, docs, batch_num)
     return languages_partial_set
 
-def create_tokens_posting():
+def create_tokens_posting(main_dir):
     """
     Creates the token's posting file which are in a certain location in the disk
     """
     partial_terms_dictionary = {}
-    prefix_tokens_dictionaries = get_list_of_files_by_prefix()
+    prefix_tokens_dictionaries = get_list_of_files_by_prefix(main_dir)
     posting_jobs = []
     counter = 0
     batch_counter = 0
@@ -421,27 +430,27 @@ def create_tokens_posting():
 
     # TODO: check if we need to get back the dictionary
 
-def merge_pickles_to_terms_dictionary():
+def merge_pickles_to_terms_dictionary(main_dir):
     """
     Merging a given list of pickles by the prefix of the files and tokens
     """
-    prefix_tokens_dictionaries = get_list_of_files_by_prefix()
+    prefix_tokens_dictionaries = get_list_of_files_by_prefix(main_dir)
     posting_jobs = []
     for key in prefix_tokens_dictionaries.keys():
-        job = pool.apply_async(Indexer.create_prefix_posting, (key, prefix_tokens_dictionaries[key]))
+        job = pool.apply_async(Indexer.create_prefix_posting, (main_dir, key, prefix_tokens_dictionaries[key]))
         posting_jobs.append(job)
 
     for job in posting_jobs:
         job.get()
 
-def get_list_of_files_by_prefix():
+def get_list_of_files_by_prefix(main_dir):
     """
     Aggregate file names into groups by their prefix
     :return:
     """
     list_of_files_by_prefix = {}
 
-    for file in os.listdir(Preferences.main_directory + 'pickles\\'):
+    for file in os.listdir(main_dir + 'pickles\\'):
         prefix = file[:2]
         if not prefix in list_of_files_by_prefix:
             list_of_files_by_prefix[prefix] = []
@@ -469,26 +478,38 @@ def read_stop_words_lines(directory):
         print(e)
         print('File not found: ' + directory + 'stop_words.txt')
 
-
-def restart_files():
+def remove_files(main_dir):
     directory_list = ['pickles', 'cities', 'dictionary', 'document posting', 'terms posting']
 
     for dir in directory_list:
-        if os.path.isdir(Preferences.main_directory + dir):
-            shutil.rmtree(Preferences.main_directory + dir)
-        os.mkdir(Preferences.main_directory + dir)
-    if os.path.isfile(Preferences.main_directory + 'languages list.csv'):
-        os.remove(Preferences.main_directory + 'languages list.csv')
+        if os.path.isdir(main_dir + dir):
+            shutil.rmtree(main_dir + dir)
+    if os.path.isfile(main_dir + 'languages list.csv'):
+        os.remove(main_dir + 'languages list.csv')
+
+
+def restart_files(main_dir):
+    directory_list = ['pickles', 'cities', 'dictionary', 'document posting', 'terms posting']
+
+    for dir in directory_list:
+        if os.path.isdir(main_dir + dir):
+            shutil.rmtree(main_dir + dir)
+        os.mkdir(main_dir + dir)
+    if os.path.isfile(main_dir + 'languages list.csv'):
+        os.remove(main_dir + 'languages list.csv')
+
+run_time_dir = ''
 
 if __name__ == '__main__':
     # Debug configs:
     single_file = True
     write_to_disk = False
-    parallel = False
+    parallel = True
     # stem = Preferences.stem
 
-    main_directory = Preferences.main_directory
+    # main_directory = Preferences.main_directory
 
+    # restart_files()
 
     manager = mp.Manager()
     q = manager.Queue()
@@ -497,16 +518,21 @@ if __name__ == '__main__':
 
     start_time = datetime.datetime.now()
 
+    total_docs = 0
+    length_of_terms_dictionary = 0
+
     gui = GUI()
 
-    # Single file debug config
+
+
+    # # Single file debug config
     # if single_file:
     #     # file = ReadFile(r'C:\Users\Nitzan\Desktop\FB396001', parallel, stem, write_to_disk, q, pool)
-    #     read_directory(directory=r'C:\Users\Nitzan\Desktop\IR 2018 files desktop\FB396001', multiprocess=parallel, batch_size=20000)
+    #     read_directory(directory=r'C:\Chen\BGU\2019\2018 - Semester A\3. Information Retrival\Engine\test directory\10 files', multiprocess=parallel, batch_size=20000)
     # else:
     #     # All files debug config
     #     # file = ReadFile(r'C:\Users\Nitzan\Desktop\100 file corpus', parallel)
-    #     read_directory(directory=r'C:\Users\Nitzan\Desktop\IR 2018 files desktop\100 file corpus', multiprocess=parallel)
+    #     read_directory(directory=r'C:\Chen\BGU\2019\2018 - Semester A\3. Information Retrival\Engine\corpus', multiprocess=parallel)
 
-    finish_time = datetime.datetime.now()
-    print(finish_time - start_time)
+    # finish_time = datetime.datetime.now()
+    # print(finish_time - start_time)
