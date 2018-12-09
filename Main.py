@@ -291,7 +291,7 @@ def read_directory(directory, multiprocess, batch_size=20000):
     print('Until saving dictionary as one file: ' + str(datetime.datetime.now() - start_time))
 
     print('Trying to save and load dictionary')
-    Indexer.save_obj(object=terms_dictionary, name='main terms dictionary', directory='')
+    Indexer.save_obj(obj=terms_dictionary, name='main terms dictionary', directory='')
     test = Indexer.load_obj(name='main terms dictionary.pkl', directory='')
     # print(test)
     cities_posting.get()
@@ -303,7 +303,9 @@ def merge_tokens_dictionary():
     """
     terms_dict = {}
     for file in os.listdir(Preferences.main_directory + 'dictionary\\'):
-        terms_dict = {**terms_dict, **Indexer.load_obj_dictionary(file)}
+        temp_dict = Indexer.load_obj(file[:-4], directory='dictionary')
+        if not temp_dict is None:
+            terms_dict = {**terms_dict, **temp_dict}
     return terms_dict
 
 def dump_proceesed_docs_to_disk(jobs, batch_size, next_batch_num):
@@ -380,7 +382,7 @@ def create_tokens_posting():
                 for job in posting_jobs:
                     prefix_dict, prefix = job.get()
                     partial_terms_dictionary[prefix] = prefix_dict
-                Indexer.save_obj_dictionary(partial_terms_dictionary, 'terms_dictionary', batch_counter)
+                Indexer.save_obj(partial_terms_dictionary, 'terms_dictionary', batch_counter, directory='dictionary')
                 partial_terms_dictionary = {}
                 batch_counter += 1
 
@@ -447,7 +449,7 @@ def restart_files():
 
 if __name__ == '__main__':
     # Debug configs:
-    single_file = False
+    single_file = True
     write_to_disk = False
     parallel = True
     # stem = Preferences.stem

@@ -71,16 +71,16 @@ def write_dictionary_by_prefix(dict, batch_num):
     :dict: the given dictionary
     :param batch_num: added prefix so we won't write over different batches
     """
-    sorted_keys = sorted(dict)
+    sorted_keys = sorted(dict, key=lambda k: (k.upper(), k[0].islower()))
     temp_dict = {}
     temp_key_prefix = None
     cant_write_to_disk = ['/', '\\', ':', '*', '?', '"', '>', '<', '|']
     for key in sorted_keys:
         lower_case_key = lower_case_word(key)
         if not temp_key_prefix is None:
-            if key[0] in cant_write_to_disk or (len(key) > 1 and key[1] in cant_write_to_disk):
+            if lower_case_key[0] in cant_write_to_disk or (len(lower_case_key) > 1 and key[1] in cant_write_to_disk):
                 continue
-            elif (key[0].isdigit() or key[0] == '$' or key[0] == '%') and key[0] == temp_key_prefix[0]:
+            elif (lower_case_key[0].isdigit() or lower_case_key[0] == '$' or lower_case_key[0] == '%') and lower_case_key[0] == temp_key_prefix[0]:
                 temp_dict[key] = dict[key]
                 continue
             elif temp_key_prefix == lower_case_key[:2]:
@@ -96,8 +96,8 @@ def write_dictionary_by_prefix(dict, batch_num):
                 temp_dict = {}
                 temp_dict[key] = dict[key]
                 continue
-        if key[0].isdigit() or key[0] == '$' or key[0] == '%':
-            temp_key_prefix = key[0]
+        if lower_case_key[0].isdigit() or lower_case_key[0] == '$' or key[0] == '%':
+            temp_key_prefix = lower_case_key[0]
         else:
             temp_key_prefix = lower_case_key[:2]
         temp_dict[key] = dict[key]
