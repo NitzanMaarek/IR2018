@@ -178,6 +178,13 @@ class Parser:
                 merged_sorted_dictionary[key_p] = [self.token_dictionary_num_of_appearance[key_f], self.token_dictionary_first_position[key_p], False]
 
             self.max_tf = max_tf_count
+
+            if 'between' in merged_sorted_dictionary:
+                del merged_sorted_dictionary['between']
+
+            if 'and' in merged_sorted_dictionary:
+                del merged_sorted_dictionary['and']
+
             return merged_sorted_dictionary
         return None
 
@@ -262,16 +269,16 @@ class Parser:
         token = parsed_token
         if type(token) != str:
             self.between_index = 0
-            if 'between' in self.stop_words_list or 'Between' in self.stop_words_list:
-                self.delete_token_i(1)
+            # if 'between' in self.stop_words_list or 'Between' in self.stop_words_list:
+            #     self.delete_token_i(1)
             return token
         if self.between_index == 2:
             if self.is_any_kind_of_number(token):       # If second string is number
                 self.between_index += 1
             else:
                 self.between_index = 0
-                if 'between' in self.stop_words_list or 'Between' in self.stop_words_list:
-                    self.delete_token_i(1)
+                # if 'between' in self.stop_words_list or 'Between' in self.stop_words_list:
+                #     self.delete_token_i(1)
                 if token in self.stop_words_list:
                     return None
 
@@ -280,8 +287,11 @@ class Parser:
                 self.between_index += 1
             else:
                 self.between_index = 0
-                if 'between' in self.stop_words_list or 'Between' in self.stop_words_list:
-                    self.delete_token_i(2)      # Delete the word between
+                # if 'between' in self.stop_words_list or 'Between' in self.stop_words_list:
+                #     try:
+                #         self.delete_token_i(2)      # Delete the word between
+                #     except Exception as e:
+                #         print('nizo')
                 if token in self.stop_words_list:
                     return None
 
@@ -294,10 +304,10 @@ class Parser:
                 return token_list
             else:
                 self.between_index = 0
-                if 'between' in self.stop_words_list or 'Between' in self.stop_words_list:
-                    self.delete_token_i(3)  # delete the token 'between'
-                if 'and' in self.stop_words_list:
-                    self.delete_token_i(1)  # delete the token 'and'
+                # if 'between' in self.stop_words_list or 'Between' in self.stop_words_list:
+                #     self.delete_token_i(3)  # delete the token 'between'
+                # if 'and' in self.stop_words_list:
+                #     self.delete_token_i(1)  # delete the token 'and'
         else:
             self.between_index += 1
         return token
