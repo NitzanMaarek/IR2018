@@ -279,7 +279,7 @@ def read_directory(directory, multiprocess, batch_size=20000):
         wr.writerow(list(language_set))
         # cities_file.writelines()
 
-    cities_posting = pool.apply_async(Indexer.create_cities_posting,)
+    cities_posting = pool.apply_async(Indexer.create_cities_posting, (False, ))
 
     print('total docs: ' + str(total_doc_count))
     print('Until merge runtime: ' + str(datetime.datetime.now() - start_time))
@@ -291,8 +291,8 @@ def read_directory(directory, multiprocess, batch_size=20000):
     print('Until saving dictionary as one file: ' + str(datetime.datetime.now() - start_time))
 
     print('Trying to save and load dictionary')
-    Indexer.save_obj_dictionary(terms_dictionary, 'main terms dictionary')
-    test = Indexer.load_obj_dictionary('main terms dictionary.pkl')
+    Indexer.save_obj(object=terms_dictionary, name='main terms dictionary', directory='')
+    test = Indexer.load_obj(name='main terms dictionary.pkl', directory='')
     # print(test)
     cities_posting.get()
 

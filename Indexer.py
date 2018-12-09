@@ -18,10 +18,10 @@ def write_docs_list_to_disk(doc_list, batch_num):
 
 def create_merged_dictionary_and_doc_posting(doc_list, batch_num):
     """
-    Creates a dictionary for all the unique tokens in the current batch and for all the documents.
+    Creates a dictionary for all the unique tokens that appeared in the documents of the current batch.
     The dictionary is created from a list of document objects which might have the duplicate terms.
-    :param doc_list: Gets
-    :return: merged dictionary
+    :param doc_list: receives a list of document objects after they have been parsed
+    :return: merged tokens dictionary
     """
 
     tokens_dict = {}
@@ -106,6 +106,13 @@ def write_dictionary_by_prefix(dict, batch_num):
     save_obj(temp_dict, temp_key_prefix, batch_num)
 
 def save_obj(obj, name, batch_num='', directory='pickles'):
+    """
+    Saves object as a pickle in a given directory in the main directory
+    :param obj: object to save
+    :param name: name of the new file
+    :param batch_num: batch name if we intend to save several files with the same name
+    :param directory: directory in which we will save the file
+    """
     if batch_num == '':
         file_name = run_time_directory + directory + '\\' + name + '.pkl'
     else:
@@ -114,22 +121,13 @@ def save_obj(obj, name, batch_num='', directory='pickles'):
         pickle.dump(obj, f, pickle.HIGHEST_PROTOCOL)
 
 def load_obj(name, directory='pickles'):
+    """
+    Loads an object which was saved as a pickle in one of the directories in the main directory
+    :param name: name of the file
+    :param directory: directory in which the file is in
+    :return: the object
+    """
     file_name = run_time_directory + directory + '\\' + name + '.pkl'
-    if os.path.isfile(file_name):
-        with open(file_name, 'rb') as f:
-            return pickle.load(f)
-    return None
-
-def save_obj_dictionary(obj, name, batch_num=''):
-    if batch_num == '':
-        file_name = run_time_directory + 'dictionary\\' + name + str(batch_num) + '.pkl'
-    else:
-        file_name = run_time_directory + 'dictionary\\' + name + '_' + str(batch_num) + '.pkl'
-    with open(file_name, 'wb') as f:
-        pickle.dump(obj, f, pickle.HIGHEST_PROTOCOL)
-
-def load_obj_dictionary(name):
-    file_name = run_time_directory + 'dictionary\\' + str(name)
     if os.path.isfile(file_name):
         with open(file_name, 'rb') as f:
             return pickle.load(f)
@@ -193,6 +191,14 @@ def create_prefix_posting(prefix, file_name_list, directory='pickles'):
     create_posting_file(sorted_terms, merged_prefix_dictionary, posting_file_name, prefix)
 
 def create_posting_file(sorted_terms, merged_dict, posting_file_name, tag, save_directory='dictionary'):
+    """
+    Creates a posting file from sorted list of terms and dictionary with those term's tokens
+    :param sorted_terms: list of terms
+    :param merged_dict: dictionary which contains tokens objects of the sorted terms
+    :param posting_file_name: name of the new posting file
+    :param tag: if we want to add a tag to new file name
+    :param save_directory: where to save the new file
+    """
     terms_dictionary = {}
     last_seek_offset = 0
     seek_offset = 0
@@ -217,7 +223,7 @@ def create_posting_file(sorted_terms, merged_dict, posting_file_name, tag, save_
             terms_dictionary[term] = (seek_offset, merged_dict[term].df)
         str_for_posting = ''.join([term, ' ', merged_dict[term].create_string_from_doc_dictionary()])
         last_seek_offset = seek_offset
-        seek_offset += len(str_for_posting) + 1
+        seek_offset += len(str_for_posting)
         posting_file.append(str_for_posting)
         last_term = term
     with codecs.open(posting_file_name, 'w', 'utf-8') as tp:
@@ -251,7 +257,12 @@ def merge_tokens_dictionaries(dictionaries_list):
                 merged_dict[key] = dict[key]
     return merged_dict
 
-def create_cities_posting():
+def create_cities_posting(print_countries_num=False):
+    """
+    This function acts as a pipeline for creating the posting file of the cities
+    Also saves a dictionary file for the cities.
+    :param print_countries_num: if you want to print the number of different countries in the corpus
+    """
     cities_index = {}
     cities_indexer = CityIndexer()
     cities_dictionaries = []
@@ -275,3 +286,5 @@ def create_cities_posting():
     create_posting_file(sorted_terms, merged_dict, posting_file_name, 'cities', save_directory='cities')
 
     save_obj(obj=cities_index, name='cities dictionary', directory='cities')
+    if print_countries_num:
+        print('num of countries: ' + str(len(cities_indexer.countries)))

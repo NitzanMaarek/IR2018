@@ -199,7 +199,7 @@ class Parser:
 
         if type(token) is list:
             for item in token:
-                if Preferences.stem:
+                if Preferences.stem and not self.is_any_kind_of_number(item):
                     item = stemmer.stem(item)
                 if self.token_dictionary_first_position.__contains__(item):
                     self.token_dictionary_num_of_appearance[item] += 1
@@ -208,7 +208,7 @@ class Parser:
                     self.token_dictionary_first_position[item] = position_list
                 self.tokens.append(item)
         else:
-            if Preferences.stem:
+            if Preferences.stem and not self.is_any_kind_of_number(token):
                 token = stemmer.stem(token)
 
             if self.token_dictionary_first_position.__contains__(token):
