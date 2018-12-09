@@ -50,10 +50,6 @@ class Token:
         doc_strings = []
         for doc_id in self.doc_dict:
             doc_attributes = self.doc_dict[doc_id]
-            # tf = doc_attributes[0]
-            # first_position = doc_attributes[1]
-            # doc_pointer = doc_attributes[2]
-            #TODO: need to get pointer to doc posting file
             doc_strings.append(''.join(['< ', doc_id, ' ', str(doc_attributes[0]), ' ', str(doc_attributes[1]), ' ',
                                         str(doc_attributes[2]), ' ', str(doc_attributes[3]), ' >', ' ']))
         doc_strings.append('\n')

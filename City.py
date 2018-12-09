@@ -10,7 +10,7 @@ class CityIndexer:
     def __init__(self):
         self.city_dictionary = {}       # Key = city_name, Value = state_name
         self.state_dictionary = {}      # Key = state_name, Value = state_attributes: currency, population
-        self.inverted_index = {}
+        self.countries = set()
         self.parser = Parser([])
         self.load_capital_cities()
         self.load_city_state_json()
@@ -61,7 +61,6 @@ class CityIndexer:
                         self.city_dictionary[city] = state
 
 
-
     def get_city_attributes(self, city_name):
         """
         Method returns attributes with given city.
@@ -87,6 +86,8 @@ class CityIndexer:
                 elif state == 'republic of moldova':
                     state = 'moldova (republic of)'
                 if state in self.state_dictionary:
+                    if not state in self.countries:
+                        self.countries.add(state)
                     return self.state_dictionary[state]
                 else:
                     return None

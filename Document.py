@@ -88,10 +88,12 @@ class Document:
         self.max_tf = parser.get_max_tf()
         if hasattr(self, 'title'):
             title_parser = Parser(stop_words_list)
-            title_tokens = parser.parser_pipeline([self.title], self.stem)
-            for title_token in title_tokens:
-                if title_token in self.tokens:
-                    self.tokens[title_token][2] = True
+            title_tokens = title_parser.parser_pipeline([self.title], self.stem)
+            for token in self.tokens:
+                if token in title_tokens:
+                    self.tokens[token][2] = True
+                else:
+                    self.tokens[token][2] = False
 
     def to_json(self):
         """
