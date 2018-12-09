@@ -102,9 +102,6 @@ class Parser:
                 if self.word is None:
                     continue
 
-                if self.word == 'Agency':
-                    print('nizo')
-
                 if self.word == 'between' or self.word == 'Between':
                     self.between_index = 1
 
@@ -304,6 +301,8 @@ class Parser:
                 return token_list
             else:
                 self.between_index = 0
+                if token in self.stop_words_list:
+                    return None
                 # if 'between' in self.stop_words_list or 'Between' in self.stop_words_list:
                 #     self.delete_token_i(3)  # delete the token 'between'
                 # if 'and' in self.stop_words_list:
