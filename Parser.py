@@ -102,6 +102,9 @@ class Parser:
                 if self.word is None:
                     continue
 
+                if self.word == 'Agency':
+                    print('nizo')
+
                 if self.word == 'between' or self.word == 'Between':
                     self.between_index = 1
 
@@ -381,10 +384,10 @@ class Parser:
             return None
 
         first_token = token[0]
-        if 'A' < first_token < 'Z':
+        if 'A' <= first_token <= 'Z':
             token = self.upper_case_word(token)
             self.token_upper_case_dictionary[token] = 0
-        elif 'a' < first_token < 'z':
+        elif 'a' <= first_token <= 'z':
             token = self.lower_case_word(token)
 
         return token
