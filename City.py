@@ -7,10 +7,11 @@ class CityIndexer:
     """
     Indexer which helps with the cities indexing, the Indexer receives data from 2 API
     """
-    def __init__(self):
+    def __init__(self, stem):
         self.city_dictionary = {}       # Key = city_name, Value = state_name
         self.state_dictionary = {}      # Key = state_name, Value = state_attributes: currency, population
         self.countries = set()
+        self.stem = stem
         self.parser = Parser([])
         self.load_capital_cities()
         self.load_city_state_json()
@@ -30,7 +31,7 @@ class CityIndexer:
                     continue
                 # state_capital = self.lower_case_word(state_capital) #Change city to lower case for easier comparison
                 state_raw_population = country_dict['population']   # Need to parse population
-                parser = Parser([])
+                parser = Parser([], stem=self.stem)
                 state_parsed_population = list((parser.create_tokens([str(state_raw_population)])).keys())[0]
                 state_currencies = country_dict['currencies']  # [{'code': NIS, 'name': 'New Israeli Shekels', 'symbol': ''}]
                 self.city_dictionary[state_capital] = state_name

@@ -5,11 +5,15 @@ class Parser:
     """
 
     """
-    def __init__(self, stop_words_list):
+    def __init__(self, stop_words_list, stem=None):
         """
 
         :param stop_words_list:
         """
+
+        if not stem is None:
+            self.stem = stem
+
         self.percent_key_words = {'%', 'percent', 'percentage'}
         self.dollar_key_words = {'$', 'Dollars', 'dollars'}
         self.month_dictionary = {'January': '01', 'February': '02', 'March': '03', 'April': '04', 'May': '05', 'June': '06',
@@ -69,6 +73,7 @@ class Parser:
         :return: Dictionary of tokens as keys and its' attributes as values.
         """
         self.data = data
+        self.stem = stem
         tokens = self.create_tokens(self.data)
         # tokens = self.find_key_words_in_line(tokens)
         return tokens
@@ -94,9 +99,9 @@ class Parser:
                 self.line_index = line_index
                 self.word = word
 
-                if Preferences.ignore_tag_p:
-                    if self.word == '<P>' or self.word == '</P>':
-                        continue
+                # if Preferences.ignore_tag_p:
+                if self.word == '<P>' or self.word == '</P>':
+                    continue
 
                 self.word = self.remove_delimiters(self.word)
                 if self.word is None:
@@ -196,12 +201,12 @@ class Parser:
         :param token: one token or list of tokens to add or update and list = (line_number, position_in_line)
         :param position_list: list of position in doc (lines) and position in line (words)
         """
-        if Preferences.stem:
+        if self.stem:
             stemmer = PorterStemmer()
 
         if type(token) is list:
             for item in token:
-                if Preferences.stem and not self.is_any_kind_of_number(item):
+                if self.stem and not self.is_any_kind_of_number(item):
                     item = stemmer.stem(item)
                 if self.token_dictionary_first_position.__contains__(item):
                     self.token_dictionary_num_of_appearance[item] += 1
@@ -210,7 +215,7 @@ class Parser:
                     self.token_dictionary_first_position[item] = position_list
                 self.tokens.append(item)
         else:
-            if Preferences.stem and not self.is_any_kind_of_number(token):
+            if self.stem and not self.is_any_kind_of_number(token):
                 token = stemmer.stem(token)
             if self.token_dictionary_first_position.__contains__(token):
                 self.token_dictionary_num_of_appearance[token] += 1
@@ -474,7 +479,7 @@ class Parser:
         # print('Handling token: ' + token)
         first_str = token[:hyphen_position]
         second_str = token[hyphen_position+1:]
-        parser = Parser([])
+        parser = Parser([], stem=self.stem)
         parse_me = ''.join([first_str, ' ', second_str])
         parsed_str_dic = parser.create_tokens([parse_me])
         parsed_list = list(parsed_str_dic.keys())
@@ -740,7 +745,7 @@ class Parser:
         """
         range_tokens = token.split('-')
         if len(range_tokens) == 2:
-            parser = Parser([''])
+            parser = Parser([''], stem=self.stem)
             # parsed_tokens = self.create_tokens([''.join([range_tokens[0], ' ', range_tokens[1]])])
             parsed_tokens = parser.create_tokens([''.join([range_tokens[0], ' ', range_tokens[1]])])
             list_keys = list(parsed_tokens.keys())
@@ -834,7 +839,7 @@ class Parser:
 
         if next_word is not None and len(next_word) > 0:
             if next_word == 'million' or next_word == 'billion' or next_word == 'trillion':
-                if 1 <= len(price) <= 3  and (self.is_integer(price) or self.is_float(price)):
+                if self.is_integer(price) or self.is_float(price):
                     token = self.parse_dollar_sign_with_parsed_number_million(('$', price, next_word))
                     # *** Here need to skip next token to not tokenize it
                     self.skip_tokenize = 1

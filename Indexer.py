@@ -168,7 +168,7 @@ def get_list_chunks_dictionary(num_of_chunks, prefix, stem_str):
     return list_dictionaries
 
 
-def create_prefix_posting(main_dir, prefix, file_name_list, directory='pickles'):
+def create_prefix_posting(main_dir, prefix, file_name_list, directory='pickles', stem=False):
     """
     Creates posting file to a given prefix and writes it to the disk as txt file
     The function also creates pickle file which contains the dictionary that was made for the posting file
@@ -180,7 +180,7 @@ def create_prefix_posting(main_dir, prefix, file_name_list, directory='pickles')
     merged_prefix_dictionary = merge_tokens_dictionaries(pickle_dictionaries) # Need to return this
     sorted_terms = sorted(merged_prefix_dictionary, key=lambda k: (k.upper(), k[0].islower()))
 
-    if Preferences.stem:
+    if stem:
         stem_addition_for_posting = '_stem'
         stem_addition_for_files = 's'
     else:
@@ -259,14 +259,14 @@ def merge_tokens_dictionaries(dictionaries_list):
                 merged_dict[key] = dict[key]
     return merged_dict
 
-def create_cities_posting(main_dir, print_countries_num=False):
+def create_cities_posting(main_dir, print_countries_num=False, stem=False):
     """
     This function acts as a pipeline for creating the posting file of the cities
     Also saves a dictionary file for the cities.
     :param print_countries_num: if you want to print the number of different countries in the corpus
     """
     cities_index = {}
-    cities_indexer = CityIndexer()
+    cities_indexer = CityIndexer(stem)
     cities_dictionaries = []
     for file in os.listdir(main_dir + 'cities'):
         cities_dictionaries.append(load_obj(main_dir, file[:-4], directory='cities'))

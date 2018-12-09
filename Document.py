@@ -5,7 +5,7 @@ import Preferences
 
 class Document:
     def __init__(self, file_name = None, data = None, stop_words_list = None,
-                 first_row_index = None, last_row_index = None, disk_string = None):
+                 first_row_index = None, last_row_index = None, disk_string = None, stem=False):
         """
         Creating a document object which contains the following parameters
         :param file_name: the file name which the document is from
@@ -24,6 +24,7 @@ class Document:
             self.HT = self.get_doc_parameter(data[1], 'HT')
             self.doc_start_line = -1
             self.doc_finish_line = -1
+            self.stem = stem
             # TODO: create a function out of this
             start = -1
             for i in range(0, len(data)):

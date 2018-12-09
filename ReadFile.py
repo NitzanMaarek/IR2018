@@ -2,10 +2,11 @@ from Document import Document
 import Preferences
 
 class ReadFile:
-    def __init__(self, file_name, q, file_path, stop_words_list):
+    def __init__(self, file_name, q, file_path, stop_words_list, stem):
         self.file_name = file_name
         self.q = q
         self.file_path = file_path
+        self.stem = stem
         self.doc_count = self.read_file(stop_words_list, q) #this should be here
 
     def read_file(self, stop_words_list, q):
@@ -19,7 +20,7 @@ class ReadFile:
                 doc_count += 1
                 doc = Document(data=lines[start + 1: i - 1], file_name=self.file_name,
                                stop_words_list=stop_words_list, first_row_index=start,
-                               last_row_index=i-1)
+                               last_row_index=i-1, stem=self.stem)
                 q.put(doc)  # Inserting the document object so the listener will get it
         file.close()
         return doc_count

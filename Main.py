@@ -130,10 +130,14 @@ class GUI:
                 # activate readfile with both paths.
                 output_path = output_path + '\\'
                 self.main_dir = output_path
-                Preferences.stem = bool(self.stem_flag.get())
+                # Preferences.stem = bool(self.stem_flag.get())
                 restart_files(output_path)
                 start_time = datetime.datetime.now()
-                read_directory(main_dir=output_path, directory=corpus_path, multiprocess=parallel, batch_size=20000)
+                if self.stem_flag.get() == 1:
+                    self.stem = True
+                else:
+                    self.stem = False
+                read_directory(main_dir=output_path, directory=corpus_path, multiprocess=parallel, batch_size=20000, stem=self.stem)
                 finish_time = datetime.datetime.now()
                 messagebox.showinfo("Activation Finished", 'Activation finished successfully')
                 self.result1_entry.delete(0,END)
@@ -142,6 +146,8 @@ class GUI:
                 self.result2_entry.insert(INSERT, str(length_of_terms_dictionary))
                 self.result3_entry.delete(0, END)
                 self.result3_entry.insert(INSERT, finish_time-start_time)
+                languages = list(Indexer.load_obj(self.main_dir, name='languages', directory=''))
+                self.update_option_menu(languages)
 
     def reset_button_clicked(self):
         """
@@ -272,7 +278,7 @@ class GUI:
     # def display_dictionary(self):
 
 
-def read_directory(main_dir, directory, multiprocess, batch_size=20000):
+def read_directory(main_dir, directory, multiprocess, batch_size=20000, stem=False):
     """
     Iterating over files in a directory and opening ReadFile object for each one.
     The ReadFile object processes the file and creates Document objects.
@@ -294,7 +300,7 @@ def read_directory(main_dir, directory, multiprocess, batch_size=20000):
             if not file == 'stop_words.txt':
                 path = os.path.join(root, file)
                 if multiprocess:
-                    job = pool.apply_async(ReadFile, (file, q, path, stop_words_list))
+                    job = pool.apply_async(ReadFile, (file, q, path, stop_words_list, stem))
                     jobs.append(job)
                     file_count += 1
                     if file_count == 300:
@@ -306,7 +312,7 @@ def read_directory(main_dir, directory, multiprocess, batch_size=20000):
                         jobs = []
                         file_count = 0
                 else:
-                    ReadFile(file, q, path, stop_words_list)
+                    ReadFile(file, q, path, stop_words_list, stem)
 
 
     if len(jobs) > 0:
@@ -314,17 +320,19 @@ def read_directory(main_dir, directory, multiprocess, batch_size=20000):
         language_set = language_set.union(partial_language_set)
         total_doc_count += processed_docs
 
-    with open(main_dir + 'languages list.csv', 'w') as cities_file:
-        wr = csv.writer(cities_file, quoting=csv.QUOTE_ALL)
-        wr.writerow(list(language_set))
-        # cities_file.writelines()
+    # with open(main_dir + 'languages list.csv', 'w') as cities_file:
+    #     wr = csv.writer(cities_file, quoting=csv.QUOTE_ALL)
+    #     wr.writerow(list(language_set))
+    #     # cities_file.writelines()
+
+    Indexer.save_obj(main_dir, language_set, name='languages', directory='')
 
     cities_posting = pool.apply_async(Indexer.create_cities_posting, (main_dir, False, ))
 
     print('total docs: ' + str(total_doc_count))
     print('Until merge runtime: ' + str(datetime.datetime.now() - start_time))
 
-    merge_pickles_to_terms_dictionary(main_dir)
+    merge_pickles_to_terms_dictionary(main_dir, stem=stem)
     print('Until saving dictionary by prefixes: ' + str(datetime.datetime.now() - start_time))
 
     terms_dictionary = merge_tokens_dictionary(main_dir)
@@ -404,7 +412,7 @@ def batch_to_disk(main_dir, batch_size, batch_num, q):
     Indexer.write_docs_list_to_disk(main_dir, docs, batch_num)
     return languages_partial_set
 
-def create_tokens_posting(main_dir):
+def create_tokens_posting(main_dir, stem):
     """
     Creates the token's posting file which are in a certain location in the disk
     """
@@ -416,7 +424,7 @@ def create_tokens_posting(main_dir):
     for prefix in prefix_tokens_dictionaries:
         if counter < Preferences.posting_files_per_batch:
             counter += 1
-            job = pool.apply_async(Indexer.create_prefix_posting, (prefix, prefix_tokens_dictionaries[prefix], q))
+            job = pool.apply_async(Indexer.create_prefix_posting, (main_dir, prefix, prefix_tokens_dictionaries[prefix], 'pickles', stem))
             posting_jobs.append(job)
 
             if counter == Preferences.posting_files_per_batch:
@@ -430,14 +438,14 @@ def create_tokens_posting(main_dir):
 
     # TODO: check if we need to get back the dictionary
 
-def merge_pickles_to_terms_dictionary(main_dir):
+def merge_pickles_to_terms_dictionary(main_dir, stem):
     """
     Merging a given list of pickles by the prefix of the files and tokens
     """
     prefix_tokens_dictionaries = get_list_of_files_by_prefix(main_dir)
     posting_jobs = []
     for key in prefix_tokens_dictionaries.keys():
-        job = pool.apply_async(Indexer.create_prefix_posting, (main_dir, key, prefix_tokens_dictionaries[key]))
+        job = pool.apply_async(Indexer.create_prefix_posting, (main_dir, key, prefix_tokens_dictionaries[key], 'pickles', stem))
         posting_jobs.append(job)
 
     for job in posting_jobs:
