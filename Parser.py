@@ -105,7 +105,7 @@ class Parser:
                 if self.word == 'between' or self.word == 'Between':
                     self.between_index = 1
 
-                if self.between_index == 0 and stop_words_length != 0 and self.word in self.stop_words_list:
+                if self.between_index == 0 and (stop_words_length != 0 and self.word in self.stop_words_list):
                     continue
 
                 # Here we're supposed to have the word (not stop-word) without any delimiters
@@ -115,10 +115,10 @@ class Parser:
                 if token is not None and len(token) > 0:
                     if self.between_index >= 1:
                         token = self.parse_handle_between_token(token)   # If we've encountered the word between then keep track if next tokens are : between <number> and <number>
-
+                if token is not None and len(token) > 0:
                     self.add_token_to_collections(token, (data_index, line_index))
-        self.correct_upper_lower_cases()
 
+        self.correct_upper_lower_cases()
         return self.merge_dictionaries()
 
         # return self.tokens
@@ -257,17 +257,31 @@ class Parser:
         :return: token 'between <number> and <number>' after deletion if sequence complete, normal token otherwise
         """
         token = parsed_token
+        if type(token) != str:
+            self.between_index = 0
+            if 'between' in self.stop_words_list or 'Between' in self.stop_words_list:
+                self.delete_token_i(1)
+            return token
         if self.between_index == 2:
             if self.is_any_kind_of_number(token):       # If second string is number
                 self.between_index += 1
             else:
                 self.between_index = 0
+                if 'between' in self.stop_words_list or 'Between' in self.stop_words_list:
+                    self.delete_token_i(1)
+                if token in self.stop_words_list:
+                    return None
 
         elif self.between_index == 3:
             if token == 'and':
                 self.between_index += 1
             else:
                 self.between_index = 0
+                if 'between' in self.stop_words_list or 'Between' in self.stop_words_list:
+                    self.delete_token_i(2)      # Delete the word between
+                if token in self.stop_words_list:
+                    return None
+
         elif self.between_index == 4:
             if self.is_any_kind_of_number(token):
                 self.between_index = 0
@@ -275,6 +289,12 @@ class Parser:
                 self.delete_token_i(3)  # delete the token 'between'
                 self.delete_token_i(1)  # delete the token 'and'
                 return token_list
+            else:
+                self.between_index = 0
+                if 'between' in self.stop_words_list or 'Between' in self.stop_words_list:
+                    self.delete_token_i(3)  # delete the token 'between'
+                if 'and' in self.stop_words_list:
+                    self.delete_token_i(1)  # delete the token 'and'
         else:
             self.between_index += 1
         return token
