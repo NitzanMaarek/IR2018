@@ -346,7 +346,10 @@ def read_directory(main_dir, directory, multiprocess, batch_size=20000, stem=Fal
         Indexer.save_obj(main_dir, obj=terms_dictionary, name='stem main terms dictionary', directory='')
     else:
         Indexer.save_obj(main_dir, obj=terms_dictionary, name='main terms dictionary', directory='')
-    term_dict = Indexer.load_obj(main_dir, name='main terms dictionary', directory='')
+    if stem:
+        term_dict = Indexer.load_obj(main_dir, name='stem main terms dictionary', directory='')
+    else:
+        term_dict = Indexer.load_obj(main_dir, name='main terms dictionary', directory='')
     cities_posting.get()
 
     return total_doc_count, len(term_dict)
