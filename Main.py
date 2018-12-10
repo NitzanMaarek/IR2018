@@ -83,15 +83,15 @@ class GUI:
 
         self.result1_label.grid(row=4, column=0, sticky=E)
         self.result1_entry.grid(row=4, column=1, sticky=W)
-        self.result1_entry.config(state=DISABLED)
+        # self.result1_entry.config(state=DISABLED)
 
         self.result2_label.grid(row=5, column=0, sticky=E)
         self.result2_entry.grid(row=5, column=1, sticky=W)
-        self.result2_entry.config(state=DISABLED)
+        # self.result2_entry.config(state=DISABLED)
 
         self.result3_label.grid(row=6, column=0, sticky=E)
         self.result3_entry.grid(row=6, column=1, sticky=W)
-        self.result3_entry.config(state=DISABLED)
+        # self.result3_entry.config(state=DISABLED)
 
         self.activate_button.grid(row=0, column=0, sticky=W, padx=5, pady=5)
         self.reset_button.grid(row=0, column=1, padx=5)
@@ -137,7 +137,7 @@ class GUI:
                     self.stem = True
                 else:
                     self.stem = False
-                read_directory(main_dir=output_path, directory=corpus_path, multiprocess=parallel, batch_size=20000, stem=self.stem)
+                total_docs, length_of_terms_dictionary = read_directory(main_dir=output_path, directory=corpus_path, multiprocess=parallel, batch_size=20000, stem=self.stem)
                 finish_time = datetime.datetime.now()
                 messagebox.showinfo("Activation Finished", 'Activation finished successfully')
                 self.result1_entry.delete(0,END)
@@ -145,7 +145,7 @@ class GUI:
                 self.result2_entry.delete(0, END)
                 self.result2_entry.insert(INSERT, str(length_of_terms_dictionary))
                 self.result3_entry.delete(0, END)
-                self.result3_entry.insert(INSERT, finish_time-start_time)
+                self.result3_entry.insert(INSERT, (finish_time-start_time).total_seconds())
                 languages = list(Indexer.load_obj(self.main_dir, name='languages', directory=''))
                 self.update_option_menu(languages)
 
@@ -238,7 +238,10 @@ class GUI:
         """
         Method loads dictionary to memory.
         """
-        self.term_dictionary = Indexer.load_obj(self.main_dir, 'main terms dictionary', '')
+        if self.stem:
+            self.term_dictionary = Indexer.load_obj(self.main_dir, 'stem main terms dictionary', '')
+        else:
+            self.term_dictionary = Indexer.load_obj(self.main_dir, 'main terms dictionary', '')
         messagebox.showinfo("Load successful", 'Dictionary loaded.')
 
     def update_option_menu(self, alist):
@@ -293,9 +296,9 @@ def read_directory(main_dir, directory, multiprocess, batch_size=20000, stem=Fal
     next_batch_num = 0
     language_set = set()
 
+    stop_words_list = read_stop_words_lines(directory)
+
     for root, dirs, files in os.walk(directory):
-        # TODO: Read also stop_words.txt from this directory and forward list to parser init
-        stop_words_list = read_stop_words_lines(directory) # TODO: Figure out what is this
         for file in files:
             if not file == 'stop_words.txt':
                 path = os.path.join(root, file)
@@ -305,7 +308,7 @@ def read_directory(main_dir, directory, multiprocess, batch_size=20000, stem=Fal
                     file_count += 1
                     if file_count == 300:
                         print('dumping files')
-                        processed_docs, next_batch_num, partial_language_set = dump_proceesed_docs_to_disk(main_dir, jobs, batch_size, next_batch_num)
+                        processed_docs, next_batch_num, partial_language_set = dump_proceesed_docs_to_disk(main_dir, jobs, batch_size, next_batch_num, stem)
                         language_set = language_set.union(partial_language_set)
                         next_batch_num += 1
                         total_doc_count += processed_docs
@@ -316,7 +319,7 @@ def read_directory(main_dir, directory, multiprocess, batch_size=20000, stem=Fal
 
 
     if len(jobs) > 0:
-        processed_docs, next_batch_num, partial_language_set = dump_proceesed_docs_to_disk(main_dir, jobs, batch_size, next_batch_num)
+        processed_docs, next_batch_num, partial_language_set = dump_proceesed_docs_to_disk(main_dir, jobs, batch_size, next_batch_num, stem)
         language_set = language_set.union(partial_language_set)
         total_doc_count += processed_docs
 
@@ -329,22 +332,24 @@ def read_directory(main_dir, directory, multiprocess, batch_size=20000, stem=Fal
 
     cities_posting = pool.apply_async(Indexer.create_cities_posting, (main_dir, False, ))
 
-    print('total docs: ' + str(total_doc_count))
-    print('Until merge runtime: ' + str(datetime.datetime.now() - start_time))
+    # print('total docs: ' + str(total_doc_count))
+    # print('Until merge runtime: ' + str(datetime.datetime.now() - start_time))
 
     merge_pickles_to_terms_dictionary(main_dir, stem=stem)
-    print('Until saving dictionary by prefixes: ' + str(datetime.datetime.now() - start_time))
+    # print('Until saving dictionary by prefixes: ' + str(datetime.datetime.now() - start_time))
 
     terms_dictionary = merge_tokens_dictionary(main_dir)
-    print('Until saving dictionary as one file: ' + str(datetime.datetime.now() - start_time))
+    # print('Until saving dictionary as one file: ' + str(datetime.datetime.now() - start_time))
 
-    print('Trying to save and load dictionary')
-    Indexer.save_obj(main_dir, obj=terms_dictionary, name='main terms dictionary', directory='')
-    test = Indexer.load_obj(main_dir, name='main terms dictionary', directory='')
-    # print(test)
+    # print('Trying to save and load dictionary')
+    if stem:
+        Indexer.save_obj(main_dir, obj=terms_dictionary, name='stem main terms dictionary', directory='')
+    else:
+        Indexer.save_obj(main_dir, obj=terms_dictionary, name='main terms dictionary', directory='')
+    term_dict = Indexer.load_obj(main_dir, name='main terms dictionary', directory='')
     cities_posting.get()
-    total_docs = total_doc_count
-    length_of_terms_dictionary = len(test)
+
+    return total_doc_count, len(term_dict)
 
 def merge_tokens_dictionary(main_dir):
     """
@@ -358,7 +363,7 @@ def merge_tokens_dictionary(main_dir):
             terms_dict = {**terms_dict, **temp_dict}
     return terms_dict
 
-def dump_proceesed_docs_to_disk(main_dir, jobs, batch_size, next_batch_num):
+def dump_proceesed_docs_to_disk(main_dir, jobs, batch_size, next_batch_num, stem):
     """
     Writing the processed data to the disk before reading more files
     :param jobs: jobs of documents
@@ -376,14 +381,14 @@ def dump_proceesed_docs_to_disk(main_dir, jobs, batch_size, next_batch_num):
         doc_count += new_docs_num
         temp_doc_count += new_docs_num
         if temp_doc_count > batch_size:
-            print('started batch num: ' + str(batch_count))
-            job = pool.apply_async(batch_to_disk, (main_dir, batch_size, batch_count, q))
+            # print('started batch num: ' + str(batch_count))
+            job = pool.apply_async(batch_to_disk, (main_dir, batch_size, batch_count, q, stem))
             batch_count += 1
             batch_jobs.append(job)
             temp_doc_count -= batch_size
 
-    print('started batch num: ' + str(batch_count))
-    job = pool.apply_async(batch_to_disk, (main_dir, temp_doc_count, batch_count, q))
+    # print('started batch num: ' + str(batch_count))
+    job = pool.apply_async(batch_to_disk, (main_dir, temp_doc_count, batch_count, q, stem))
     batch_jobs.append(job)
 
     language_set = set()
@@ -393,7 +398,7 @@ def dump_proceesed_docs_to_disk(main_dir, jobs, batch_size, next_batch_num):
 
     return doc_count, batch_count, language_set
 
-def batch_to_disk(main_dir, batch_size, batch_num, q):
+def batch_to_disk(main_dir, batch_size, batch_num, q, stem):
     """
     Writing the next given amount of documents to the disk
     :param batch_size: how many documents should we write to the disk
@@ -409,7 +414,7 @@ def batch_to_disk(main_dir, batch_size, batch_num, q):
             languages_partial_set.add(doc.language)
         docs.append(doc)
         count += 1
-    Indexer.write_docs_list_to_disk(main_dir, docs, batch_num)
+    Indexer.write_docs_list_to_disk(main_dir, docs, batch_num, stem)
     return languages_partial_set
 
 def create_tokens_posting(main_dir, stem):
@@ -436,7 +441,7 @@ def create_tokens_posting(main_dir, stem):
                 partial_terms_dictionary = {}
                 batch_counter += 1
 
-    # TODO: check if we need to get back the dictionary
+
 
 def merge_pickles_to_terms_dictionary(main_dir, stem):
     """
@@ -478,7 +483,7 @@ def read_stop_words_lines(directory):
         for line in stop_words_file:
             if line[-1:] == '\n':
                 line = line[:-1]
-            if line.__contains__('\\'):     # TODO: Need to fix when there is \ in stopword
+            if line.__contains__('\\'):
                 line = line.replace('\\')
             stop_words_list[line] = 1
         return stop_words_list
@@ -494,17 +499,28 @@ def remove_files(main_dir):
             shutil.rmtree(main_dir + dir)
     if os.path.isfile(main_dir + 'languages list.csv'):
         os.remove(main_dir + 'languages list.csv')
+    if os.path.isfile(main_dir + 'languages.pkl'):
+        os.remove(main_dir + 'languages.pkl')
+    if os.path.isfile(main_dir + 'main terms dictionary.pkl'):
+        os.remove(main_dir + 'main terms dictionary.pkl')
+    if os.path.isfile(main_dir + 'stem main terms dictionary.pkl'):
+        os.remove(main_dir + 'stem main terms dictionary.pkl')
 
 
 def restart_files(main_dir):
     directory_list = ['pickles', 'cities', 'dictionary', 'document posting', 'terms posting']
 
+    if os.path.isdir(main_dir + 'pickles'):
+        shutil.rmtree(main_dir + 'pickles')
+
     for dir in directory_list:
-        if os.path.isdir(main_dir + dir):
-            shutil.rmtree(main_dir + dir)
-        os.mkdir(main_dir + dir)
-    if os.path.isfile(main_dir + 'languages list.csv'):
-        os.remove(main_dir + 'languages list.csv')
+        # if os.path.isdir(main_dir + dir):
+        #     shutil.rmtree(main_dir + dir)
+        if not os.path.isdir(main_dir + dir):
+            os.mkdir(main_dir + dir)
+    # if os.path.isfile(main_dir + 'languages list.csv'):
+        # os.remove(main_dir + 'languages list.csv')
+
 
 run_time_dir = ''
 

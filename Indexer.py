@@ -8,16 +8,16 @@ import Main
 
 # run_time_directory = Main.run_time_dir
 
-def write_docs_list_to_disk(main_dir, doc_list, batch_num):
+def write_docs_list_to_disk(main_dir, doc_list, batch_num, stem):
     """
     Used for merging a few documents to one dictionary of tokens and one of documents
     :param doc_list: List of document objects
     :return: dictionary of tokens
     """
-    tokens_dictionary = create_merged_dictionary_and_doc_posting(main_dir, doc_list, batch_num)
+    tokens_dictionary = create_merged_dictionary_and_doc_posting(main_dir, doc_list, batch_num, stem)
     write_dictionary_by_prefix(main_dir, tokens_dictionary, batch_num)
 
-def create_merged_dictionary_and_doc_posting(main_dir, doc_list, batch_num):
+def create_merged_dictionary_and_doc_posting(main_dir, doc_list, batch_num, stem):
     """
     Creates a dictionary for all the unique tokens that appeared in the documents of the current batch.
     The dictionary is created from a list of document objects which might have the duplicate terms.
@@ -29,8 +29,11 @@ def create_merged_dictionary_and_doc_posting(main_dir, doc_list, batch_num):
     pointers_dictionary = {}
     cities_dict = {}
     rows_count = 0
+    stem_prefix = ''
+    if stem:
+        stem_prefix = '_stem'
 
-    with open(main_dir + 'document posting\\' + 'doc_posting_' + str(batch_num), 'w') as file:
+    with open(main_dir + 'document posting\\' + 'doc_posting_' + str(batch_num) + stem_prefix, 'w') as file:
 
         for doc in doc_list:
             # Adding doc to posting
@@ -269,7 +272,8 @@ def create_cities_posting(main_dir, print_countries_num=False, stem=False):
     cities_indexer = CityIndexer(stem)
     cities_dictionaries = []
     for file in os.listdir(main_dir + 'cities'):
-        cities_dictionaries.append(load_obj(main_dir, file[:-4], directory='cities'))
+        if file[-5:-4].isdigit():
+            cities_dictionaries.append(load_obj(main_dir, file[:-4], directory='cities'))
 
     merged_dict = merge_tokens_dictionaries(cities_dictionaries)
 
