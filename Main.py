@@ -307,7 +307,6 @@ def read_directory(main_dir, directory, multiprocess, batch_size=20000, stem=Fal
                     jobs.append(job)
                     file_count += 1
                     if file_count == 300:
-                        print('dumping files')
                         processed_docs, next_batch_num, partial_language_set = dump_proceesed_docs_to_disk(main_dir, jobs, batch_size, next_batch_num, stem)
                         language_set = language_set.union(partial_language_set)
                         next_batch_num += 1
@@ -532,34 +531,27 @@ if __name__ == '__main__':
     single_file = True
     write_to_disk = False
     parallel = True
-    # stem = Preferences.stem
 
-    # main_directory = Preferences.main_directory
-
-    # restart_files()
+    # main_dir = 'C:\\Chen\\BGU\\2019\\2018 - Semester A\\3. Information Retrival\\Engine\\test directory\\created files\\'
+    # restart_files(main_dir)
 
     manager = mp.Manager()
     q = manager.Queue()
     pool = mp.Pool(processes=mp.cpu_count())
 
 
-    start_time = datetime.datetime.now()
-
-    total_docs = 0
-    length_of_terms_dictionary = 0
+    # start_time = datetime.datetime.now()
 
     gui = GUI()
-
-
 
     # # Single file debug config
     # if single_file:
     #     # file = ReadFile(r'C:\Users\Nitzan\Desktop\FB396001', parallel, stem, write_to_disk, q, pool)
-    #     read_directory(directory=r'C:\Chen\BGU\2019\2018 - Semester A\3. Information Retrival\Engine\test directory\10 files', multiprocess=parallel, batch_size=20000)
+    #     read_directory(main_dir, directory=r'C:\Chen\BGU\2019\2018 - Semester A\3. Information Retrival\Engine\test directory\10 files', multiprocess=parallel, batch_size=20000)
     # else:
     #     # All files debug config
     #     # file = ReadFile(r'C:\Users\Nitzan\Desktop\100 file corpus', parallel)
-    #     read_directory(directory=r'C:\Chen\BGU\2019\2018 - Semester A\3. Information Retrival\Engine\corpus', multiprocess=parallel)
+    #     read_directory(main_dir, directory=r'C:\Chen\BGU\2019\2018 - Semester A\3. Information Retrival\Engine\corpus', multiprocess=parallel)
 
     # finish_time = datetime.datetime.now()
     # print(finish_time - start_time)

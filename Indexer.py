@@ -28,7 +28,7 @@ def create_merged_dictionary_and_doc_posting(main_dir, doc_list, batch_num, stem
     tokens_dict = {}
     pointers_dictionary = {}
     cities_dict = {}
-    rows_count = 0
+    seek_offset = 0
     stem_prefix = ''
     if stem:
         stem_prefix = '_stem'
@@ -37,12 +37,12 @@ def create_merged_dictionary_and_doc_posting(main_dir, doc_list, batch_num, stem
 
         for doc in doc_list:
             # Adding doc to posting
-            doc.set_pointer(batch_num, rows_count)
+            doc.set_pointer(batch_num, seek_offset)
             doc_string = doc.write_to_disk_string() + '\n'
             file.write(doc_string)
-            pointers_dictionary[doc.doc_num] = rows_count
-            doc_pointer = str(batch_num) + ' ' + str(rows_count)
-            rows_count += 1
+            pointers_dictionary[doc.doc_num] = seek_offset
+            doc_pointer = str(batch_num) + ' ' + str(seek_offset)
+            seek_offset += len(doc_string) + 1
 
             if hasattr(doc, 'city'):
                 city = doc.city
@@ -132,7 +132,10 @@ def load_obj(main_dir, name, directory='pickles'):
     :param directory: directory in which the file is in
     :return: the object
     """
-    file_name = main_dir + '\\'  + directory + '\\' + name + '.pkl'
+    if directory == '':
+        file_name = main_dir + '\\' + name + '.pkl'
+    else:
+        file_name = main_dir + '\\'  + directory + '\\' + name + '.pkl'
     if os.path.isfile(file_name):
         with open(file_name, 'rb') as f:
             return pickle.load(f)
