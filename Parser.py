@@ -717,7 +717,7 @@ class Parser:
                 token = self.handle_range_with_number(token)
                 #TODO: add to line both numbers in range to get parsed again.
             elif self.word.__contains__('/'):
-                token = self.parse_fraction()
+                token = self.parse_fraction(self.word)
             elif self.word.__contains__(','):
                 pattern = re.compile(r'(([1-9]\d{0,2},\d{3},\d{3},\d{3})|([1-9]\d{0,2},\d{3},\d{3})|([1-9]\d{0,2},\d{3}))')     #Numbers with comma
                 token = pattern.sub(self.replace_only_numbers_regex, self.word)       #Substitute to parsed string
@@ -790,24 +790,26 @@ class Parser:
                 return self.word
 
     # TODO: Go over this function, check if you want maybe to parse the numbers in the fration or not.
-    def parse_fraction(self):
+    def parse_fraction(self, token):
         """
         Parses fraction number
         :return: ready token:<number> <fraction> or just <fraction>
         """
-        after_split = self.word.split('/')
+        after_split = token.split('/')
         if len(after_split) == 2:
-            if self.is_integer(after_split[0]) and self.is_integer(after_split[1]):  # If it's <int>/<int>
+            numerator = after_split[0]
+            denominator = after_split[1]
+            if (self.is_integer(numerator) or self.is_float(numerator)) and (self.is_integer(denominator) or self.is_float(denominator)):  # If it's <int>/<int>
                 if len(self.tokens) >= 1:
-                    previous_word = self.tokens[-1]  # TODO: Need to check previous_word != '\n'
+                    previous_word = self.tokens[-1]
                     if self.is_any_kind_of_number(previous_word):
                         self.delete_token_i(1)  # Delete tokenized number to tokenize number with fraction as single token
                         # del self.tokens[-1]
-                        return previous_word + ' ' + self.word
+                        return previous_word + ' ' + token
                     else:
-                        return self.word
+                        return token
 
-        return self.word
+        return token
 
     def parse_numbers_with_words(self, next_word):
         """
@@ -857,6 +859,8 @@ class Parser:
         :return: <number> Dollars
         """
         number_indicator = False        #Helps us know if current price is a string which is a number
+        if price.__contains__('/'):
+            return self.parse_fraction_dollar_sign(price)
         raw_number_str = price.replace(',', '')
         if raw_number_str.__contains__('.') and self.is_float(raw_number_str):
             raw_number = float(raw_number_str)
@@ -1170,5 +1174,20 @@ class Parser:
                 return True
             except ValueError:
                 return False
+
+    def parse_fraction_dollar_sign(self, token):
+        """
+        Parses fraction number
+        :return: ready token:<number> <fraction> or just <fraction>
+        """
+        after_split = token.split('/')
+        if len(after_split) == 2:
+            numerator = after_split[0]
+            denominator = after_split[1]
+            if (self.is_integer(numerator) or self.is_float(numerator)) and (
+                    self.is_integer(denominator) or self.is_float(denominator)):  # If it's <int>/<int>
+                        return token + ' Dollars'
+        return '$' + token
+
 
 
