@@ -1,9 +1,12 @@
 import os
 import multiprocessing as mp
-
 from gensim.test.utils import common_texts, get_tmpfile
 from gensim.models import Word2Vec
 from ReadFile import ReadFile
+
+import warnings
+warnings.filterwarnings("ignore")
+
 
 class Word2V:
 
@@ -20,6 +23,7 @@ class Word2V:
     def continue_training(self, texts):
         model = Word2Vec.load("word2vec.model")
         model.train(texts, total_examples=1, epochs=1)
+        model.save("word2vec.model")
 
 
 def read_text_from_dir(main_dir, directory, multiprocess, batch_size=20000, stem=False):
@@ -84,7 +88,7 @@ def read_text_from_dir(main_dir, directory, multiprocess, batch_size=20000, stem
         total_texts = len(list_of_texts)
         if total_texts > 1:
             for i in range(1, total_texts):
-                print("Training iteration number: " + str(i) + " out of: " + total_texts)
+                print("Training iteration number: " + str(i) + " out of: " + str(total_texts))
                 word2vec.continue_training(list_of_texts[i])
 
 # def train_model(model, list_of_texts):
@@ -202,4 +206,4 @@ if __name__ == '__main__':
     q = manager.Queue()
     pool = mp.Pool(processes=mp.cpu_count())
 
-    read_text_from_dir(main_dir='', directory=r'C:\Users\Nitzan\Desktop\IR 2018 files desktop\entire corpus\corpus', multiprocess=True, batch_size=20000, stem=False)
+    read_text_from_dir(main_dir='', directory=r'C:\Chen\BGU\2019\2018 - Semester A\3. Information Retrival\Engine\corpus', multiprocess=True, batch_size=20000, stem=False)
