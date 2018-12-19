@@ -57,14 +57,14 @@ class Ranker():
         return self.get_doc_posting_values(terms_doc_posting_values[5], terms_doc_posting_values[6])
 
 
-    def bm25_score(self, query, doc_id, k_value, b_value, average_doc_length, terms_dict):
+    def bm25_score(self, query, doc_id, k_value, b_value):
         # I assume query is list of string after parsing
         bm25_terms_values = []
         doc_length = -1
         for term in query:
             term = term.lower()
-            if term in terms_dict:
-                term_doc_values = self.get_term_doc_values(term, terms_dict, doc_id)
+            if term in self.terms_dict:
+                term_doc_values = self.get_term_doc_values(term, self.terms_dict, doc_id)
                 if term_doc_values is None:
                     continue
                 if doc_length == -1:
@@ -74,23 +74,28 @@ class Ranker():
                         doc_length = float(doc_posting_len)
                 term_tf = float(term_doc_values[1])
                 numerator = term_tf * (k_value + 1)
-                denominator = term_tf + k_value * (1 - b_value + b_value * doc_length / average_doc_length)
+                denominator = term_tf + k_value * (1 - b_value + b_value * doc_length / self.average_doc_length)
                 bm25_terms_values.append(numerator / denominator)
 
         return sum(bm25_terms_values)
 
     # TODO: TEST THIS FUNCTION
-    def top_x_bm25_docs_for_query(self, query, x, b_value, k_value, average_doc_length, terms_dict):
+    def top_x_bm25_docs_for_query(self, query, x, b_value, k_value, city_docs_list=None):
         # Need to get the ids and posting values of each top docs
         doc_scores = {}
         for term in query:
-            terms_posting_data = self.get_term_data_from_posting(term, terms_dict)
+            terms_posting_data = self.get_term_data_from_posting(term, self.terms_dict[term])
             docs_list = self.get_docs_list_from_term_posting(terms_posting_data)
             for doc, i in docs_list.items():
                 if not doc in doc_scores:
                     doc_term_posting_data = terms_posting_data[i:i + 6]
                     doc_id = doc_term_posting_data[0]
-                    doc_bm25_score = self.bm25_score(query, doc_id, k_value, b_value, average_doc_length, terms_dict)
+
+                    # If we were given a specific city we will check if the doc has the given city attribute
+                    if not city_docs_list is None:
+                        if not doc_id in city_docs_list:
+                            continue
+                    doc_bm25_score = self.bm25_score(query, doc_id, k_value, b_value)
                     if doc_bm25_score in doc_scores:
                         doc_scores[doc_bm25_score].append(doc_id)
                     else:
@@ -100,7 +105,8 @@ class Ranker():
 
         ids_with_scores = {}
         counter = 0
-        for i in range(0, x):
+        min_boundary = min(x, len(doc_sorted_scores))
+        for i in range(0, min_boundary):
             score = doc_sorted_scores[i]
             docs_ids = doc_scores[score]
             if counter + len(docs_ids) < x:

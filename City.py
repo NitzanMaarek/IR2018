@@ -150,7 +150,7 @@ class CityToken:
             for item in self.attr:
                 doc_strings.append(item)
         for doc_id in self.doc_dict:
-            doc_strings.append(''.join(['< ', doc_id, ' ', str(self.doc_dict[doc_id]), ' >', ' ']))
+            doc_strings.append(''.join([' < ', doc_id, ' ', str(self.doc_dict[doc_id]), ' >', ' ']))
         doc_strings.append('\n')
         return ''.join(doc_strings)
 
