@@ -1,7 +1,7 @@
 from Parser import Parser
 import json
 import Preferences
-
+import operator
 
 class Document:
     def __init__(self, file_name = None, data = None, stop_words_list = None,
@@ -25,6 +25,7 @@ class Document:
             self.doc_start_line = -1
             self.doc_finish_line = -1
             self.stem = stem
+            self.dominant_entities_list = []
             # TODO: create a function out of this
             start = -1
             for i in range(0, len(data)):
@@ -84,9 +85,11 @@ class Document:
         :param stop_words_list: stop words list for the parser
         :param text: the document text, list of strings, each string is a line in the document
         """
-        parser = Parser(stop_words_list)        # TODO: Need to give parser the stop_words list
+        parser = Parser(stop_words_list)
         self.tokens = parser.parser_pipeline(text, self.stem)
         self.max_tf = parser.get_max_tf()
+        # parser.erase_dictionary()
+        upper_case_appearence_dictionary = parser.get_entities()
         if hasattr(self, 'title'):
             title_parser = Parser(stop_words_list)
             title_tokens = title_parser.parser_pipeline([self.title], self.stem)
@@ -95,6 +98,9 @@ class Document:
                     self.tokens[token][2] = True
                 else:
                     self.tokens[token][2] = False
+            self.calculate_dominant_entities(upper_case_appearence_dictionary, title_tokens)
+        else:
+            self.calculate_dominant_entities(upper_case_appearence_dictionary, None)
 
     def to_json(self):
         """
@@ -177,3 +183,41 @@ class Document:
         """
         string_list = [str(self.batch_num), self.file_name[:2], str(self.seek_value)]
         return ' '.join(string_list)
+
+    def calculate_dominant_entities(self, upper_case_appearance_dictionary, parsed_title):
+        """
+        Method calculates top 5 dominant entities according to the next parameters:
+        1. Number of appearances in document.
+        2. Entity in title or not.
+        3. Position of entity according to total number of tokens in document.
+        :param upper_case_appearance_dictionary: List of all upper case words in document
+        :param parsed_title: Dictionary of title parsed
+        :return: Maximum 5 most dominant entities.
+        """
+        number_of_lines = self.doc_finish_line-self.doc_start_line
+        if len(upper_case_appearance_dictionary) >= 1:
+            for entity in upper_case_appearance_dictionary:
+                current_score = self.tokens[entity][0]/self.max_tf          # adding occurrences/max_tf
+                current_score += 1 - self.tokens[entity][1][0]/number_of_lines  # adding 1 - line_position/total_lines.
+                # Means the earlier the entity shows up in doc the better it is (thats why 1-)
+                if parsed_title is not None:
+                    if entity in parsed_title:
+                        current_score = current_score*2                     # Entity in title gets score*2
+                upper_case_appearance_dictionary[entity] = current_score    # Updating score for each entity
+            self.sort_dominant_entities(upper_case_appearance_dictionary)
+
+    def sort_dominant_entities(self, upper_case_appearance_dictionary):
+        """
+        Method sorts top 5 entities by given score in given dictionary
+        Updates document dominant entity list
+        :param upper_case_appearance_dictionary: Key = Entity, Value = Score
+        """
+        sorted_entities = sorted(upper_case_appearance_dictionary.items(), key=operator.itemgetter(1))
+        counter = 0
+        i = len(sorted_entities) - 1
+        while i >= 0:
+            if counter >= 5:
+                return
+            self.dominant_entities_list.append(sorted_entities[i][0])
+            counter += 1
+            i -= 1

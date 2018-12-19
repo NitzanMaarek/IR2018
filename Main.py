@@ -10,6 +10,7 @@ import Indexer
 from ReadFile import ReadFile
 import Preferences
 import shutil
+from Parser import Parser
 import csv
 
 class GUI:
@@ -22,11 +23,11 @@ class GUI:
         Initializes root window, frames, labels, entries, buttons
         """
         self.term_dictionary = {}
+        # self.searcher = Searcher()
 
-        # TODO: add list to drop_down_menu
         self.root = Tk()
         self.root.title('IR2018')
-        self.root.geometry('610x200')
+        self.root.geometry('610x293')
         self.top_frame = Frame(self.root)
         self.top_frame.pack(side=TOP)
         self.bottom_frame = Frame(self.root)
@@ -39,6 +40,9 @@ class GUI:
         self.result1_label = Label(self.top_frame, text='Number of documents indexed:')
         self.result2_label = Label(self.top_frame, text='Number of unique terms found in Corpus:')
         self.result3_label = Label(self.top_frame, text='Total runtime (in seconds):')
+        self.single_query_label = Label(self.bottom_frame, text='Single query:')
+        self.query_file_label = Label(self.bottom_frame, text='Query file:')
+        self.city_selection_label = Label(self.bottom_frame, text='City selection:')
 
         # *** Entries - text boxes ***
         self.corpus_stopwords_entry = Entry(self.top_frame, width=50)
@@ -46,26 +50,43 @@ class GUI:
         self.result1_entry = Entry(self.top_frame)
         self.result2_entry = Entry(self.top_frame)
         self.result3_entry = Entry(self.top_frame)
+        self.single_query_entry = Entry(self.bottom_frame, width=33)
+        self.query_file_entry = Entry(self.bottom_frame, width=33)
+        self.city_selection_entry = Entry(self.bottom_frame, width=33)
+
 
         # *** Stem checkbox ***
         self.stem_flag = IntVar()  # 0 = unchecked,   1 = checked
         self.stem_checkbox = Checkbutton(self.top_frame, text="Use stem", variable=self.stem_flag)
 
+        # *** Semantics checkboxes ***
+        self.semantics_flag = IntVar()
+        self.semantics_checkbox = Checkbutton(self.bottom_frame, text='Use Semantics', variable=self.semantics_flag)
+
         # *** Buttons ***
-        self.activate_button = Button(self.bottom_frame, text='Activate', height=2, width=7, command=self.activate_button_clicked)
-        self.reset_button = Button(self.bottom_frame, text='Reset', height=2, width=7, command=self.reset_button_clicked)
-        self.view_dict_button = Button(self.bottom_frame, text='View\nDictionary', command=self.view_dictionary_button_clicked)
-        self.load_dict_button = Button(self.bottom_frame, text='Load\nDictionary', command=self.load_dictionary_button_clicked)
+        self.activate_button = Button(self.bottom_frame, text='Activate', height=2, width=8, command=self.activate_button_clicked)
+        self.reset_button = Button(self.bottom_frame, text='Reset', height=2, width=8, command=self.reset_button_clicked)
+        self.view_dict_button = Button(self.bottom_frame, text='View\nDictionary', width=8, command=self.view_dictionary_button_clicked)
+        self.load_dict_button = Button(self.bottom_frame, text='Load\nDictionary', width=8, command=self.load_dictionary_button_clicked)
         self.browse_corpus_button = Button(self.top_frame, text='Browse', command=self.browse_stop_words_corpus)
         self.browse_destination_file_button = Button(self.top_frame, text='Browse', command=self.browse_destination_files)
+        self.run_single_query_button = Button(self.bottom_frame, text='Run', command=self.run_single_query_button_clicked)
+        self.run_query_file_button = Button(self.bottom_frame, text='Run', command=self.run_query_file_button_clicked)
+        self.browse_query_file_button = Button(self.bottom_frame, text='Browse', command=self.browse_query_file_button_clicked)
 
         # *** Status bar ***
 
         # *** Language drop-down menu ***
         self.variable = StringVar(self.root)
         self.variable.set("Select language")  # default value
-        self.drop_down_menu = OptionMenu(self.top_frame, self.variable, '<None>')   #CHECK IF LIST WORKDS
+        self.drop_down_menu = OptionMenu(self.top_frame, self.variable, '<None>')
         self.drop_down_menu.grid(row=2, column=1, sticky=W, pady=4)
+
+        # *** City drop-down menu ***
+        self.city_variable = StringVar(self.root)
+        self.city_variable.set("Select City")
+        self.city_drop_down_menu = OptionMenu(self.bottom_frame, self.city_variable, '<None>', command=self.update_city_selection_entry)
+        self.city_drop_down_menu.grid(row=3, column=2, padx=1)
 
         # *** using grid ***
         self.corpus_stopwords_label.grid(row=0, column=0, sticky=E)
@@ -93,10 +114,26 @@ class GUI:
         self.result3_entry.grid(row=6, column=1, sticky=W)
         # self.result3_entry.config(state=DISABLED)
 
-        self.activate_button.grid(row=0, column=0, sticky=W, padx=5, pady=5)
-        self.reset_button.grid(row=0, column=1, padx=5)
-        self.view_dict_button.grid(row=0, column=2, padx=5)
-        self.load_dict_button.grid(row=0, column=3, padx=5)
+        # Bottom frame
+        self.activate_button.grid(row=0, column=1, sticky=W)
+        self.reset_button.grid(row=0, column=1)
+        self.view_dict_button.grid(row=0, column=1, sticky=E)
+        self.load_dict_button.grid(row=0, column=2, sticky=W, padx=3, pady=4)
+
+        self.single_query_label.grid(row=1, column=0, sticky=E)
+        self.single_query_entry.grid(row=1,column=1)
+        self.run_single_query_button.grid(row=1,column=2, sticky=W, padx=4, pady=2)
+
+        self.query_file_label.grid(row=2, column=0, sticky=E)
+        self.query_file_entry.grid(row=2, column=1)
+        self.run_query_file_button.grid(row=2, column=2, sticky=W, padx=4)
+        self.browse_query_file_button.grid(row=2, column=2, ipadx=8, sticky=E)
+        # TODO: Fix layout of buttons
+
+        self.city_selection_label.grid(row=3, column=0, sticky=E)
+        self.city_selection_entry.grid(row=3, column=1)
+
+        self.semantics_checkbox.grid(row=2, column=3, sticky=W, padx=2)
 
         self.root.mainloop()
 
@@ -244,14 +281,14 @@ class GUI:
             self.term_dictionary = Indexer.load_obj(self.main_dir, 'main terms dictionary', '')
         messagebox.showinfo("Load successful", 'Dictionary loaded.')
 
-    def update_option_menu(self, alist):
+    def update_option_menu(self, language_list):
         """
         Method updates scroll-down menu of languages with strings in a given list.
         :param alist: list of strings (=languages)
         """
         menu = self.drop_down_menu["menu"]
         menu.delete(0, "end")
-        for string in alist:
+        for string in language_list:
             menu.add_command(label=string, command=lambda value=string: self.variable.set(value))
 
     def browse_stop_words_corpus(self):
@@ -279,6 +316,109 @@ class GUI:
             self.dictionary_posting_entry.insert(INSERT, dir_name)
 
     # def display_dictionary(self):
+
+    def run_single_query_button_clicked(self):
+        """
+        Method takes string in entry and passes it to Searcher.
+        Pops up window with results returned from Searcher
+        """
+        postings_directory = self.dictionary_posting_entry.get()
+        stopwords_directory = self.corpus_stopwords_entry.get()
+        single_query = self.single_query_entry.get()
+        if single_query is None:
+            messagebox.showerror('Error Message',
+                                 'Cannot retrieve documents without a query.\nPlease insert a query in field "Single query".')
+            return
+        if postings_directory is None:
+            messagebox.showerror('Error Message', 'Cannot retrieve documents without dictionary and posting files path.\nPlease insert path of dictionary and posting files.')
+            return
+        if stopwords_directory is None:
+            messagebox.showerror('Error Message', 'Cannot retrieve documents without corpus and stop-words files path.\nPlease insert path of corpus and stop-words file.')
+            return
+        if self.stem_flag.get() == 1:
+            stem_warning_result = messagebox.askquestion('Stemming confirmation', 'Are you sure you want to use stemming?')
+            if stem_warning_result == 'yes':
+                self.stem = True
+            else:
+                self.stem = False
+        # result = list of results that needs to be shown to user
+        # result = searcher.pipeline(stopwords_directory, postings_directory, single_query, self.stem, bool(self.semantics_flag.get()))
+        # TODO: Handle results to show according to trecval.
+
+    def run_query_file_button_clicked(self):
+        """
+        Method takes text from file and converts to list of strings, each string is query
+        Passes list to Searcher
+        Pops up window with results returned from Searcher
+        """
+        postings_directory = self.dictionary_posting_entry.get()
+        stopwords_directory = self.corpus_stopwords_entry.get()
+        query_file = self.query_file_entry.get()
+        if query_file is None:
+            messagebox.showerror('Error Message',
+                                 'Cannot retrieve documents without a query file.\nPlease insert a query file in field "Query file".')
+            return
+        if not os.path.exists(query_file):
+            messagebox.showerror('Error Message', 'Query file does not exist.')
+        if postings_directory is None:
+            messagebox.showerror('Error Message',
+                                 'Cannot retrieve documents without dictionary and posting files path.\nPlease insert path of dictionary and posting files.')
+            return
+        if stopwords_directory is None:
+            messagebox.showerror('Error Message',
+                                 'Cannot retrieve documents without corpus and stop-words files path.\nPlease insert path of corpus and stop-words file.')
+            return
+        if self.stem_flag.get() == 1:
+            stem_warning_result = messagebox.askquestion('Stemming confirmation',
+                                                         'Are you sure you want to use stemming?')
+            if stem_warning_result == 'yes':
+                self.stem = True
+            else:
+                self.stem = False
+
+        query_file_content = ''
+        with open(query_file, 'r') as f:
+            query_file_content = f.readlines()
+
+        # result = list of results that needs to be shown to user
+        # result = searcher.pipeline(stopwords_directory, postings_directory, query_file_content, self.stem, bool(self.semantics_flag.get()))
+        # TODO: Handle results to show according to trec eval.
+
+    def browse_query_file_button_clicked(self):
+        """
+        Method opens browse window for query file selection.
+        Adds path of file to entry.
+        """
+        # project_directory = os.getcwd()
+        query_file = filedialog.askopenfile(parent=self.root, mode='rb', title='Choose a file')
+        if query_file is not None:
+            self.query_file_entry.delete(0,END)
+            self.query_file_entry.insert(INSERT, query_file.name)
+
+    def update_city_selection_entry(self, city):
+        """
+        Method gets city from city option menu
+        And updates the city entry list
+        :param city: city in option menu
+        """
+        cities_in_entry = self.city_selection_entry.get()
+        if len(cities_in_entry) == 0:
+            cities_in_entry = city + ', '
+        else:
+            cities_in_entry = cities_in_entry + city + ', '
+        self.city_selection_entry.delete(0,END)
+        self.city_selection_entry.insert(INSERT, cities_in_entry)
+
+    def update_city_selection_list(self, list):
+        """
+        Method updates the list of cities option menu with given list
+        :param list:
+        :return:
+        """
+        # TODO: Need to have city list prepared in advance from corpus given.
+        # TODO: Need to add to active_button_clicked() extraction of cities in corpus and update the city option menu.
+
+
 
 
 def read_directory(main_dir, directory, multiprocess, batch_size=20000, stem=False):
@@ -542,7 +682,16 @@ if __name__ == '__main__':
 
     # start_time = datetime.datetime.now()
 
-    gui = GUI()
+    # gui = GUI()
+
+    # parser = Parser([read_stop_words_lines(r"C:\Users\Nitzan\Desktop\IR 2018 files desktop\FB396001")])
+    # with open(r"C:\Users\Nitzan\Desktop\IR 2018 files desktop\Parser testing\Number test", 'r') as f:
+    #     lines = f.readlines()
+    #     result = parser.parser_pipeline(lines, False)
+    #     print(result)
+
+    read_directory('', directory=r"C:\Users\Nitzan\Desktop\IR 2018 files desktop\FB396001",
+                   multiprocess=parallel, batch_size=20000)
 
     # # Single file debug config
     # if single_file:
