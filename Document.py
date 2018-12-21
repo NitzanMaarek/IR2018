@@ -25,7 +25,7 @@ class Document:
             self.doc_start_line = -1
             self.doc_finish_line = -1
             self.stem = stem
-            self.dominant_entities_list = []
+            self.dominant_entities_list = {}
             # TODO: create a function out of this
             start = -1
             for i in range(0, len(data)):
@@ -219,6 +219,6 @@ class Document:
         while i >= 0:
             if counter >= 5:
                 return
-            self.dominant_entities_list.append(sorted_entities[i][0])
+            self.dominant_entities_list[sorted_entities[i][0]] = round(sorted_entities[i][1], 2)
             counter += 1
             i -= 1
