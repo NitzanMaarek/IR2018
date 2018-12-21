@@ -197,13 +197,14 @@ class Document:
         number_of_lines = self.doc_finish_line-self.doc_start_line
         if len(upper_case_appearance_dictionary) >= 1:
             for entity in upper_case_appearance_dictionary:
-                current_score = self.tokens[entity][0]/self.max_tf          # adding occurrences/max_tf
-                current_score += 1 - self.tokens[entity][1][0]/number_of_lines  # adding 1 - line_position/total_lines.
-                # Means the earlier the entity shows up in doc the better it is (thats why 1-)
-                if parsed_title is not None:
-                    if entity in parsed_title:
-                        current_score = current_score*2                     # Entity in title gets score*2
-                upper_case_appearance_dictionary[entity] = current_score    # Updating score for each entity
+                if entity in self.tokens:
+                    current_score = self.tokens[entity][0]/self.max_tf          # adding occurrences/max_tf
+                    current_score += 1 - self.tokens[entity][1][0]/number_of_lines  # adding 1 - line_position/total_lines.
+                    # Means the earlier the entity shows up in doc the better it is (thats why 1-)
+                    if parsed_title is not None:
+                        if entity in parsed_title:
+                            current_score = current_score*2                     # Entity in title gets score*2
+                    upper_case_appearance_dictionary[entity] = current_score    # Updating score for each entity
             self.sort_dominant_entities(upper_case_appearance_dictionary)
 
     def sort_dominant_entities(self, upper_case_appearance_dictionary):
