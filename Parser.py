@@ -59,9 +59,10 @@ class Parser:
         self.data = None
         self.skip_tokenize = 0  # Indicates how many tokens to skip to not tokenize
         self.stop_words_list = stop_words_list
-        self.token_dictionary_num_of_appearance = {}        #Contains final tokens with number of appearences
-        self.token_dictionary_first_position = {}           #Contains final tokens with first position appeared
-        self.token_upper_case_dictionary = {}
+        self.token_dictionary_num_of_appearance = {}        # Contains final tokens with number of appearences
+        self.token_dictionary_first_position = {}           # Contains final tokens with first position appeared
+        self.token_upper_case_dictionary = {}               # Contains all upper case words parsed AFTER filtering with lower case.
+                                                            # Key = Term upper case, Value = number of appearences.
         self.max_tf = 0
 
 
@@ -77,6 +78,15 @@ class Parser:
         tokens = self.create_tokens(self.data)
         # tokens = self.find_key_words_in_line(tokens)
         return tokens
+
+    def erase_dictionary(self):
+        """
+        Method erases collections
+        """
+        self.token_dictionary_first_position.clear()
+        self.token_dictionary_num_of_appearance.clear()
+        self.token_upper_case_dictionary.clear()
+        self.tokens.clear()
 
     def create_tokens(self, data):
         """
@@ -132,6 +142,7 @@ class Parser:
         """
         Checks every upper case word written if it was written in lower case -> transform to lower case
         """
+        upper_case_tokens_to_delete_list = []
         if len(self.token_upper_case_dictionary) > 0:
             for upper_case_token in self.token_upper_case_dictionary:             #For each capital letter word
                 lower_case_token = self.lower_case_word(upper_case_token)
@@ -142,7 +153,7 @@ class Parser:
                     lower_position = self.token_dictionary_first_position[lower_case_token]
                     upper_line_pos = upper_position[0]
                     lower_line_pos = lower_position[0]
-                    if upper_line_pos < lower_line_pos:
+                    if upper_line_pos < lower_line_pos:     # Sort according to first position.
                         self.token_dictionary_first_position[lower_case_token] = upper_position
                     elif upper_line_pos > lower_line_pos:
                         self.token_dictionary_first_position[lower_case_token] = lower_position
@@ -156,7 +167,11 @@ class Parser:
                     self.token_dictionary_num_of_appearance[lower_case_token] += upper_frequencey
                     del self.token_dictionary_num_of_appearance[upper_case_token]
                     del self.token_dictionary_first_position[upper_case_token]
+                    upper_case_tokens_to_delete_list.append(upper_case_token)
 
+        # Removing all upper case tokens that also appeared in lower case
+        for token in upper_case_tokens_to_delete_list:
+            del self.token_upper_case_dictionary[token]
     def merge_dictionaries(self):
         """
         Method merges dictionaries of token first_position and frequency.
@@ -338,6 +353,9 @@ class Parser:
             return next_word           # Not last in line? return the next word in line then
         return None
 
+    def get_entities(self):
+        return self.token_upper_case_dictionary
+
     def get_word_i(self, i):
         """
         Method iterates over data if and returns item i from where we are if exists
@@ -397,7 +415,10 @@ class Parser:
         first_token = token[0]
         if 'A' <= first_token <= 'Z':
             token = self.upper_case_word(token)
-            self.token_upper_case_dictionary[token] = 0
+            if token not in self.token_upper_case_dictionary:
+                self.token_upper_case_dictionary[token] = 1
+            else:
+                self.token_upper_case_dictionary[token] += 1
         elif 'a' <= first_token <= 'z':
             token = self.lower_case_word(token)
 
