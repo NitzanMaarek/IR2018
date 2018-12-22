@@ -90,6 +90,9 @@ class Document:
         if hasattr(self, 'title'):
             title_parser = Parser(stop_words_list)
             title_tokens = title_parser.parser_pipeline([self.title], self.stem)
+            self.title = title_tokens
+            if type(self.title) is str:
+                print('found string in doc: ' + str(self.doc_num) + ' in file: ' + str(self.file_name))
             for token in self.tokens:
                 if token in title_tokens:
                     self.tokens[token][2] = True
