@@ -146,11 +146,11 @@ class GUI:
         :param dir_name: string of entry
         :return: True if path is good, False otherwise
         """
-        if path is None:
+        if path is None or path == '':
             messagebox.showerror('Error Message', 'Field ' + dir_name + ' is empty.')
             return False
         if not os.path.exists(path):
-            messagebox.showerror('Error Message', 'Field ' + dir_name + ' does not exist.')
+            messagebox.showerror('Error Message', 'Path in ' + dir_name + ' field does not exist.')
             return False
         return True
 
@@ -213,24 +213,58 @@ class GUI:
         else:
             messagebox.showerror('Error Message', 'No dictionary to show.\nPlease load dictionary to memory first.')
 
-    def display_dictionary(self):
+
+    #
+    # def display_dictionary(self):
+    #     """
+    #     Method opens a new window with the dictionary in it: displaying terms and their total frequency in text.
+    #     """
+    #     window = Toplevel(self.root)
+    #     window.geometry('500x500')
+    #     # window.title = 'Dictionary'
+    #     scrollbar = Scrollbar(window)
+    #     scrollbar.pack(side=RIGHT, fill=Y)
+    #     listbox = Listbox(window)
+    #     listbox.size()
+    #     listbox.pack(fill="both", expand=TRUE)
+    #
+    #     for key in self.term_dictionary.keys():
+    #         listbox.insert(END, key)
+    #
+    #     listbox.config(yscrollcommand=scrollbar.set)
+    #     scrollbar.config(command=listbox.yview)
+
+    def display_search_results(self):
         """
-        Method opens a new window with the dictionary in it: displaying terms and their total frequency in text.
+        Method opens a new window with the search results
         """
         window = Toplevel(self.root)
         window.geometry('500x500')
-        # window.title = 'Dictionary'
-        scrollbar = Scrollbar(window)
-        scrollbar.pack(side=RIGHT, fill=Y)
-        listbox = Listbox(window)
-        listbox.size()
-        listbox.pack(fill="both", expand=TRUE)
+        top_frame = Frame(window)
+        bottom_frame = Frame(window)
+        self.search_results_tree_view = Treeview(window)
+        self.search_results_tree_view['columns'] = ('Query ID', 'Document ID')
+        self.search_results_tree_view.heading('Query ID', text='Query ID')
+        self.search_results_tree_view.column('Query ID', anchor='w', width=150)
+        self.search_results_tree_view.heading('Document ID', text='Document ID')
+        self.search_results_tree_view.column('Document ID', anchor='center', width=150)
+        self.search_results_tree_view.pack(side=LEFT, fill='both', expand=TRUE)
+        self.search_results_scroll_bar = Scrollbar(bottom_frame)
+        self.search_results_scroll_bar.pack(side=RIGHT, fill=Y)
 
-        for key in self.term_dictionary.keys():
-            listbox.insert(END, key)
+        self.search_results_tree_view.configure(yscrollcommand=self.search_results_scroll_bar.set)
+        self.search_results_scroll_bar.config(command=self.search_results_tree_view.yview)
+        # TODO: Handle results
+        # self.insert_search_results_to_table(results)
 
-        listbox.config(yscrollcommand=scrollbar.set)
-        scrollbar.config(command=listbox.yview)
+        self.save_results_button = Button(top_frame, text='Save Results', command=self.browse_save_results)
+
+    def browse_save_results(self, ):
+        """
+        Method opens a browse window to save the query results in trec eval format
+        Trec eval format: query_id, iter=0, doc_no, rank, similarity, run_id=mt
+        """
+
 
     def display_treeview_dictionary(self):
         """
@@ -250,7 +284,7 @@ class GUI:
         self.tree_view.column('Pointer', anchor='center', width=100)
         self.tree_view.heading('Total freq.', text='Total freq.')
         self.tree_view.column('Total freq.', anchor='center', width=50)
-
+        # self.tree_view.bind("<ButtonRelease-1>", self.show_enteties)
         self.tree_view.pack(side=LEFT, fill='both', expand=TRUE)
 
         self.scrollbar = Scrollbar(window)
@@ -260,6 +294,10 @@ class GUI:
         self.scrollbar.config(command=self.tree_view.yview)
 
         self.insert_dictionary_to_table()
+
+    def show_entities(self):
+        current_doc = self.tree_view.focus()
+        print(current_doc)
 
     def insert_dictionary_to_table(self):
         """
@@ -275,11 +313,13 @@ class GUI:
         """
         Method loads dictionary to memory.
         """
-        if self.stem:
-            self.term_dictionary = Indexer.load_obj(self.main_dir, 'stem main terms dictionary', '')
-        else:
-            self.term_dictionary = Indexer.load_obj(self.main_dir, 'main terms dictionary', '')
-        messagebox.showinfo("Load successful", 'Dictionary loaded.')
+        if self.check_paths(self.dictionary_posting_entry.get(), 'Dictionary and Posting'):
+            self.main_dir = self.dictionary_posting_entry.get()
+            if bool(self.stem_flag.get()):
+                self.term_dictionary = Indexer.load_obj(self.main_dir, 'stem main terms dictionary', '')
+            else:
+                self.term_dictionary = Indexer.load_obj(self.main_dir, 'main terms dictionary', '')
+            messagebox.showinfo("Load successful", 'Dictionary loaded.')
 
     def update_option_menu(self, language_list):
         """
@@ -380,6 +420,7 @@ class GUI:
         with open(query_file, 'r') as f:
             query_file_content = f.readlines()
 
+
         # result = list of results that needs to be shown to user
         # result = searcher.pipeline(stopwords_directory, postings_directory, query_file_content, self.stem, bool(self.semantics_flag.get()))
         # TODO: Handle results to show according to trec eval.
@@ -418,8 +459,16 @@ class GUI:
         # TODO: Need to have city list prepared in advance from corpus given.
         # TODO: Need to add to active_button_clicked() extraction of cities in corpus and update the city option menu.
 
-
-
+    def insert_search_results_to_table(self, results):
+        """
+        Method inserts search results to results view table
+        :param results: Dictionary: Key = query id, Value = List[doc nums,...,..]
+        """
+        for query in results:
+            documents = results[query]
+            for document in documents:
+                self.search_results_tree_view.insert('', 'end', text=query, values=[document])
+        # TODO: Debug insertion
 
 def read_directory(main_dir, directory, multiprocess, batch_size=20000, stem=False):
     """
@@ -682,7 +731,7 @@ if __name__ == '__main__':
 
     # start_time = datetime.datetime.now()
 
-    # gui = GUI()
+    gui = GUI()
 
     # parser = Parser([read_stop_words_lines(r"C:\Users\Nitzan\Desktop\IR 2018 files desktop\FB396001")])
     # with open(r"C:\Users\Nitzan\Desktop\IR 2018 files desktop\Parser testing\Number test", 'r') as f:
@@ -690,8 +739,8 @@ if __name__ == '__main__':
     #     result = parser.parser_pipeline(lines, False)
     #     print(result)
 
-    read_directory('', directory=r"C:\Users\Nitzan\Desktop\IR 2018 files desktop\FB396001",
-                   multiprocess=parallel, batch_size=20000)
+    # read_directory('', directory=r"C:\Users\Nitzan\Desktop\IR 2018 files desktop\FB396001",
+    #                multiprocess=parallel, batch_size=20000)
 
     # # Single file debug config
     # if single_file:

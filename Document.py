@@ -110,6 +110,7 @@ class Document:
         dict_to_json['doc_num'] = self.doc_num
         dict_to_json['HT'] = self.HT
         dict_to_json['Tokens'] = self.tokens
+        # TODO: Is this good?
         with open('C:\\Chen\\BGU\\2019\\2018 - Semester A\\3. Information Retrival\\Engine\\jsons\\' + self.doc_num + '.txt', 'w') as outfile:
             json.dump(dict_to_json, outfile)
 
