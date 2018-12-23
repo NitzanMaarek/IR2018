@@ -47,10 +47,10 @@ class Parser:
                                      'tera-bit': 'tb', 'tera-bits': 'tb'}
 
         # locale.setlocale(locale.LC_ALL, 'en_US.UTF-8')
-        self.sides_delimiters = {' ', ',', '.', '/', '"', '\'', '\\', '(', ')', '[', ']', '{', '}', ':', '-', ';', '?', '!', '*', '>', '<', '&', '+', '#', '@', '^', '_', '=', '`'}
-        self.beginning_delimiters = {'%',' ', ',', '.', '/', '"', '\'', '\\', '(', ')', '[', ']', '{', '}', ':', '-', ';', '?', '!', '*', '>', '<', '&', '+', '#', '@', '^', '_', '=', '`'}
-        self.end_delimiters = {'$', ' ', ',', '.', '/', '"', '\'', '\\', '(', ')', '[', ']', '{', '}', ':', '-', ';', '?', '!', '*', '>', '<', '&', '+', '#', '@', '^', '_', '=', '`'}
-        self.middle_delimiters = {' ', ',', '.', '/', '"', '\\', '(', ')', '[', ']', '{', '}', ':', '-', ';', '?', '!', '*', '>', '<', '&', '+', '#', '@', '^', '_', '=', '`'}
+        self.sides_delimiters = {' ', ',', '.', '/', '"', '\'', '\\', '(', ')', '[', ']', '{', '}', ':', '-', ';', '?', '!', '*', '>', '<', '&', '+', '#', '@', '^', '_', '=', '`', '|'}
+        self.beginning_delimiters = {'%',' ', ',', '.', '/', '"', '\'', '\\', '(', ')', '[', ']', '{', '}', ':', '-', ';', '?', '!', '*', '>', '<', '&', '+', '#', '@', '^', '_', '=', '`', '|'}
+        self.end_delimiters = {'$', ' ', ',', '.', '/', '"', '\'', '\\', '(', ')', '[', ']', '{', '}', ':', '-', ';', '?', '!', '*', '>', '<', '&', '+', '#', '@', '^', '_', '=', '`', '|'}
+        self.middle_delimiters = {' ', ',', '.', '/', '"', '\\', '(', ')', '[', ']', '{', '}', ':', '-', ';', '?', '!', '*', '>', '<', '&', '+', '#', '@', '^', '_', '=', '`', '|'}
         self.token_index = 0
         self.word = ''
         self.line_index = 0     # Index of words in a line
@@ -145,7 +145,7 @@ class Parser:
         upper_case_tokens_to_delete_list = []
         if len(self.token_upper_case_dictionary) > 0:
             for upper_case_token in self.token_upper_case_dictionary:             #For each capital letter word
-                lower_case_token = self.lower_case_word(upper_case_token)
+                lower_case_token = self.turn_all_to_lower_case(upper_case_token)
                 if lower_case_token in self.token_dictionary_num_of_appearance and upper_case_token in self.token_dictionary_num_of_appearance:         #If also lower case exists
                     #Merge upper and lower cases into lower case
                     upper_position = self.token_dictionary_first_position[upper_case_token]
@@ -444,6 +444,22 @@ class Parser:
                 self.delete_token_i(1)
         return token
 
+    def turn_all_to_lower_case(self, token):
+        """
+        Method turns token to lower case
+        :param token: string
+        :return: lower case token
+        """
+        ans = []
+        for i, char in enumerate(token, start=0):
+            char_int_rep = ord(char)
+            if 65 <= char_int_rep <= 90:  # if char is UPPER case, make it lower case
+                ans.append(chr(char_int_rep + 32))
+            else:
+                ans.append(char)
+
+        return ''.join(ans)
+
     def lower_case_word(self, token):
         """
         Method checks if token is an alphabetical word. If so make it lower case
@@ -456,6 +472,11 @@ class Parser:
             if hyphen_count == 1:
                 hyphen_position = token.find('-')
                 token = self.handle_adjacent_words(token, hyphen_position)
+                after_split = token.split('-')
+                first_word = after_split[0]
+                second_word = after_split[1]
+                self.add_token_to_collections(first_word, (self.data_index, self.line_index))
+                self.add_token_to_collections(second_word, (self.data_index, self.line_index))
             else:
                 for i, char in enumerate(token, start=0):
                     char_int_rep = ord(char)
@@ -479,6 +500,11 @@ class Parser:
             if hyphen_count == 1:
                 hyphen_position = token.find('-')
                 token = self.handle_adjacent_words(token, hyphen_position)
+                after_split = token.split('-')
+                first_word = after_split[0]
+                second_word = after_split[1]
+                self.add_token_to_collections(first_word, (self.data_index, self.line_index))
+                self.add_token_to_collections(second_word, (self.data_index, self.line_index))
             else:
                 for char in token:
                     char_int_rep = ord(char)

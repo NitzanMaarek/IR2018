@@ -220,23 +220,36 @@ class GUI:
         window = Toplevel(self.root)
         window.geometry('500x500')
         top_frame = Frame(window)
+        top_frame.pack(side=TOP)
         bottom_frame = Frame(window)
+        bottom_frame.pack(side=BOTTOM)
+
+        self.save_results_button = Button(bottom_frame, text='Save Results', command=self.browse_save_results)
+        self.save_results_button.grid(row=0, column=0, pady=10, sticky=W)
+
+        self.entities_label = Label(bottom_frame, text='Document Entities:')
+        self.entities_label.grid(row=0, column=1, sticky=E)
+        self.entities_entry = Entry(bottom_frame, width=50)
+        self.entities_entry.grid(row=0, column=2, sticky=W)
+        self.entities_entry.insert(END, 'Double click doc to view entities here.')
+
         self.search_results_tree_view = Treeview(window)
-        self.search_results_tree_view['columns'] = ('Query ID', 'Document ID')
-        self.search_results_tree_view.heading('Query ID', text='Query ID')
-        self.search_results_tree_view.column('Query ID', anchor='w', width=150)
+        self.search_results_tree_view['columns'] = ('Document ID',)
+        self.search_results_tree_view.heading("#0", text='Query ID', anchor='center')
+        self.search_results_tree_view.column("#0", anchor='center', width=5)
         self.search_results_tree_view.heading('Document ID', text='Document ID')
-        self.search_results_tree_view.column('Document ID', anchor='center', width=150)
+        self.search_results_tree_view.column('Document ID', anchor='w', width=40)
         self.search_results_tree_view.pack(side=LEFT, fill='both', expand=TRUE)
-        self.search_results_scroll_bar = Scrollbar(bottom_frame)
+        self.search_results_scroll_bar = Scrollbar(window)
         self.search_results_scroll_bar.pack(side=RIGHT, fill=Y)
 
         self.search_results_tree_view.configure(yscrollcommand=self.search_results_scroll_bar.set)
         self.search_results_scroll_bar.config(command=self.search_results_tree_view.yview)
+        self.search_results_tree_view.bind("<Double-1>", self.show_entities)
         # TODO: Handle results
         # self.insert_search_results_to_table(results)
 
-        self.save_results_button = Button(top_frame, text='Save Results', command=self.browse_save_results)
+
 
     def browse_save_results(self, ):
         """
@@ -274,9 +287,16 @@ class GUI:
 
         self.insert_dictionary_to_table()
 
-    def show_entities(self):
-        current_doc = self.tree_view.focus()
-        print(current_doc)
+    def show_entities(self, event):
+
+
+        selected_item = self.search_results_tree_view.focus()
+        doc_no = self.search_results_tree_view.item(selected_item)['values'][0]
+        # TODO: need to get entities by doc_no and insert them into th entry.
+        # print(self.search_results_tree_view.item(selected_item['Document ID']))
+        self.entities_entry.delete(0, END)
+        self.entities_entry.insert(INSERT, doc_no)
+
 
     def insert_dictionary_to_table(self):
         """
@@ -344,7 +364,12 @@ class GUI:
         postings_directory = self.dictionary_posting_entry.get()
         stopwords_directory = self.corpus_stopwords_entry.get()
         single_query = self.single_query_entry.get()
-        if single_query is None:
+
+        # ******* Nitsan should delete the next line
+        self.display_search_results()
+        self.insert_search_results_to_table({'135': 'FBIS00123456789', '244': 'FBIS29345672'})
+
+        if single_query is None or single_query == '':
             messagebox.showerror('Error Message',
                                  'Cannot retrieve documents without a query.\nPlease insert a query in field "Single query".')
             return
@@ -379,6 +404,7 @@ class GUI:
             return
         if not os.path.exists(query_file):
             messagebox.showerror('Error Message', 'Query file does not exist.')
+            return
         if postings_directory is None:
             messagebox.showerror('Error Message',
                                  'Cannot retrieve documents without dictionary and posting files path.\nPlease insert path of dictionary and posting files.')
@@ -445,7 +471,7 @@ class GUI:
         for query in results:
             documents = results[query]
             for document in documents:
-                self.search_results_tree_view.insert('', 'end', text=query, values=[document])
+                self.search_results_tree_view.insert('', 'end', text=query, values=document)
         # TODO: Debug insertion
 
 def read_directory(main_dir, directory, multiprocess, batch_size=20000, stem=False):
