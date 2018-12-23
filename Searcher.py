@@ -113,8 +113,10 @@ class Searcher:
         :return: Dictionary of top 50 docs per query
         """
         parser = Parser([stop_words_list])
-        query_terms = parser.parser_pipeline([query])
-
+        query_terms_dictionary = parser.parser_pipeline([query])
+        query_terms_list = parser.get_tokens_after_parse()
+        result = self.search(query_terms_list, city=city)
+        return result
 
 
     def search_multiple_queries(self, stop_words_list, posting_directory, queries_text, stem_flag, semantics_flag, city):
@@ -130,9 +132,14 @@ class Searcher:
         """
         queries_dict = self.create_queries_from_text(queries_text)
         parser = Parser([stop_words_list])
+        results = {}
         for query_num in queries_dict:
             title = queries_dict[query_num][0]
             query_terms = parser.parser_pipeline([title])
+            query_terms_list = parser.get_tokens_after_parse()
+            curr_result = self.search(query_terms_list, city=city)
+            results[query_num] = curr_result
+        return results
 
     def create_queries_from_text(self, text):
         """

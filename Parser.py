@@ -94,7 +94,6 @@ class Parser:
         :param data: String of data to parse and tokenize.
         :return: Dictionary of tokens as keys and its' frequency and first position in doc
         """
-
         self.tokens = []
         self.data_length = len(data)
         stop_words_length = len(self.stop_words_list)
@@ -1237,5 +1236,11 @@ class Parser:
                         return token + ' Dollars'
         return '$' + token
 
-
-
+    def get_tokens_after_parse(self):
+        """
+        Method returns a list of all parsed tokens.
+        We use this when we want to consider multiple appearances of the terms instead of considering
+        only one appearance as in dictionary
+        :return: List of Tokens
+        """
+        return self.tokens
