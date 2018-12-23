@@ -33,37 +33,41 @@ def create_merged_dictionary_and_doc_posting(main_dir, doc_list, batch_num, stem
     if stem:
         stem_prefix = '_stem'
 
-    with open(main_dir + 'document posting\\' + 'doc_posting_' + str(batch_num) + stem_prefix, 'w') as file:
+    lines = []
+    for doc in doc_list:
+        # Adding doc to posting
+        doc.set_pointer(batch_num, seek_offset)
+        doc_string = doc.write_to_disk_string() + '\n'
+        lines.append(doc_string)
+        # file.write(doc_string)
+        pointers_dictionary[doc.doc_num] = seek_offset
+        doc_pointer = str(batch_num) + ' ' + str(seek_offset)
+        seek_offset += len(doc_string) + 1
 
-        for doc in doc_list:
-            # Adding doc to posting
-            doc.set_pointer(batch_num, seek_offset)
-            doc_string = doc.write_to_disk_string() + '\n'
-            file.write(doc_string)
-            pointers_dictionary[doc.doc_num] = seek_offset
-            doc_pointer = str(batch_num) + ' ' + str(seek_offset)
-            seek_offset += len(doc_string) + 1
+        if hasattr(doc, 'city'):
+            city = doc.city
+            if city in cities_dict:
+                cities_dict[city].add_data(doc_num=doc.doc_num, doc_pointer=doc_pointer)
+            else:
+                cities_dict[city] = CityToken(city_name=city)
+                cities_dict[city].add_data(doc_num=doc.doc_num, doc_pointer=doc_pointer)
 
-            if hasattr(doc, 'city'):
-                city = doc.city
-                if city in cities_dict:
-                    cities_dict[city].add_data(doc_num=doc.doc_num, doc_pointer=doc_pointer)
-                else:
-                    cities_dict[city] = CityToken(city_name=city)
-                    cities_dict[city].add_data(doc_num=doc.doc_num, doc_pointer=doc_pointer)
+        # Merging tokens
+        if hasattr(doc, 'tokens'):
+                for key in doc.tokens:
+                    if key in tokens_dict:
+                        if doc.tokens[key][0] == 0:
+                            print('stop')
+                        tokens_dict[key].add_data(doc_num=doc.doc_num, doc_pointer=doc_pointer, list=doc.tokens[key])
+                    else:
+                        if doc.tokens[key][0] == 0:
+                            print('stop')
+                        tokens_dict[key] = Token(key)
+                        tokens_dict[key].add_data(doc_num=doc.doc_num, doc_pointer=doc_pointer, list=doc.tokens[key])
 
-            # Merging tokens
-            if hasattr(doc, 'tokens'):
-                    for key in doc.tokens:
-                        if key in tokens_dict:
-                            if doc.tokens[key][0] == 0:
-                                print('stop')
-                            tokens_dict[key].add_data(doc_num=doc.doc_num, doc_pointer=doc_pointer, list=doc.tokens[key])
-                        else:
-                            if doc.tokens[key][0] == 0:
-                                print('stop')
-                            tokens_dict[key] = Token(key)
-                            tokens_dict[key].add_data(doc_num=doc.doc_num, doc_pointer=doc_pointer, list=doc.tokens[key])
+    with open(main_dir + 'document posting\\' + 'doc_posting_' + str(batch_num) + stem_prefix,
+                     'w', errors='ignore') as file:
+        file.writelines(lines)
 
     save_obj(main_dir, cities_dict, 'cities_dict', batch_num, 'cities')
 
@@ -231,10 +235,10 @@ def create_posting_file(main_dir, sorted_terms, merged_dict, posting_file_name, 
             terms_dictionary[term] = (seek_offset, merged_dict[term].df)
         str_for_posting = ''.join([term, ' ', merged_dict[term].create_string_from_doc_dictionary()])
         last_seek_offset = seek_offset
-        seek_offset += len(str_for_posting)
+        seek_offset += len(str_for_posting) + 1
         posting_file.append(str_for_posting)
         last_term = term
-    with codecs.open(posting_file_name, 'w', 'utf-8') as tp:
+    with open(posting_file_name, 'w', errors='ignore') as tp:
         tp.writelines(posting_file)
 
     save_obj(main_dir, terms_dictionary, tag, directory=save_directory)

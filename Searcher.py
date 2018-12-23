@@ -9,19 +9,19 @@ from math import *
 
 class Searcher:
     def __init__(self, corpus_path, results_path, terms_dict, average_doc_length, city_dictionary,
-                 doc2vec_model_path, doc2vec_doc_tags_path, stem=False):
+                 doc2vec_model_path, doc2vec_doc_tags_path, doc_count, stem=False):
         self.corpus_path = corpus_path
         self.results_path = results_path
         self.terms_dict = terms_dict
         self.stem = stem
         self.average_doc_length = average_doc_length
         self.city_dictionary = city_dictionary
-        self.ranker = Ranker(corpus_path, results_path, terms_dict, average_doc_length, stem)
+        self.doc_count = doc_count
         self.doc2vec_model = Doc2Vec.load(doc2vec_model_path)
         file = open(doc2vec_doc_tags_path, 'rb')
         self.doc_tags = pickle.load(file)
         file.close()
-        self.stop_words_list = []
+        self.ranker = Ranker(corpus_path, results_path, terms_dict, average_doc_length, doc_count, stem)
 
     def update_parameters(self, corpus_path=None, results_path=None, terms_dict=None,
                           average_doc_length=None, stem=None):
@@ -76,6 +76,22 @@ class Searcher:
             normalized_cosine_value = (similarities[doc] - min_cosine) / (max_cosine - min_cosine)
             normalized_bm25_value = (doc_list[doc] - min) / (max - min)
             final_scores[doc] = normalized_cosine_value * 0 + normalized_bm25_value * 1
+
+        # terms_number = len(query)
+        # max_after_bonus = 0
+        # min_after_bonus = 1.25
+        # for doc in doc_list:
+        #     if doc_term_count[doc] == terms_number:
+        #         print(doc)
+        #     new_score = 0.25 * doc_term_count[doc] / terms_number + final_scores[doc]
+        #     final_scores[doc] = new_score
+        #     if new_score > max_after_bonus:
+        #         max_after_bonus = new_score
+        #     if new_score < min_after_bonus:
+        #         min_after_bonus = new_score
+        #
+        # for doc in doc_list:
+        #     final_scores[doc] = (final_scores[doc] - min_after_bonus) / (max_after_bonus - min_after_bonus)
 
         return final_scores
 
