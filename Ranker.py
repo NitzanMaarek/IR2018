@@ -1,12 +1,14 @@
 from gensim.models import Word2Vec
 from gensim.models import Doc2Vec
-import datetime
+import math
+import codecs
 
 class Ranker():
-    def __init__(self, corpus_path, results_path, terms_dict, average_doc_length, stem=False):
+    def __init__(self, corpus_path, results_path, terms_dict, average_doc_length, doc_count, stem=False):
         self.corpus_path = corpus_path
         self.results_path = results_path
         self.terms_dict = terms_dict
+        self.doc_count = doc_count
         self.stem = stem
         self.average_doc_length = average_doc_length
         # TODO: make those files
@@ -19,7 +21,7 @@ class Ranker():
             posting_file_name = 'stp_' + term[:2]
         else:
             posting_file_name = 'tp_' + term[:2]
-        with open(self.results_path + '\\terms posting\\' + posting_file_name) as file:
+        with open(self.results_path + '\\terms posting\\' + posting_file_name, 'r', errors='ignore') as file:
             file.seek(int(seek_offset))
             term_posting = file.readline().split()
         return term_posting
@@ -48,7 +50,7 @@ class Ranker():
             posting_file_name = 'doc_posting_' + posting_file_id
         else:
             posting_file_name = 'doc_posting_' + posting_file_id + '_stem'
-        with open(self.results_path + '\\\document posting\\' + posting_file_name) as file:
+        with open(self.results_path + '\\\document posting\\' + posting_file_name, 'r', errors='ignore') as file:
             file.seek(int(seek_offset))
             document_posting = file.readline().split()
         return document_posting
@@ -57,19 +59,14 @@ class Ranker():
         return self.get_doc_posting_values(terms_doc_posting_values[5], terms_doc_posting_values[6])
 
 
-    def bm25_score(self, term, doc_id, k_value, b_value, doc_posting):
+    def bm25_score(self, term, term_idf, doc_id, k_value, b_value, doc_posting):
         # I assume query is list of string after parsing
         # TODO: check term_tf, seems that for every term in the query we will get the same term tf
         # TODO: check this in general
         bm25_terms_values = []
         doc_length = -1
-        # for term in query:
 
         if term in self.terms_dict:
-            # a = datetime.datetime.now()
-            # term_doc_values = self.get_term_doc_values(term, self.terms_dict, doc_id)
-            # term_doc_values = doc_posting
-            # print(datetime.datetime.now() - a)
             if doc_posting is None:
                 return 0
             if doc_length == -1:
@@ -82,7 +79,7 @@ class Ranker():
             term_tf = float(doc_posting[1])
             numerator = term_tf * (k_value + 1)
             denominator = term_tf + k_value * (1 - b_value + b_value * doc_length / self.average_doc_length)
-            bm25_terms_values = numerator / denominator
+            bm25_terms_values = term_idf * numerator / denominator
 
         return bm25_terms_values
 
@@ -90,7 +87,9 @@ class Ranker():
     def top_x_bm25_docs_for_query(self, query, x, b_value, k_value, city_docs_list=None):
         # Need to get the ids and posting values of each top docs
         doc_scores = {}
+        doc_term_count = {}
         for term in query:
+            term_idf = math.log(self.doc_count / self.terms_dict[term][2], 2)
             if not term in self.terms_dict:
                 if term.lower() in self.terms_dict:
                     term = term.lower()
@@ -106,19 +105,32 @@ class Ranker():
                 if not city_docs_list is None:
                     if not doc in city_docs_list:
                         continue
-                doc_bm25_score = self.bm25_score(term, doc, k_value, b_value, doc_term_posting_data)
+                doc_bm25_score = self.bm25_score(term, term_idf, doc, k_value, b_value, doc_term_posting_data)
+                # Giving bonus for documents with terms in the title
                 if doc_term_posting_data[4] == 'True': # TODO: check if this is the right place and if this is the right value
-                    doc_bm25_score += 1
+                    doc_bm25_score += 0.5 * doc_bm25_score
                 if doc in doc_scores.keys():
                     doc_scores[doc] = doc_scores[doc] + doc_bm25_score
                 else:
                     doc_scores[doc] = doc_bm25_score
+
+                if doc in doc_term_count.keys():
+                    doc_term_count[doc] += 1
+                else:
+                    doc_term_count[doc] = 1
             print('finished ' + term)
         # doc_sorted_scores = sorted(doc_scores.keys(), reverse=True)
+
+        term_count = len(query)
+        for doc in doc_scores:
+            # if doc_term_count[doc] == term_count:
+            doc_scores[doc] = doc_scores[doc] + doc_scores[doc] * (doc_term_count[doc] - 1) * (len(query) - 1)
+
         docs_sorted_by_score = sorted(doc_scores.items(), key=lambda kv: kv[1], reverse=True)
         ids_with_scores = {}
+        min_bound = min(len(docs_sorted_by_score), x)
 
-        for i in range(0, x):
+        for i in range(0, min_bound):
             ids_with_scores[docs_sorted_by_score[i][0]] = docs_sorted_by_score[i][1]
 
         # counter = 0

@@ -1,5 +1,4 @@
 from Document import Document
-import Preferences
 
 class ReadFile:
     def __init__(self, file_name, q, file_path, stop_words_list, stem):
