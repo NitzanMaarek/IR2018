@@ -668,39 +668,30 @@ run_time_dir = ''
 
 if __name__ == '__main__':
     # Debug configs:
-    single_file = True
+    single_file = False
     write_to_disk = False
     parallel = True
 
-    # main_dir = 'C:\\Chen\\BGU\\2019\\2018 - Semester A\\3. Information Retrival\\Engine\\test directory\\created files\\'
+    main_dir = 'C:\\Chen\\BGU\\2019\\2018 - Semester A\\3. Information Retrival\\Engine\\test directory\\created files\\'
     # restart_files(main_dir)
 
     manager = mp.Manager()
     q = manager.Queue()
     pool = mp.Pool(processes=mp.cpu_count())
 
-
+    restart_files(main_dir)
     # start_time = datetime.datetime.now()
 
     # gui = GUI()
 
-    # parser = Parser([read_stop_words_lines(r"C:\Users\Nitzan\Desktop\IR 2018 files desktop\FB396001")])
-    # with open(r"C:\Users\Nitzan\Desktop\IR 2018 files desktop\Parser testing\Number test", 'r') as f:
-    #     lines = f.readlines()
-    #     result = parser.parser_pipeline(lines, False)
-    #     print(result)
-
-    read_directory('', directory=r"C:\Users\Nitzan\Desktop\IR 2018 files desktop\FB396001",
-                   multiprocess=parallel, batch_size=20000)
-
-    # # Single file debug config
-    # if single_file:
-    #     # file = ReadFile(r'C:\Users\Nitzan\Desktop\FB396001', parallel, stem, write_to_disk, q, pool)
-    #     read_directory(main_dir, directory=r'C:\Chen\BGU\2019\2018 - Semester A\3. Information Retrival\Engine\test directory\10 files', multiprocess=parallel, batch_size=20000)
-    # else:
-    #     # All files debug config
-    #     # file = ReadFile(r'C:\Users\Nitzan\Desktop\100 file corpus', parallel)
-    #     read_directory(main_dir, directory=r'C:\Chen\BGU\2019\2018 - Semester A\3. Information Retrival\Engine\corpus', multiprocess=parallel)
+    # Single file debug config
+    if single_file:
+        # file = ReadFile(r'C:\Users\Nitzan\Desktop\FB396001', parallel, stem, write_to_disk, q, pool)
+        read_directory(main_dir, directory=r'C:\Chen\BGU\2019\2018 - Semester A\3. Information Retrival\Engine\test directory\10 files', multiprocess=parallel, batch_size=20000)
+    else:
+        # All files debug config
+        # file = ReadFile(r'C:\Users\Nitzan\Desktop\100 file corpus', parallel)
+        read_directory(main_dir, directory=r'C:\Chen\BGU\2019\2018 - Semester A\3. Information Retrival\Engine\corpus', multiprocess=parallel)
 
     # finish_time = datetime.datetime.now()
     # print(finish_time - start_time)

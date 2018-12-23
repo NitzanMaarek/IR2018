@@ -172,6 +172,7 @@ class Parser:
         # Removing all upper case tokens that also appeared in lower case
         for token in upper_case_tokens_to_delete_list:
             del self.token_upper_case_dictionary[token]
+
     def merge_dictionaries(self):
         """
         Method merges dictionaries of token first_position and frequency.

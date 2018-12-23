@@ -4,6 +4,7 @@ from gensim.models.doc2vec import Doc2Vec
 from sklearn.preprocessing import MinMaxScaler
 import pickle
 from scipy import spatial
+from math import *
 
 class Searcher:
     def __init__(self, corpus_path, results_path, terms_dict, average_doc_length, city_dictionary,
@@ -37,7 +38,8 @@ class Searcher:
     def search(self, query, x=1000, b_value=0.5, k_value=1.5, city=None):
         if not city is None:
             city_docs = self.get_city_docs(city.upper()) # Work in progress
-
+        else:
+            city_docs = None
         doc_list = self.ranker.top_x_bm25_docs_for_query(query, x, b_value, k_value, city_docs_list=city_docs)
         bm25_scores = list(doc_list.values())
         max = bm25_scores[0]
@@ -49,16 +51,31 @@ class Searcher:
         # for key in doc_list.keys():
         #     doc2vec_indexes.append(self.doc_tags[key])
 
+        max_cosine = None
+        min_cosine = None
+        similarities = {}
+        for doc in doc_list:
+            if not self.doc_tags[doc] in self.doc2vec_model.docvecs: # TODO: Need to check why we need this, maybe we to train doc2vec again
+                similarities[doc] = 0
+            else:
+                cosine_sim = abs(1 - spatial.distance.cosine(query_vector,
+                                                         self.doc2vec_model.docvecs[self.doc_tags[doc]]))
+                if not cosine_sim == float('-inf'):
+                    if max_cosine is None or cosine_sim > max_cosine:
+                        max_cosine = cosine_sim
+                    if min_cosine is None or cosine_sim < min_cosine:
+                        min_cosine = cosine_sim
+                    similarities[doc] = cosine_sim
+                else:
+                    similarities[doc] = 0
+
         final_scores = {}
         for doc in doc_list:
-            # doc_vector = self.doc2vec_model.docvecs[doc]
-            similarity = 1 - spatial.distance.cosine(query_vector, self.doc_tags[doc])
-            # similarity = self.doc2vec_model.similarity(query_vector, self.doc_tags[doc])
+            normalized_cosine_value = (similarities[doc] - min_cosine) / (max_cosine - min_cosine)
             normalized_bm25_value = (doc_list[doc] - min) / (max - min)
-            final_scores[doc] = similarity * 0.5 + normalized_bm25_value * 0.5
+            final_scores[doc] = normalized_cosine_value * 0 + normalized_bm25_value * 1
 
-        return doc_list
-        # TODO: add ranking with doc2vec and combine it with the bm25 rank
+        return final_scores
 
 
     # TODO: check everything below
@@ -80,3 +97,11 @@ class Searcher:
             file.seek(int(seek_offset))
             city_posting = file.readline().split()
         return city_posting
+
+    # def square_rooted(self, x):
+    #     return round(sqrt(sum([a * a for a in x])), 3)
+    #
+    # def cosine_similarity(self, x, y):
+    #     numerator = sum(a * b for a, b in zip(x, y))
+    #     denominator = self.square_rooted(x) * self.square_rooted(y)
+    #     return round(numerator / float(denominator), 3)
