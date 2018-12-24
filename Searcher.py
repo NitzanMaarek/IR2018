@@ -2,27 +2,28 @@ import Indexer
 from Parser import Parser
 from Ranker import Ranker
 from gensim.models.doc2vec import Doc2Vec
-from sklearn.preprocessing import MinMaxScaler
 import pickle
-from scipy import spatial
-from math import *
+import operator
 import os
+from scipy import spatial
 
 class Searcher:
-    def __init__(self, corpus_path, results_path, terms_dict, city_dictionary,
-                 doc2vec_model_path, doc2vec_doc_tags_path, semantic_flag=False, stem=False):
+    def __init__(self, corpus_path, results_path,
+                 doc2vec_model_path='doc2vec.model', doc2vec_doc_tags_path='doc tags', semantic_flag=False, stem=False):
         self.corpus_path = corpus_path
         self.results_path = results_path
-        self.terms_dict = terms_dict
+        if stem:
+            self.terms_dict = Indexer.load_obj(self.results_path, 'stem main terms dictionary', directory= '')
+        else:
+            self.terms_dict = Indexer.load_obj(self.results_path, 'main terms dictionary', directory= '')
         self.stem = stem
         self.semantic_flag = semantic_flag
-        self.city_dictionary = city_dictionary
+        self.city_dictionary = Indexer.load_obj(self.results_path, 'cities dictionary', directory='cities')
         self.doc2vec_model = Doc2Vec.load(doc2vec_model_path)
-        file = open(doc2vec_doc_tags_path, 'rb')
-        self.doc_tags = pickle.load(file)
-        file.close()
+        with open(doc2vec_doc_tags_path, 'rb') as file:
+            self.doc_tags = pickle.load(file)
         self._get_average_doc_length()
-        self.ranker = Ranker(corpus_path, results_path, terms_dict, self.average_doc_length, self.doc_count, stem)
+        self.ranker = Ranker(corpus_path, results_path, self.terms_dict, self.average_doc_length, self.doc_count, stem)
 
     def update_parameters(self, corpus_path=None, results_path=None, terms_dict=None,
                           average_doc_length=None, semantic_flag=None, stem=None):
@@ -121,7 +122,8 @@ class Searcher:
             final_scores[doc] = normalized_cosine_value * 0 + \
                                 normalized_bm25_value * 1 - normalized_cosine_not_value * 0
 
-        return final_scores
+        sorted_query_results = sorted(final_scores.items(), key=operator.itemgetter(1), reverse=True)
+        return sorted_query_results
 
 
     # TODO: check everything below
@@ -144,7 +146,7 @@ class Searcher:
             city_posting = file.readline().split()
         return city_posting
 
-    def search_single_query(self, stop_words_list, results_path, query, stem_flag, semantic_flag, city):
+    def search_single_query(self, stop_words_list, results_path, query, stem_flag, semantic_flag, city=None):
         """
         Method searches for only one query. Parses each term and uses Ranker to rank each doc
         Returns top 50 documents for query
@@ -157,14 +159,15 @@ class Searcher:
         :return: Dictionary of top 50 docs per query
         """
         parser = Parser([stop_words_list])
-        query_terms_dictionary = parser.parser_pipeline([query])
+        query_terms_dictionary = parser.parser_pipeline([query], stem_flag)
         query_terms_list = parser.get_tokens_after_parse()
         self.update_parameters(results_path=results_path, stem=stem_flag, semantic_flag=semantic_flag)
-        result = self.search(query_terms_list, city=city)
+        search_result = self.search(query_terms_list, city=city)
+        result = {'1': search_result}
         return result
 
 
-    def search_multiple_queries(self, stop_words_list, results_path, queries_text, stem_flag, semantic_flag, city):
+    def search_multiple_queries(self, stop_words_list, results_path, queries_text, stem_flag, semantic_flag, city=None):
         """
         Method searches for each query and returns top 50 documents for each query.
         :param stop_words_list: list of stop words
@@ -181,7 +184,7 @@ class Searcher:
         results = {}
         for query_num in queries_dict:
             title = queries_dict[query_num][0]
-            query_terms = parser.parser_pipeline([title])
+            query_terms = parser.parser_pipeline([title], stem_flag)
             query_terms_list = parser.get_tokens_after_parse()
             curr_result = self.search(query_terms_list, city=city)
             results[query_num] = curr_result

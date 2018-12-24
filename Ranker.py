@@ -98,8 +98,8 @@ class Ranker():
             terms_posting_data = self.get_term_data_from_posting(term, self.terms_dict[term])
             docs_list = self.get_docs_list_from_term_posting(terms_posting_data)
             for doc, i in docs_list.items():
-                # if doc is 'FBIS3-58':
-                #     print('stop')
+                if doc is 'FBIS3-11107':
+                    print('stop')
                 doc_term_posting_data = terms_posting_data[i:i + 7]
                 # If we were given a specific city we will check if the doc has the given city attribute
                 if not city_docs_list is None:
@@ -107,8 +107,8 @@ class Ranker():
                         continue
                 doc_bm25_score = self.bm25_score(term, term_idf, doc, k_value, b_value, doc_term_posting_data)
                 # Giving bonus for documents with terms in the title
-                if doc_term_posting_data[4] == 'True': # TODO: check if this is the right place and if this is the right value
-                    doc_bm25_score += 0.5 * doc_bm25_score
+                # if doc_term_posting_data[4] == 'True': # TODO: check if this is the right place and if this is the right value
+                #     doc_bm25_score += 2 * doc_bm25_score
                 if doc in doc_scores.keys():
                     doc_scores[doc] = doc_scores[doc] + doc_bm25_score
                 else:

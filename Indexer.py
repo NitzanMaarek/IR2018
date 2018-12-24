@@ -4,7 +4,6 @@ from Token import Token
 import os
 from City import CityToken, CityIndexer
 import codecs
-import Main
 
 # run_time_directory = Main.run_time_dir
 

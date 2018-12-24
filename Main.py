@@ -8,10 +8,12 @@ from tkinter.ttk import Treeview
 
 import Indexer
 from ReadFile import ReadFile
+from Parser import Parser
 import Preferences
 import shutil
 from Parser import Parser
 import csv
+from Searcher import Searcher
 
 class GUI:
     """
@@ -366,19 +368,20 @@ class GUI:
         single_query = self.single_query_entry.get()
 
         # ******* Nitsan should delete the next line
-        self.display_search_results()
-        self.insert_search_results_to_table({'135': 'FBIS00123456789', '244': 'FBIS29345672'})
+        # self.display_search_results()
+        # self.insert_search_results_to_table({'135': 'FBIS00123456789', '244': 'FBIS29345672'})
 
         if single_query is None or single_query == '':
             messagebox.showerror('Error Message',
                                  'Cannot retrieve documents without a query.\nPlease insert a query in field "Single query".')
             return
-        if postings_directory is None:
+        if postings_directory is None or postings_directory == '':
             messagebox.showerror('Error Message', 'Cannot retrieve documents without dictionary and posting files path.\nPlease insert path of dictionary and posting files.')
             return
-        if stopwords_directory is None:
+        if stopwords_directory is None or stopwords_directory == '':
             messagebox.showerror('Error Message', 'Cannot retrieve documents without corpus and stop-words files path.\nPlease insert path of corpus and stop-words file.')
             return
+        self.stem = False
         if self.stem_flag.get() == 1:
             stem_warning_result = messagebox.askquestion('Stemming confirmation', 'Are you sure you want to use stemming?')
             if stem_warning_result == 'yes':
@@ -386,7 +389,10 @@ class GUI:
             else:
                 self.stem = False
         # result = list of results that needs to be shown to user
-        # result = searcher.pipeline(stopwords_directory, postings_directory, single_query, self.stem, bool(self.semantics_flag.get()))
+        searcher = Searcher(corpus_path=stopwords_directory, results_path=postings_directory, semantic_flag=bool(self.semantics_flag.get()), stem=self.stem)
+        result = searcher.search_single_query(stopwords_directory, postings_directory, single_query, self.stem, bool(self.semantics_flag.get()))
+        self.display_search_results()
+        self.insert_search_results_to_table(result)
         # TODO: Handle results to show according to trecval.
 
     def run_query_file_button_clicked(self):
@@ -405,11 +411,11 @@ class GUI:
         if not os.path.exists(query_file):
             messagebox.showerror('Error Message', 'Query file does not exist.')
             return
-        if postings_directory is None:
+        if postings_directory is None or postings_directory == '':
             messagebox.showerror('Error Message',
                                  'Cannot retrieve documents without dictionary and posting files path.\nPlease insert path of dictionary and posting files.')
             return
-        if stopwords_directory is None:
+        if stopwords_directory is None or stopwords_directory == '':
             messagebox.showerror('Error Message',
                                  'Cannot retrieve documents without corpus and stop-words files path.\nPlease insert path of corpus and stop-words file.')
             return
@@ -426,7 +432,8 @@ class GUI:
             query_file_content = f.readlines()
 
         # result = list of results that needs to be shown to user
-        # result = searcher.pipeline(stopwords_directory, postings_directory, query_file_content, self.stem, bool(self.semantics_flag.get()))
+        searcher = Searcher(corpus_path=stopwords_directory, results_path=postings_directory, semantic_flag=bool(self.semantics_flag.get()), stem=self.stem)
+        result = searcher.search_multiple_queries(stopwords_directory, postings_directory, query_file_content, self.stem, bool(self.semantics_flag.get()))
         # TODO: Handle results to show according to trec eval.
 
     def browse_query_file_button_clicked(self):
@@ -469,9 +476,9 @@ class GUI:
         :param results: Dictionary: Key = query id, Value = List[doc nums,...,..]
         """
         for query in results:
-            documents = results[query]
-            for document in documents:
-                self.search_results_tree_view.insert('', 'end', text=query, values=document)
+            documents_list = results[query]
+            for document_tuple in documents_list:
+                self.search_results_tree_view.insert('', 'end', text=query, values=document_tuple[0])
         # TODO: Debug insertion
 
 def read_directory(main_dir, directory, multiprocess, batch_size=20000, stem=False):
@@ -732,19 +739,21 @@ if __name__ == '__main__':
     q = manager.Queue()
     pool = mp.Pool(processes=mp.cpu_count())
 
-    restart_files(main_dir)
-    # start_time = datetime.datetime.now()
+    gui = GUI()
 
-    # gui = GUI()
-
-    # Single file debug config
-    if single_file:
-        # file = ReadFile(r'C:\Users\Nitzan\Desktop\FB396001', parallel, stem, write_to_disk, q, pool)
-        read_directory(main_dir, directory=r'C:\Chen\BGU\2019\2018 - Semester A\3. Information Retrival\Engine\test directory\10 files', multiprocess=parallel, batch_size=20000)
-    else:
-        # All files debug config
-        # file = ReadFile(r'C:\Users\Nitzan\Desktop\100 file corpus', parallel)
-        read_directory(main_dir, directory=r'C:\Chen\BGU\2019\2018 - Semester A\3. Information Retrival\Engine\corpus', multiprocess=parallel)
+    # restart_files(main_dir)
+    # # start_time = datetime.datetime.now()
+    #
+    # # gui = GUI()
+    #
+    # # Single file debug config
+    # if single_file:
+    #     # file = ReadFile(r'C:\Users\Nitzan\Desktop\FB396001', parallel, stem, write_to_disk, q, pool)
+    #     read_directory(main_dir, directory=r'C:\Chen\BGU\2019\2018 - Semester A\3. Information Retrival\Engine\test directory\10 files', multiprocess=parallel, batch_size=20000)
+    # else:
+    #     # All files debug config
+    #     # file = ReadFile(r'C:\Users\Nitzan\Desktop\100 file corpus', parallel)
+    #     read_directory(main_dir, directory=r'C:\Chen\BGU\2019\2018 - Semester A\3. Information Retrival\Engine\corpus', multiprocess=parallel)
 
     # finish_time = datetime.datetime.now()
     # print(finish_time - start_time)

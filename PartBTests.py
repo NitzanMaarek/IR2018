@@ -50,7 +50,7 @@ not_relevant = ' expense and construction schedule routine marketing ploys by ' 
                'other channel crosses (i.e.,schedule changes, price drops, etc.)'
 not_relevant_parsed = list(query_parser.parser_pipeline([not_relevant], stem=False).keys())
 
-searcher = Searcher(corpus_path, main_dir, terms_dict, city_dictionary, 'doc2vec.model', 'doc tags')
+searcher = Searcher(corpus_path, main_dir)
 
 # res = fmin(optimization_func, np.array([0.75,1.5]), maxiter=10)
 # print(res)
