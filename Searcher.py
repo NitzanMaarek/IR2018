@@ -6,22 +6,22 @@ from sklearn.preprocessing import MinMaxScaler
 import pickle
 from scipy import spatial
 from math import *
+import os
 
 class Searcher:
-    def __init__(self, corpus_path, results_path, terms_dict, average_doc_length, city_dictionary,
-                 doc2vec_model_path, doc2vec_doc_tags_path, doc_count, stem=False):
+    def __init__(self, corpus_path, results_path, terms_dict, city_dictionary,
+                 doc2vec_model_path, doc2vec_doc_tags_path, stem=False):
         self.corpus_path = corpus_path
         self.results_path = results_path
         self.terms_dict = terms_dict
         self.stem = stem
-        self.average_doc_length = average_doc_length
         self.city_dictionary = city_dictionary
-        self.doc_count = doc_count
         self.doc2vec_model = Doc2Vec.load(doc2vec_model_path)
         file = open(doc2vec_doc_tags_path, 'rb')
         self.doc_tags = pickle.load(file)
         file.close()
-        self.ranker = Ranker(corpus_path, results_path, terms_dict, average_doc_length, doc_count, stem)
+        self._get_average_doc_length()
+        self.ranker = Ranker(corpus_path, results_path, terms_dict, self.average_doc_length, self.doc_count, stem)
 
     def update_parameters(self, corpus_path=None, results_path=None, terms_dict=None,
                           average_doc_length=None, stem=None):
@@ -36,8 +36,18 @@ class Searcher:
         if not average_doc_length is None:
             self.average_doc_length = average_doc_length
 
+    def _get_average_doc_length(self):
+        docs_len = []
+        dir_path = self.results_path + '\\document posting'
+        for file in os.listdir(dir_path):
+            with open(dir_path + '\\' + file) as f:
+                lines = f.readlines()
+                for line in lines:
+                    docs_len.append(int(line.split()[2]))
+        self.average_doc_length = sum(docs_len) / len(docs_len)
+        self.doc_count = len(docs_len)
 
-    def search(self, query, x=1000, b_value=0.5, k_value=1.5, city=None):
+    def search(self, query, relevant=None, not_relevant=None, x=1000, b_value=0.5, k_value=1.5, city=None):
         if not city is None:
             city_docs = self.get_city_docs(city.upper()) # Work in progress
         else:
@@ -46,52 +56,67 @@ class Searcher:
         bm25_scores = list(doc_list.values())
         max = bm25_scores[0]
         min = bm25_scores[len(bm25_scores) - 1]
-        # scalar = MinMaxScaler()
-        # scalar.fit(bm25_scores)
-        query_vector = self.doc2vec_model.infer_vector(query)
-        # doc2vec_indexes = []
-        # for key in doc_list.keys():
-        #     doc2vec_indexes.append(self.doc_tags[key])
+
+        if not relevant is None:
+            relevant_vector = self.doc2vec_model.infer_vector(relevant)
+        if not not_relevant is None:
+            not_relevant_vector = self.doc2vec_model.infer_vector(not_relevant)
 
         max_cosine = None
         min_cosine = None
+        max_cosine_not = None
+        min_cosine_not = None
         similarities = {}
+        similarities_not = {}
         for doc in doc_list:
             if not self.doc_tags[doc] in self.doc2vec_model.docvecs: # TODO: Need to check why we need this, maybe we to train doc2vec again
                 similarities[doc] = 0
             else:
-                cosine_sim = abs(1 - spatial.distance.cosine(query_vector,
-                                                         self.doc2vec_model.docvecs[self.doc_tags[doc]]))
-                if not cosine_sim == float('-inf'):
-                    if max_cosine is None or cosine_sim > max_cosine:
-                        max_cosine = cosine_sim
-                    if min_cosine is None or cosine_sim < min_cosine:
-                        min_cosine = cosine_sim
-                    similarities[doc] = cosine_sim
-                else:
-                    similarities[doc] = 0
+                if not relevant is None or not not_relevant is None:
+                    doc_title = doc + ' title'
+                    if doc_title in self.doc_tags:
+                        doc_vector = (self.doc2vec_model.docvecs[self.doc_tags[doc]] \
+                                      + self.doc2vec_model.docvecs[self.doc_tags[doc_title]]) / 2
+                    else:
+                        doc_vector = + self.doc2vec_model.docvecs[self.doc_tags[doc]]
+
+                    if not relevant is None:
+                        cosine_sim = abs(1 - spatial.distance.cosine(relevant_vector, doc_vector))
+                        if not cosine_sim == float('-inf'):
+                            if max_cosine is None or cosine_sim > max_cosine:
+                                max_cosine = cosine_sim
+                            if min_cosine is None or cosine_sim < min_cosine:
+                                min_cosine = cosine_sim
+                            similarities[doc] = cosine_sim
+                        else:
+                            similarities[doc] = 0
+
+                    if not not_relevant is None:
+                        cosine_sim_not = abs(1 - spatial.distance.cosine(not_relevant_vector, doc_vector))
+                        if not cosine_sim_not == float('-inf'):
+                            if max_cosine_not is None or cosine_sim_not > max_cosine_not:
+                                max_cosine_not = cosine_sim_not
+                            if min_cosine_not is None or cosine_sim_not < min_cosine_not:
+                                min_cosine_not = cosine_sim_not
+                            similarities_not[doc] = cosine_sim_not
+                        else:
+                            similarities[doc] = 0
 
         final_scores = {}
         for doc in doc_list:
-            normalized_cosine_value = (similarities[doc] - min_cosine) / (max_cosine - min_cosine)
-            normalized_bm25_value = (doc_list[doc] - min) / (max - min)
-            final_scores[doc] = normalized_cosine_value * 0 + normalized_bm25_value * 1
+            if not relevant is None:
+                normalized_cosine_value = (similarities[doc] - min_cosine) / (max_cosine - min_cosine)
+            else:
+                normalized_cosine_value = 0
 
-        # terms_number = len(query)
-        # max_after_bonus = 0
-        # min_after_bonus = 1.25
-        # for doc in doc_list:
-        #     if doc_term_count[doc] == terms_number:
-        #         print(doc)
-        #     new_score = 0.25 * doc_term_count[doc] / terms_number + final_scores[doc]
-        #     final_scores[doc] = new_score
-        #     if new_score > max_after_bonus:
-        #         max_after_bonus = new_score
-        #     if new_score < min_after_bonus:
-        #         min_after_bonus = new_score
-        #
-        # for doc in doc_list:
-        #     final_scores[doc] = (final_scores[doc] - min_after_bonus) / (max_after_bonus - min_after_bonus)
+            if not not_relevant is None:
+                normalized_cosine_not_value = (similarities_not[doc] - min_cosine_not) / (max_cosine_not - min_cosine_not)
+            else:
+                normalized_cosine_not_value = 0
+
+            normalized_bm25_value = (doc_list[doc] - min) / (max - min)
+            final_scores[doc] = normalized_cosine_value * 0 + \
+                                normalized_bm25_value * 1 - normalized_cosine_not_value * 0
 
         return final_scores
 

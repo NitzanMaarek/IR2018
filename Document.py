@@ -5,7 +5,7 @@ import operator
 
 class Document:
     def __init__(self, file_name = None, data = None, stop_words_list = None,
-                 first_row_index = None, last_row_index = None, disk_string = None, stem=False):
+                 first_row_index = None, last_row_index = None, disk_string = None, stem=False, save_tokens = False):
         """
         Creating a document object which contains the following parameters
         :param file_name: the file name which the document is from
@@ -26,6 +26,7 @@ class Document:
             self.doc_finish_line = -1
             self.stem = stem
             self.dominant_entities_list = {}
+            self.save_tokens = save_tokens
             # TODO: create a function out of this
             start = -1
             for i in range(0, len(data)):
@@ -88,12 +89,16 @@ class Document:
         parser = Parser(stop_words_list)
         self.tokens = parser.parser_pipeline(text, self.stem)
         self.max_tf = parser.get_max_tf()
-        # parser.erase_dictionary()
-        upper_case_appearence_dictionary = parser.get_entities()
+        if self.save_tokens:
+            self.raw_tokens = parser.get_tokens_after_parse()
+        parser.erase_dictionary()
+        upper_case_appearance_dictionary = parser.get_entities()
         if hasattr(self, 'title'):
-            title_parser = Parser(stop_words_list)
-            title_tokens = title_parser.parser_pipeline([self.title], self.stem)
-            self.title = title_tokens
+            # title_parser = Parser(stop_words_list)
+            # title_tokens = title_parser.parser_pipeline([self.title], self.stem)
+            # self.title = title_parser.get_tokens_after_parse()
+            title_tokens = parser.parser_pipeline([self.title], self.stem)
+            self.title = parser.get_tokens_after_parse()
             if type(self.title) is str:
                 print('found string in doc: ' + str(self.doc_num) + ' in file: ' + str(self.file_name))
             for token in self.tokens:
@@ -101,9 +106,9 @@ class Document:
                     self.tokens[token][2] = True
                 else:
                     self.tokens[token][2] = False
-            self.calculate_dominant_entities(upper_case_appearence_dictionary, title_tokens)
+            self.calculate_dominant_entities(upper_case_appearance_dictionary, title_tokens)
         else:
-            self.calculate_dominant_entities(upper_case_appearence_dictionary, None)
+            self.calculate_dominant_entities(upper_case_appearance_dictionary, None)
 
     def to_json(self):
         """

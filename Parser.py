@@ -86,7 +86,7 @@ class Parser:
         self.token_dictionary_first_position.clear()
         self.token_dictionary_num_of_appearance.clear()
         self.token_upper_case_dictionary.clear()
-        self.tokens.clear()
+        self.tokens = []
 
     def create_tokens(self, data):
         """
