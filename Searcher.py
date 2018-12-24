@@ -10,11 +10,12 @@ import os
 
 class Searcher:
     def __init__(self, corpus_path, results_path, terms_dict, city_dictionary,
-                 doc2vec_model_path, doc2vec_doc_tags_path, stem=False):
+                 doc2vec_model_path, doc2vec_doc_tags_path, semantic_flag=False, stem=False):
         self.corpus_path = corpus_path
         self.results_path = results_path
         self.terms_dict = terms_dict
         self.stem = stem
+        self.semantic_flag = semantic_flag
         self.city_dictionary = city_dictionary
         self.doc2vec_model = Doc2Vec.load(doc2vec_model_path)
         file = open(doc2vec_doc_tags_path, 'rb')
@@ -24,7 +25,7 @@ class Searcher:
         self.ranker = Ranker(corpus_path, results_path, terms_dict, self.average_doc_length, self.doc_count, stem)
 
     def update_parameters(self, corpus_path=None, results_path=None, terms_dict=None,
-                          average_doc_length=None, stem=None):
+                          average_doc_length=None, semantic_flag=None, stem=None):
         if not corpus_path is None:
             self.corpus_path = corpus_path
         if not results_path is None:
@@ -33,6 +34,8 @@ class Searcher:
             self.terms_dict = terms_dict
         if not stem is None:
             self.stem = stem
+        if not semantic_flag is None:
+            self.semantic_flag = semantic_flag
         if not average_doc_length is None:
             self.average_doc_length = average_doc_length
 
@@ -141,36 +144,38 @@ class Searcher:
             city_posting = file.readline().split()
         return city_posting
 
-    def search_single_query(self, stop_words_list, posting_directory, query, stem_flag, semantics_flag, city):
+    def search_single_query(self, stop_words_list, results_path, query, stem_flag, semantic_flag, city):
         """
         Method searches for only one query. Parses each term and uses Ranker to rank each doc
         Returns top 50 documents for query
         :param stop_words_list: list of stop words
-        :param posting_directory: string directory of posting
+        :param results_path: string directory of posting
         :param query: string
         :param stem_flag: True if use stemming, False otherwise.
-        :param semantics_flag: True if use semantics, False otherwise.
+        :param semantic_flag: True if use semantics, False otherwise.
         :param city: None if search by NO city, list of strings otherwise
         :return: Dictionary of top 50 docs per query
         """
         parser = Parser([stop_words_list])
         query_terms_dictionary = parser.parser_pipeline([query])
         query_terms_list = parser.get_tokens_after_parse()
+        self.update_parameters(results_path=results_path, stem=stem_flag, semantic_flag=semantic_flag)
         result = self.search(query_terms_list, city=city)
         return result
 
 
-    def search_multiple_queries(self, stop_words_list, posting_directory, queries_text, stem_flag, semantics_flag, city):
+    def search_multiple_queries(self, stop_words_list, results_path, queries_text, stem_flag, semantic_flag, city):
         """
         Method searches for each query and returns top 50 documents for each query.
         :param stop_words_list: list of stop words
-        :param posting_directory: string directory of posting files
+        :param results_path: string directory of posting files
         :param queries_text: text of query file
         :param stem_flag: True if use stemming, False otherwise
-        :param semantics_flag: True if use semantics, False otherwise
+        :param semantic_flag: True if use semantics, False otherwise
         :param city: None if no city, List of strings otherwise
         :return: Dictionary of top 50 docs per query
         """
+        self.update_parameters(results_path=results_path, stem=stem_flag, semantic_flag=semantic_flag)
         queries_dict = self.create_queries_from_text(queries_text)
         parser = Parser([stop_words_list])
         results = {}

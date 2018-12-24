@@ -4,7 +4,29 @@ import os
 import pandas as pd
 from Parser import Parser
 import Main
-from sklearn.model_selection import RandomizedSearchCV
+from scipy.optimize import fmin
+import numpy as np
+
+def optimization_func(values_array):
+    query = 'British Channel impact'
+    query_parser = Parser(stop_words_list)
+    parsed_query = list(query_parser.parser_pipeline([query], stem=False).keys())
+    query_results = searcher.search(parsed_query, b_value=values_array[0], k_value=values_array[1])
+    df = pd.read_csv(r'C:\Chen\BGU\2019\2018 - Semester A\3. Information Retrival\Engine\treceval\qrels.txt',
+                     sep=' ',
+                     names=['query id', 'maybe result', 'file id', 'result'])
+    df = df[(df['query id'] == 352) & (df['result'] == 1)]
+    doc_list = list(df['file id'])
+    sorted_query_results = sorted(query_results.items(), key=lambda kv: kv[1], reverse=True)
+    doc_count = 0
+    rank = 0
+    total_ranks = 0
+    for doc_tuple in sorted_query_results:
+        if doc_tuple[0] in doc_list:
+            doc_count += 1
+            total_ranks += len(sorted_query_results) - rank
+        rank += 1
+    return -total_ranks
 
 main_dir = r'C:\Chen\BGU\2019\2018 - Semester A\3. Information Retrival\Engine\test directory\created files'
 corpus_path = r'C:\Chen\BGU\2019\2018 - Semester A\3. Information Retrival\Engine\test directory\10 files'
@@ -24,13 +46,17 @@ relevant = ' - projected and actual impact on the life styles of the British ' \
 relevant_parsed = list(query_parser.parser_pipeline([relevant], stem=False).keys())
 query_parser.erase_dictionary()
 
-not_relevant = ' - expense and construction schedule routine marketing ploys by ' \
+not_relevant = ' expense and construction schedule routine marketing ploys by ' \
                'other channel crosses (i.e.,schedule changes, price drops, etc.)'
 not_relevant_parsed = list(query_parser.parser_pipeline([not_relevant], stem=False).keys())
 
 searcher = Searcher(corpus_path, main_dir, terms_dict, city_dictionary, 'doc2vec.model', 'doc tags')
 
-query_results = searcher.search(parsed_query, relevant_parsed, not_relevant_parsed, x=1000)
+# res = fmin(optimization_func, np.array([0.75,1.5]), maxiter=10)
+# print(res)
+
+query_results = searcher.search(parsed_query, relevant_parsed, not_relevant_parsed, x=1000, k_value=1.2)
+                                # x=1000, b_value=res[0], k_value=res[1])
 
 print('Number of documents returned: ' + str(len(query_results)))
 print(query_results)
