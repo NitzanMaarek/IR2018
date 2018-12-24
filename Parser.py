@@ -118,8 +118,8 @@ class Parser:
 
                 if self.word == 'between' or self.word == 'Between':
                     self.between_index = 1
-
-                if self.between_index == 0 and (stop_words_length != 0 and self.word in self.stop_words_list):
+                word = self.lower_case_word(word)
+                if self.between_index == 0 and (stop_words_length != 0 and word in self.stop_words_list):
                     continue
 
                 # Here we're supposed to have the word (not stop-word) without any delimiters
