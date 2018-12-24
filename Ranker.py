@@ -89,12 +89,12 @@ class Ranker():
         doc_scores = {}
         doc_term_count = {}
         for term in query:
-            term_idf = math.log(self.doc_count / self.terms_dict[term][2], 2)
             if not term in self.terms_dict:
                 if term.lower() in self.terms_dict:
                     term = term.lower()
                 else:
                     continue
+            term_idf = math.log(self.doc_count / self.terms_dict[term][2], 2)
             terms_posting_data = self.get_term_data_from_posting(term, self.terms_dict[term])
             docs_list = self.get_docs_list_from_term_posting(terms_posting_data)
             for doc, i in docs_list.items():
