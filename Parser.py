@@ -526,7 +526,7 @@ class Parser:
         # print('Handling token: ' + token)
         first_str = token[:hyphen_position]
         second_str = token[hyphen_position+1:]
-        parser = Parser([], stem=self.stem)
+        parser = Parser(self.stop_words_list, stem=self.stem)
         parse_me = ''.join([first_str, ' ', second_str])
         parsed_str_dic = parser.create_tokens([parse_me])
         parsed_list = list(parsed_str_dic.keys())
@@ -792,7 +792,7 @@ class Parser:
         """
         range_tokens = token.split('-')
         if len(range_tokens) == 2:
-            parser = Parser([''], stem=self.stem)
+            parser = Parser(self.stop_words_list, stem=self.stem)
             # parsed_tokens = self.create_tokens([''.join([range_tokens[0], ' ', range_tokens[1]])])
             parsed_tokens = parser.create_tokens([''.join([range_tokens[0], ' ', range_tokens[1]])])
             list_keys = list(parsed_tokens.keys())

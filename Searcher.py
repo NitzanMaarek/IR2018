@@ -19,8 +19,8 @@ class Searcher:
         self.stem = stem
         self.semantic_flag = semantic_flag
         self.city_dictionary = Indexer.load_obj(self.results_path, 'cities dictionary', directory='cities')
-        self.doc2vec_model = Doc2Vec.load(doc2vec_model_path)
-        with open(doc2vec_doc_tags_path, 'rb') as file:
+        self.doc2vec_model = Doc2Vec.load(results_path + '\\' + doc2vec_model_path)
+        with open(results_path + '\\' + doc2vec_doc_tags_path, 'rb') as file:
             self.doc_tags = pickle.load(file)
         self._get_average_doc_length()
         self.ranker = Ranker(corpus_path, results_path, self.terms_dict, self.average_doc_length, self.doc_count, stem)
@@ -53,7 +53,7 @@ class Searcher:
 
     def search(self, query, relevant=None, not_relevant=None, x=1000, b_value=0.5, k_value=1.5, city=None):
         if not city is None:
-            city_docs = self.get_city_docs(city.upper()) # Work in progress
+            city_docs = self.get_city_docs(city.upper())  # Work in progress
         else:
             city_docs = None
         doc_list = self.ranker.top_x_bm25_docs_for_query(query, x, b_value, k_value, city_docs_list=city_docs)
@@ -158,7 +158,7 @@ class Searcher:
         :param city: None if search by NO city, list of strings otherwise
         :return: Dictionary of top 50 docs per query
         """
-        parser = Parser([stop_words_list])
+        parser = Parser(stop_words_list)
         query_terms_dictionary = parser.parser_pipeline([query], stem_flag)
         query_terms_list = parser.get_tokens_after_parse()
         self.update_parameters(results_path=results_path, stem=stem_flag, semantic_flag=semantic_flag)
@@ -180,7 +180,7 @@ class Searcher:
         """
         self.update_parameters(results_path=results_path, stem=stem_flag, semantic_flag=semantic_flag)
         queries_dict = self.create_queries_from_text(queries_text)
-        parser = Parser([stop_words_list])
+        parser = Parser(stop_words_list)
         results = {}
         for query_num in queries_dict:
             title = queries_dict[query_num][0]
@@ -198,9 +198,10 @@ class Searcher:
         """
         queries = {}
         for i, line in enumerate(text, start=0):
-            if line == '<top>':
+            line = line.replace('\n', '')
+            if '<top>' in line:
                 start = i
-            elif line == '</top>':
+            elif '</top>' in line:
                 self.analyze_query(queries, text[start + 1:i - 1])
 
         return queries
@@ -219,6 +220,7 @@ class Searcher:
         :param queries: dictionary: Key = query_num, Value = [title, desc, narrative]
         :param text: text of query in file
         """
+        # TODO: check this works fine
         query_num = ''
         title = ''
         accumulate_desc = False
@@ -226,6 +228,7 @@ class Searcher:
         desc = ''
         narrative = ''
         for line in text:
+            line = line.replace('\n', '')
             if '<num>' in line:
                 query_num = line[14:]
             if '<title>' in line:

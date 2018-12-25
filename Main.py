@@ -1,11 +1,11 @@
 from tkinter import *
 from tkinter import messagebox
 from tkinter import filedialog
+from tkinter.ttk import Treeview
+from tkinter.filedialog import asksaveasfile
 import datetime
 import os
 import multiprocessing as mp
-from tkinter.ttk import Treeview
-
 import Indexer
 from ReadFile import ReadFile
 from Parser import Parser
@@ -253,12 +253,36 @@ class GUI:
 
 
 
-    def browse_save_results(self, ):
+    def browse_save_results(self):
         """
         Method opens a browse window to save the query results in trec eval format
         Trec eval format: query_id, iter=0, doc_no, rank, similarity, run_id=mt
+        self.search_results: Dictionary: Key = query_num, Value = List of documents sorted in descending order (best first)
         """
+        text2save = self.convert_search_result_to_treceval(self.search_results)
+        print(text2save)
+        now = datetime.datetime.now()
+        file_name = str(now.hour) + '.' + str(now.minute)
+        f = asksaveasfile(mode='w', defaultextension=".txt", initialfile=file_name)
+        if f is None:  # asksaveasfile return `None` if dialog closed with "cancel".
+            return
+        f.write(text2save)
+        f.close()  # `()` was missing.
 
+    def convert_search_result_to_treceval(self, results):
+        """
+        Method converts given results to treceval text
+        :param results: Dictionary: Key = query_num, Value = List of documents sorted in descending order (best first)
+        :return: String of treceval format text
+        """
+        ans = ''
+        for query in results:
+            rank = 1
+            for document in results[query]:
+                ans += query + ' 0 ' + document[0] + ' ' + str(rank) + ' 0 ' + 'mt\n'
+                rank += 1
+        return ans
+        # line = str(query_id) + ' 0 ' + str(doc_tuple[0]) + ' ' + str(rank) + ' ' + str(doc_tuple[1]) + ' 0 \n'
 
     def display_treeview_dictionary(self):
         """
@@ -290,8 +314,6 @@ class GUI:
         self.insert_dictionary_to_table()
 
     def show_entities(self, event):
-
-
         selected_item = self.search_results_tree_view.focus()
         doc_no = self.search_results_tree_view.item(selected_item)['values'][0]
         # TODO: need to get entities by doc_no and insert them into th entry.
@@ -390,9 +412,9 @@ class GUI:
                 self.stem = False
         # result = list of results that needs to be shown to user
         searcher = Searcher(corpus_path=stopwords_directory, results_path=postings_directory, semantic_flag=bool(self.semantics_flag.get()), stem=self.stem)
-        result = searcher.search_single_query(stopwords_directory, postings_directory, single_query, self.stem, bool(self.semantics_flag.get()))
+        self.search_results = searcher.search_single_query(stopwords_directory, postings_directory, single_query, self.stem, bool(self.semantics_flag.get()))
         self.display_search_results()
-        self.insert_search_results_to_table(result)
+        self.insert_search_results_to_table(self.search_results)
         # TODO: Handle results to show according to trecval.
 
     def run_query_file_button_clicked(self):
@@ -419,6 +441,7 @@ class GUI:
             messagebox.showerror('Error Message',
                                  'Cannot retrieve documents without corpus and stop-words files path.\nPlease insert path of corpus and stop-words file.')
             return
+        self.stem = False
         if self.stem_flag.get() == 1:
             stem_warning_result = messagebox.askquestion('Stemming confirmation',
                                                          'Are you sure you want to use stemming?')
@@ -428,12 +451,17 @@ class GUI:
                 self.stem = False
 
         query_file_content = ''
-        with open(query_file, 'r') as f:
-            query_file_content = f.readlines()
+        # file = open(self.file_path, 'r', errors='ignore')
+        # with open(query_file, 'r') as f:
+        f = open(query_file, 'r', errors='ignore')
+        query_file_content = f.readlines()
+        f.close()
 
         # result = list of results that needs to be shown to user
         searcher = Searcher(corpus_path=stopwords_directory, results_path=postings_directory, semantic_flag=bool(self.semantics_flag.get()), stem=self.stem)
-        result = searcher.search_multiple_queries(stopwords_directory, postings_directory, query_file_content, self.stem, bool(self.semantics_flag.get()))
+        self.search_results = searcher.search_multiple_queries(stopwords_directory, postings_directory, query_file_content, self.stem, bool(self.semantics_flag.get()))
+        self.display_search_results()
+        self.insert_search_results_to_table(self.search_results)
         # TODO: Handle results to show according to trec eval.
 
     def browse_query_file_button_clicked(self):
@@ -732,7 +760,7 @@ if __name__ == '__main__':
     write_to_disk = False
     parallel = True
 
-    main_dir = 'C:\\Chen\\BGU\\2019\\2018 - Semester A\\3. Information Retrival\\Engine\\test directory\\created files\\'
+    main_dir = 'C:\\Users\\Nitzan\\Desktop\\IR 2018 files desktop\\created files\\'
     # restart_files(main_dir)
 
     manager = mp.Manager()
