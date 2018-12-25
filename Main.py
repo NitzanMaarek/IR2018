@@ -266,7 +266,7 @@ class GUI:
         f = asksaveasfile(mode='w', defaultextension=".txt", initialfile=file_name)
         if f is None:  # asksaveasfile return `None` if dialog closed with "cancel".
             return
-        f.write(text2save)
+        f.writelines(text2save)
         f.close()  # `()` was missing.
 
     def convert_search_result_to_treceval(self, results):
@@ -279,7 +279,9 @@ class GUI:
         for query in results:
             rank = 1
             for document in results[query]:
-                ans += query + ' 0 ' + document[0] + ' ' + str(rank) + ' 0 ' + 'mt\n'
+                query = query.strip()
+                doc = document[0].strip()
+                ans += query + ' 0 ' + doc + ' ' + str(rank) + ' 0 ' + 'mt\n'
                 rank += 1
         return ans
         # line = str(query_id) + ' 0 ' + str(doc_tuple[0]) + ' ' + str(rank) + ' ' + str(doc_tuple[1]) + ' 0 \n'

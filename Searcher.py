@@ -51,7 +51,7 @@ class Searcher:
         self.average_doc_length = sum(docs_len) / len(docs_len)
         self.doc_count = len(docs_len)
 
-    def search(self, query, relevant=None, not_relevant=None, x=1000, b_value=0.5, k_value=1.5, city=None):
+    def search(self, query, relevant=None, not_relevant=None, x=50, b_value=0.5, k_value=1.5, city=None):
         if not city is None:
             city_docs = self.get_city_docs(city.upper())  # Work in progress
         else:
