@@ -3,6 +3,7 @@ from tkinter import messagebox
 from tkinter import filedialog
 from tkinter.ttk import Treeview
 from tkinter.filedialog import asksaveasfile
+from tkinter import _setit
 import datetime
 import os
 import multiprocessing as mp
@@ -75,6 +76,7 @@ class GUI:
         self.run_single_query_button = Button(self.bottom_frame, text='Run', command=self.run_single_query_button_clicked)
         self.run_query_file_button = Button(self.bottom_frame, text='Run', command=self.run_query_file_button_clicked)
         self.browse_query_file_button = Button(self.bottom_frame, text='Browse', command=self.browse_query_file_button_clicked)
+        self.load_cities_button = Button(self.bottom_frame, text='Load cities', command=self.load_cities_button_clicked)
 
         # *** Status bar ***
 
@@ -129,13 +131,14 @@ class GUI:
         self.query_file_label.grid(row=2, column=0, sticky=E)
         self.query_file_entry.grid(row=2, column=1)
         self.run_query_file_button.grid(row=2, column=2, sticky=W, padx=4)
-        self.browse_query_file_button.grid(row=2, column=2, ipadx=8, sticky=E)
+        self.browse_query_file_button.grid(row=2, column=3, ipadx=8, sticky=W)
         # TODO: Fix layout of buttons
 
         self.city_selection_label.grid(row=3, column=0, sticky=E)
         self.city_selection_entry.grid(row=3, column=1)
 
-        self.semantics_checkbox.grid(row=2, column=3, sticky=W, padx=2)
+        self.semantics_checkbox.grid(row=1, column=3, sticky=W, padx=2)
+        self.load_cities_button.grid(row=3, column=3, sticky=W, padx=2)
 
         self.root.mainloop()
 
@@ -510,6 +513,33 @@ class GUI:
             for document_tuple in documents_list:
                 self.search_results_tree_view.insert('', 'end', text=query, values=document_tuple[0])
         # TODO: Debug insertion
+
+    def load_cities_button_clicked(self):
+        """
+        Method loads cities from cities dictionary in posting files.
+        """
+        # self.city_drop_down_menu.grid_forget()
+        # self.city_drop_down_menu_new = OptionMenu(self.bottom_frame, self.city_variable, '<None>', command=self.update_city_selection_entry)
+        # self.city_drop_down_menu_new.grid(row=3, column=2, padx=1)
+        postings_directory = self.dictionary_posting_entry.get()
+        if postings_directory is None or postings_directory == '':
+            messagebox.showerror('Error Message', 'Cannot retrieve documents without dictionary and posting files path.\nPlease insert path of dictionary and posting files.')
+            return
+        cities_dictionary = Indexer.load_obj(postings_directory, 'cities dictionary', directory='cities')
+        cities_list = cities_dictionary.keys()
+        self.update_cities_menu(cities_list)
+
+    def update_cities_menu(self, cities_list):
+        """
+        Method updates scroll-down menu of cities with strings in a given list.
+        :param cities_list: list of strings (=cities)
+        """
+        menu = self.city_drop_down_menu["menu"]
+        menu.delete(0, "end")
+        for string in cities_list:
+            # menu.add_command(label=string, command=lambda value=string: self.city_variable.set(value))
+            menu.add_command(label=string, command=_setit(self.city_variable, string, self.update_city_selection_entry))
+
 
 def read_directory(main_dir, directory, multiprocess, batch_size=20000, stem=False):
     """
