@@ -402,9 +402,9 @@ class Parser:
         first_token = token[0]
         if 'A' <= first_token <= 'Z':
             token = self.upper_case_word(token)
-            if token not in self.token_upper_case_dictionary:
+            if token is not None and token not in self.token_upper_case_dictionary:
                 self.token_upper_case_dictionary[token] = 1
-            else:
+            elif token is not None:
                 self.token_upper_case_dictionary[token] += 1
         elif 'a' <= first_token <= 'z':
             token = self.lower_case_word(token)
