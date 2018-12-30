@@ -26,6 +26,8 @@ class GUI:
         Initializes root window, frames, labels, entries, buttons
         """
         self.term_dictionary = {}
+        self.normal_doc_entities_dictionary = {}
+        self.semantics_doc_entities_dictionary = {}
         # self.searcher = Searcher()
 
         self.root = Tk()
@@ -254,6 +256,41 @@ class GUI:
         # TODO: Handle results
         # self.insert_search_results_to_table(results)
 
+    def display_search_semantics_results(self):
+        """
+        Method opens a new window with the search results by semantics
+        """
+        window = Toplevel(self.root)
+        window.geometry('500x500')
+        top_frame = Frame(window)
+        top_frame.pack(side=TOP)
+        bottom_frame = Frame(window)
+        bottom_frame.pack(side=BOTTOM)
+
+        self.save_results_semantics_button = Button(bottom_frame, text='Save Results', command=self.browse_save_semantics_results)
+        self.save_results_semantics_button.grid(row=0, column=0, pady=10, sticky=W)
+
+        self.entities_semantics_label = Label(bottom_frame, text='Document Entities:')
+        self.entities_semantics_label.grid(row=0, column=1, sticky=E)
+        self.entities_semantics_entry = Entry(bottom_frame, width=50)
+        self.entities_semantics_entry.grid(row=0, column=2, sticky=W)
+        self.entities_semantics_entry.insert(END, 'Double click doc to view entities here.')
+
+        self.search_results_semantics_tree_view = Treeview(window)
+        self.search_results_semantics_tree_view['columns'] = ('Document ID',)
+        self.search_results_semantics_tree_view.heading("#0", text='Query ID', anchor='center')
+        self.search_results_semantics_tree_view.column("#0", anchor='center', width=5)
+        self.search_results_semantics_tree_view.heading('Document ID', text='Document ID')
+        self.search_results_semantics_tree_view.column('Document ID', anchor='w', width=40)
+        self.search_results_semantics_tree_view.pack(side=LEFT, fill='both', expand=TRUE)
+        self.search_results_semantics_scroll_bar = Scrollbar(window)
+        self.search_results_semantics_scroll_bar.pack(side=RIGHT, fill=Y)
+
+        self.search_results_semantics_tree_view.configure(yscrollcommand=self.search_results_semantics_scroll_bar.set)
+        self.search_results_semantics_scroll_bar.config(command=self.search_results_semantics_tree_view.yview)
+        self.search_results_semantics_tree_view.bind("<Double-1>", self.show_semantics_entities)
+        # TODO: Handle results
+        # self.insert_search_results_to_table(results)
 
 
     def browse_save_results(self):
@@ -263,6 +300,22 @@ class GUI:
         self.search_results: Dictionary: Key = query_num, Value = List of documents sorted in descending order (best first)
         """
         text2save = self.convert_search_result_to_treceval(self.search_results)
+        print(text2save)
+        now = datetime.datetime.now()
+        file_name = str(now.hour) + '.' + str(now.minute)
+        f = asksaveasfile(mode='w', defaultextension=".txt", initialfile=file_name)
+        if f is None:  # asksaveasfile return `None` if dialog closed with "cancel".
+            return
+        f.writelines(text2save)
+        f.close()  # `()` was missing.
+
+    def browse_save_semantics_results(self):
+        """
+        Method opens a browse window to save the query results in trec eval format
+        Trec eval format: query_id, iter=0, doc_no, rank, similarity, run_id=mt
+        self.search_results: Dictionary: Key = query_num, Value = List of documents sorted in descending order (best first)
+        """
+        text2save = self.convert_search_result_to_treceval(self.search_semantics_results)
         print(text2save)
         now = datetime.datetime.now()
         file_name = str(now.hour) + '.' + str(now.minute)
@@ -319,13 +372,37 @@ class GUI:
         self.insert_dictionary_to_table()
 
     def show_entities(self, event):
+        """
+        Method
+        """
+        entities = ''
         selected_item = self.search_results_tree_view.focus()
         doc_no = self.search_results_tree_view.item(selected_item)['values'][0]
-        # TODO: need to get entities by doc_no and insert them into th entry.
-        # print(self.search_results_tree_view.item(selected_item['Document ID']))
-        self.entities_entry.delete(0, END)
-        self.entities_entry.insert(INSERT, doc_no)
+        entities_dictionary = self.normal_doc_entities_dictionary[doc_no]
+        if entities_dictionary is not None:
+            for entity in entities_dictionary:
+                score = entities_dictionary[entity]
+                entities = entities + entity + ':' + score + '  '
+            self.entities_entry.delete(0, END)
+            self.entities_entry.insert(INSERT, entities)
+        else:
+            self.entities_entry.delete(0, END)
+            self.entities_entry.insert(INSERT, 'No entities for doc.')
 
+    def show_semantics_entities(self, event):
+        entities = ''
+        selected_item = self.search_results_semantics_tree_view.focus()
+        doc_no = self.search_results_semantics_tree_view.item(selected_item)['values'][0]
+        entities_dictionary = self.semantics_doc_entities_dictionary[doc_no]
+        if entities_dictionary is not None:
+            for entity in entities_dictionary:
+                score = entities_dictionary[entity]
+                entities = entities + entity + ':' + score + '  '
+            self.entities_semantics_entry.delete(0, END)
+            self.entities_semantics_entry.insert(INSERT, entities)
+        else:
+            self.entities_semantics_entry.delete(0, END)
+            self.entities_semantics_entry.insert(INSERT, 'No entities for doc.')
 
     def insert_dictionary_to_table(self):
         """
@@ -417,11 +494,15 @@ class GUI:
                 self.stem = False
         # result = list of results that needs to be shown to user
         searcher = Searcher(corpus_path=stopwords_directory, results_path=postings_directory, semantic_flag=bool(self.semantics_flag.get()), stem=self.stem)
-        self.search_results = searcher.search_single_query(stopwords_directory, postings_directory, single_query, self.stem, bool(self.semantics_flag.get()))
-        self.display_search_results()
-        self.insert_search_results_to_table(self.search_results)
-        # TODO: Handle results to show according to trecval.
-
+        self.search_results, self.search_semantics_results = searcher.search_single_query(stopwords_directory, postings_directory, single_query, self.stem, bool(self.semantics_flag.get()))
+        if not bool(self.semantics_flag.get()) and not self.search_semantics_results:     #Display only one window
+            self.display_search_results()
+            self.insert_search_results_to_table(self.search_results)
+        else:       # Display two windows
+            self.display_search_results()
+            self.insert_search_results_to_table(self.search_results)
+            self.display_search_semantics_results()
+            self.insert_search_semantics_results_to_table(self.search_semantics_results)
     def run_query_file_button_clicked(self):
         """
         Method takes text from file and converts to list of strings, each string is query
@@ -454,20 +535,22 @@ class GUI:
                 self.stem = True
             else:
                 self.stem = False
-
-        query_file_content = ''
-        # file = open(self.file_path, 'r', errors='ignore')
-        # with open(query_file, 'r') as f:
         f = open(query_file, 'r', errors='ignore')
         query_file_content = f.readlines()
         f.close()
 
         # result = list of results that needs to be shown to user
         searcher = Searcher(corpus_path=stopwords_directory, results_path=postings_directory, semantic_flag=bool(self.semantics_flag.get()), stem=self.stem)
-        self.search_results = searcher.search_multiple_queries(stopwords_directory, postings_directory, query_file_content, self.stem, bool(self.semantics_flag.get()))
-        self.display_search_results()
-        self.insert_search_results_to_table(self.search_results)
-        # TODO: Handle results to show according to trec eval.
+        self.search_results, self.search_semantics_results = searcher.search_multiple_queries(stopwords_directory, postings_directory, query_file_content, self.stem, bool(self.semantics_flag.get()))
+        if not bool(self.semantics_flag.get()) and not self.search_semantics_results:     #Display only one window
+            self.display_search_results()
+            self.insert_search_results_to_table(self.search_results)
+        else:       # Display two windows
+            self.display_search_results()
+            self.insert_search_results_to_table(self.search_results)
+            self.display_search_semantics_results()
+            self.insert_search_semantics_results_to_table(self.search_semantics_results)
+
 
     def browse_query_file_button_clicked(self):
         """
@@ -506,21 +589,35 @@ class GUI:
     def insert_search_results_to_table(self, results):
         """
         Method inserts search results to results view table
-        :param results: Dictionary: Key = query id, Value = List[doc nums,...,..]
+        :param results: Dictionary: Key=query_id, Value=Dictionary:(
+                                                                Key=Doc, Value=Dictionary:(
+                                                                                        Key=Entity, Value=score))
         """
         for query in results:
-            documents_list = results[query]
-            for document_tuple in documents_list:
-                self.search_results_tree_view.insert('', 'end', text=query, values=document_tuple[0])
+            query_documents_dict = results[query]
+            self.normal_doc_entities_dictionary = query_documents_dict
+            for document_name in query_documents_dict:
+                self.search_results_tree_view.insert('', 'end', text=query, values=document_name)
+        # TODO: Debug insertion
+
+    def insert_search_semantics_results_to_table(self, results):
+        """
+        Method inserts search results to results view table
+        :param results: Dictionary: Key=query_id, Value=Dictionary:(
+                                                                Key=Doc, Value=Dictionary:(
+                                                                                        Key=Entity, Value=score))
+        """
+        for query in results:
+            query_documents_dict = results[query]
+            self.semantics_doc_entities_dictionary = query_documents_dict
+            for document_name in query_documents_dict:
+                self.search_results_semantics_tree_view.insert('', 'end', text=query, values=document_name)
         # TODO: Debug insertion
 
     def load_cities_button_clicked(self):
         """
         Method loads cities from cities dictionary in posting files.
         """
-        # self.city_drop_down_menu.grid_forget()
-        # self.city_drop_down_menu_new = OptionMenu(self.bottom_frame, self.city_variable, '<None>', command=self.update_city_selection_entry)
-        # self.city_drop_down_menu_new.grid(row=3, column=2, padx=1)
         postings_directory = self.dictionary_posting_entry.get()
         if postings_directory is None or postings_directory == '':
             messagebox.showerror('Error Message', 'Cannot retrieve documents without dictionary and posting files path.\nPlease insert path of dictionary and posting files.')
