@@ -597,8 +597,8 @@ class GUI:
         """
         for query in results:
             query_documents_dict = results[query]
-            self.normal_doc_entities_dictionary = query_documents_dict
             for document_name in query_documents_dict:
+                self.normal_doc_entities_dictionary[document_name] = query_documents_dict[document_name]
                 self.search_results_tree_view.insert('', 'end', text=query, values=document_name)
         # TODO: Debug insertion
 
@@ -611,8 +611,8 @@ class GUI:
         """
         for query in results:
             query_documents_dict = results[query]
-            self.semantics_doc_entities_dictionary = query_documents_dict
             for document_name in query_documents_dict:
+                self.semantics_doc_entities_dictionary[document_name] = query_documents_dict[document_name]
                 self.search_results_semantics_tree_view.insert('', 'end', text=query, values=document_name)
         # TODO: Debug insertion
 
