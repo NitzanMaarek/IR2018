@@ -144,7 +144,13 @@ class Searcher:
 
         sorted_query_results = sorted(final_scores.items(), key=operator.itemgetter(1), reverse=True)
 
-        return sorted_query_results, entities_dict
+        results_dict = {}
+        # Inserting the values in entities dict to a new dictionary to get a sorted dictionary
+        for doc_data in sorted_query_results:
+            doc_id = doc_data[0]
+            results_dict[doc_id] = entities_dict[doc_id]
+
+        return results_dict
 
 
     # TODO: check everything below

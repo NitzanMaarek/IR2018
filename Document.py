@@ -157,6 +157,7 @@ class Document:
             params.append('<')
             for entity in self.dominant_entities_list.keys():
                 params.append(entity)
+                params.append(str(self.dominant_entities_list[entity]))
             params.append('>')
 
         # params.append(str(self.title)) # TODO: need to choose if to return the tokens of the title
