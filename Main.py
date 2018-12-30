@@ -225,6 +225,7 @@ class GUI:
         Method opens a new window with the search results
         """
         window = Toplevel(self.root)
+        window.title('Results')
         window.geometry('500x500')
         top_frame = Frame(window)
         top_frame.pack(side=TOP)
@@ -261,6 +262,7 @@ class GUI:
         Method opens a new window with the search results by semantics
         """
         window = Toplevel(self.root)
+        window.title('Semantics Results')
         window.geometry('500x500')
         top_frame = Frame(window)
         top_frame.pack(side=TOP)
