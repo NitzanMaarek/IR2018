@@ -33,7 +33,8 @@ class Searcher:
         with open(results_path + '\\' + doc2vec_doc_tags_path, 'rb') as file:
             self.doc_tags = pickle.load(file)
         self._get_average_doc_length()
-        # self.word2vec_model = KeyedVectors.load_word2vec_format('GoogleNews-vectors-negative300.bin.gz', binary=True)
+        # self.word2vec_model = KeyedVectors.load_word2vec_format('word2vec.model', binary=True)
+        self.word2vec_model = KeyedVectors.load('word2vec.model')
         self.ranker = Ranker(corpus_path, results_path, self.terms_dict, self.average_doc_length, self.doc_count, stem)
 
     def update_parameters(self, corpus_path=None, results_path=None, terms_dict=None,
@@ -185,14 +186,20 @@ class Searcher:
         :param city: None if search by NO city, list of strings otherwise
         :return: Dictionary of top 50 docs per query
         """
+        results = {}
+        semantic_result = {}
         parser = Parser(stop_words_list)
         query_terms_dictionary = parser.parser_pipeline([query], stem_flag)
         query_terms_list = parser.get_tokens_after_parse()
         self.update_parameters(results_path=results_path, stem=stem_flag, semantic_flag=semantic_flag)
         search_result = self.search(query_terms_list, city=city)
+        if semantic_flag:
+            semantic_query = self.get_sematic_altered_query(query_terms_list)
+            semantic_search_results = self.search(semantic_query, city=city)
+            semantic_result = {'1': semantic_search_results}
         result = {'1': search_result}
-        return result
 
+        return result, semantic_result
 
     def search_multiple_queries(self, stop_words_list, results_path, queries_text, stem_flag, semantic_flag, city=None):
         """
@@ -209,13 +216,20 @@ class Searcher:
         queries_dict = self.create_queries_from_text(queries_text)
         parser = Parser(stop_words_list)
         results = {}
+        semantic_results = {}
         for query_num in queries_dict:
             title = queries_dict[query_num][0]
             query_terms = parser.parser_pipeline([title], stem_flag)
             query_terms_list = parser.get_tokens_after_parse()
             curr_result = self.search(query_terms_list, city=city)
+            if semantic_flag:
+                semantic_query = self.get_sematic_altered_query(query_terms_list)
+                semantic_search_results = self.search(semantic_query, city=city)
+                semantic_results[query_num] = semantic_search_results
+
             results[query_num] = curr_result
-        return results
+
+        return results, semantic_results
 
     def create_queries_from_text(self, text):
         """
@@ -286,11 +300,21 @@ class Searcher:
         original_word = original_word.lower()
         if original_word in self.word2vec_model.wv:
             similar_words = self.word2vec_model.wv.most_similar(original_word)
-            for similar_word in similar_words:
-                similar_word = similar_word.lower()
+            for similar_word_tuple in similar_words:
+                similar_word = similar_word_tuple[0].lower()
                 if similar_word in self.terms_dict:
-                    similarity = self.word2vec_model.wv.similarity(original_word, similar_word)
-                    if similarity > similarity_threshold and original_word not in similar_word:
+                    # similarity = self.word2vec_model.wv.similarity(original_word, similar_word)
+                    if similar_word_tuple[1] > similarity_threshold and original_word not in similar_word:
                         return similar_word
         else:
             return None
+
+    def get_sematic_altered_query(self, query):
+        new_query = []
+        for term in query:
+            new_term = self.get_most_similar_word(term)
+            if new_term is not None:
+                new_query.append(new_term)
+            else:
+                new_query.append(term)
+        return new_query
