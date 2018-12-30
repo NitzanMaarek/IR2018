@@ -194,7 +194,7 @@ class Searcher:
         self.update_parameters(results_path=results_path, stem=stem_flag, semantic_flag=semantic_flag)
         search_result = self.search(query_terms_list, city=city)
         if semantic_flag:
-            semantic_query = self.get_sematic_altered_query(query_terms_list)
+            semantic_query = self.get_semantic_altered_query(query_terms_list)
             semantic_search_results = self.search(semantic_query, city=city)
             semantic_result = {'1': semantic_search_results}
         result = {'1': search_result}
@@ -223,7 +223,7 @@ class Searcher:
             query_terms_list = parser.get_tokens_after_parse()
             curr_result = self.search(query_terms_list, city=city)
             if semantic_flag:
-                semantic_query = self.get_sematic_altered_query(query_terms_list)
+                semantic_query = self.get_semantic_altered_query(query_terms_list)
                 semantic_search_results = self.search(semantic_query, city=city)
                 semantic_results[query_num] = semantic_search_results
 
@@ -309,7 +309,7 @@ class Searcher:
         else:
             return None
 
-    def get_sematic_altered_query(self, query):
+    def get_semantic_altered_query(self, query):
         new_query = []
         for term in query:
             new_term = self.get_most_similar_word(term)

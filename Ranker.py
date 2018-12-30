@@ -137,7 +137,10 @@ class Ranker():
         top_docs_entities_dict = {}
         for i in range(0, min_bound):
             ids_with_scores[docs_sorted_by_score[i][0]] = docs_sorted_by_score[i][1]
-            top_docs_entities_dict[docs_sorted_by_score[i][0]] = entities_dict[docs_sorted_by_score[i][0]]
+            if docs_sorted_by_score[i][0] in entities_dict:
+                top_docs_entities_dict[docs_sorted_by_score[i][0]] = entities_dict[docs_sorted_by_score[i][0]]
+            else:
+                top_docs_entities_dict[docs_sorted_by_score[i][0]] = None
 
         return ids_with_scores, top_docs_entities_dict
 
