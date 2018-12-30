@@ -153,6 +153,12 @@ class Document:
             params.append(str(self.city))
         if hasattr(self, 'language'):
             params.append(str(self.language))
+        if hasattr(self, 'dominant_entities_list'):
+            params.append('<')
+            for entity in self.dominant_entities_list.keys():
+                params.append(entity)
+            params.append('>')
+
         # params.append(str(self.title)) # TODO: need to choose if to return the tokens of the title
 
         return ' '.join(params)

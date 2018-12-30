@@ -60,9 +60,9 @@ class Ranker():
 
 
     def bm25_score(self, term, term_idf, doc_id, k_value, b_value, doc_posting):
-        # I assume query is list of string after parsing
         # TODO: check term_tf, seems that for every term in the query we will get the same term tf
-        # TODO: check this in general
+        # TODO: ADD Entities here
+
         bm25_terms_values = []
         doc_length = -1
 
@@ -71,6 +71,7 @@ class Ranker():
                 return 0
             if doc_length == -1:
                 doc_posting_values = self.get_doc_posting_value_by_term_doc_posting_values(doc_posting)
+                entities = self.get_entities(doc_posting_values)
                 if len(doc_posting_values) < 5:
                     print(doc_posting_values)
                 doc_posting_len = doc_posting_values[4]
@@ -81,7 +82,7 @@ class Ranker():
             denominator = term_tf + k_value * (1 - b_value + b_value * doc_length / self.average_doc_length)
             bm25_terms_values = term_idf * numerator / denominator
 
-        return bm25_terms_values
+        return bm25_terms_values, entities
 
     # TODO: TEST THIS FUNCTION
     def top_x_bm25_docs_for_query(self, query, x, b_value, k_value, city_docs_list=None):
@@ -97,22 +98,25 @@ class Ranker():
             term_idf = math.log(self.doc_count / self.terms_dict[term][2], 2)
             terms_posting_data = self.get_term_data_from_posting(term, self.terms_dict[term])
             docs_list = self.get_docs_list_from_term_posting(terms_posting_data)
+            entities_dict = {}
             for doc, i in docs_list.items():
-                if doc is 'FBIS3-11107':
-                    print('stop')
                 doc_term_posting_data = terms_posting_data[i:i + 7]
                 # If we were given a specific city we will check if the doc has the given city attribute
                 if not city_docs_list is None:
                     if not doc in city_docs_list:
                         continue
-                doc_bm25_score = self.bm25_score(term, term_idf, doc, k_value, b_value, doc_term_posting_data)
+                doc_bm25_score, entities = self.bm25_score(term, term_idf, doc, k_value, b_value, doc_term_posting_data)
+
                 # Giving bonus for documents with terms in the title
                 # if doc_term_posting_data[4] == 'True': # TODO: check if this is the right place and if this is the right value
                 #     doc_bm25_score += 2 * doc_bm25_score
+
                 if doc in doc_scores.keys():
                     doc_scores[doc] = doc_scores[doc] + doc_bm25_score
                 else:
                     doc_scores[doc] = doc_bm25_score
+                    if not entities is None:
+                        entities_dict[doc] = entities
 
                 if doc in doc_term_count.keys():
                     doc_term_count[doc] += 1
@@ -133,19 +137,11 @@ class Ranker():
         for i in range(0, min_bound):
             ids_with_scores[docs_sorted_by_score[i][0]] = docs_sorted_by_score[i][1]
 
-        # counter = 0
-        # min_boundary = min(x, len(docs_sorted_by_score))
-        # for i in range(0, min_boundary):
-        #     score = docs_sorted_by_score[i]
-        #     docs_ids = doc_scores[score]
-        #     if counter + len(docs_ids) < x:
-        #         for doc in docs_ids:
-        #             ids_with_scores[doc] = score
-        #         counter += len(docs_ids)
-        #     elif counter < x:
-        #         i = 0
-        #         while counter < x:
-        #             ids_with_scores[docs_ids[i]] = score
-        #             counter += 1
+        return ids_with_scores, entities_dict
 
-        return ids_with_scores
+    def get_entities(self, doc_posting):
+        if '<' in doc_posting:
+            index = doc_posting.index('<')
+            return doc_posting[index + 1 : len(doc_posting) - 1]
+        else:
+            return None

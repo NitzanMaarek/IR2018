@@ -2,6 +2,7 @@ import Indexer
 from Parser import Parser
 from Ranker import Ranker
 from gensim.models.doc2vec import Doc2Vec
+from gensim.models import KeyedVectors
 import pickle
 import operator
 import os
@@ -10,6 +11,15 @@ from scipy import spatial
 class Searcher:
     def __init__(self, corpus_path, results_path,
                  doc2vec_model_path='doc2vec.model', doc2vec_doc_tags_path='doc tags', semantic_flag=False, stem=False):
+        """
+        Searcher object that is in charge of using the posting and dictionaries to search the corpus
+        :param corpus_path: path to where the corpus is stored # TODO: check if we need this
+        :param results_path: path to where all the results file are stored
+        :param doc2vec_model_path: doc2vec model file name
+        :param doc2vec_doc_tags_path: doc2vec tags dictionary file name
+        :param semantic_flag: use semantics or not
+        :param stem: search on stem results or nor
+        """
         self.corpus_path = corpus_path
         self.results_path = results_path
         if stem:
@@ -23,10 +33,20 @@ class Searcher:
         with open(results_path + '\\' + doc2vec_doc_tags_path, 'rb') as file:
             self.doc_tags = pickle.load(file)
         self._get_average_doc_length()
+        # self.word2vec_model = KeyedVectors.load_word2vec_format('GoogleNews-vectors-negative300.bin.gz', binary=True)
         self.ranker = Ranker(corpus_path, results_path, self.terms_dict, self.average_doc_length, self.doc_count, stem)
 
     def update_parameters(self, corpus_path=None, results_path=None, terms_dict=None,
                           average_doc_length=None, semantic_flag=None, stem=None):
+        """
+        Method which is used to change all or some of the searcher parameters
+        :param corpus_path: path to where the corpus is stored
+        :param results_path: path to where all the results file are stored
+        :param terms_dict: update the terms dictionary
+        :param average_doc_length: update the average document length
+        :param semantic_flag: use semantics or not
+        :param stem: update value of search on stem results or nor
+        """
         if not corpus_path is None:
             self.corpus_path = corpus_path
         if not results_path is None:
@@ -56,7 +76,7 @@ class Searcher:
             city_docs = self.get_city_docs(city.upper())  # Work in progress
         else:
             city_docs = None
-        doc_list = self.ranker.top_x_bm25_docs_for_query(query, x, b_value, k_value, city_docs_list=city_docs)
+        doc_list, entities_dict = self.ranker.top_x_bm25_docs_for_query(query, x, b_value, k_value, city_docs_list=city_docs)
         bm25_scores = list(doc_list.values())
         max = bm25_scores[0]
         min = bm25_scores[len(bm25_scores) - 1]
@@ -123,7 +143,8 @@ class Searcher:
                                 normalized_bm25_value * 1 - normalized_cosine_not_value * 0
 
         sorted_query_results = sorted(final_scores.items(), key=operator.itemgetter(1), reverse=True)
-        return sorted_query_results
+
+        return sorted_query_results, entities_dict
 
 
     # TODO: check everything below
@@ -243,3 +264,27 @@ class Searcher:
             if accumulate_narr:
                 narrative = narrative + line
         queries[query_num] = [title, desc, narrative]
+
+
+    def get_most_similar_word(self, original_word, similarity_threshold=0.6):
+        """
+        Return the most similar word to a given word using the word2vec model
+        The returned word won't contain the given word and the cosine similarity between them must
+        be greater then the given threshold. The similar word must stand to those constraints
+        so it will have a similar meaning and not be another form of the given word.
+        If the given word is not in our model (which means it is not in out corpus we return None)
+        :param original_word: The word that we want to get an other word which is similar to it
+        :param similarity_threshold: cosine similarity threshold
+        :return: Similar but different word
+        """
+        original_word = original_word.lower()
+        if original_word in self.word2vec_model.wv:
+            similar_words = self.word2vec_model.wv.most_similar(original_word)
+            for similar_word in similar_words:
+                similar_word = similar_word.lower()
+                if similar_word in self.terms_dict:
+                    similarity = self.word2vec_model.wv.similarity(original_word, similar_word)
+                    if similarity > similarity_threshold and original_word not in similar_word:
+                        return similar_word
+        else:
+            return None
