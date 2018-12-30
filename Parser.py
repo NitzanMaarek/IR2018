@@ -283,16 +283,12 @@ class Parser:
         token = parsed_token
         if type(token) != str:
             self.between_index = 0
-            # if 'between' in self.stop_words_list or 'Between' in self.stop_words_list:
-            #     self.delete_token_i(1)
             return token
         if self.between_index == 2:
             if self.is_any_kind_of_number(token):       # If second string is number
                 self.between_index += 1
             else:
                 self.between_index = 0
-                # if 'between' in self.stop_words_list or 'Between' in self.stop_words_list:
-                #     self.delete_token_i(1)
                 if token in self.stop_words_list:
                     return None
 
@@ -301,11 +297,6 @@ class Parser:
                 self.between_index += 1
             else:
                 self.between_index = 0
-                # if 'between' in self.stop_words_list or 'Between' in self.stop_words_list:
-                #     try:
-                #         self.delete_token_i(2)      # Delete the word between
-                #     except Exception as e:
-                #         print('nizo')
                 if token in self.stop_words_list:
                     return None
 
@@ -320,10 +311,6 @@ class Parser:
                 self.between_index = 0
                 if token in self.stop_words_list:
                     return None
-                # if 'between' in self.stop_words_list or 'Between' in self.stop_words_list:
-                #     self.delete_token_i(3)  # delete the token 'between'
-                # if 'and' in self.stop_words_list:
-                #     self.delete_token_i(1)  # delete the token 'and'
         else:
             self.between_index += 1
         return token
@@ -471,6 +458,8 @@ class Parser:
             if hyphen_count == 1:
                 hyphen_position = token.find('-')
                 token = self.handle_adjacent_words(token, hyphen_position)
+                if token is None:  # None returns when two stopwords are seperated by a hyphen "Know-how"
+                    return None
                 after_split = token.split('-')
                 first_word = after_split[0]
                 second_word = after_split[1]
@@ -499,6 +488,8 @@ class Parser:
             if hyphen_count == 1:
                 hyphen_position = token.find('-')
                 token = self.handle_adjacent_words(token, hyphen_position)
+                if token is None:   # None returns when two stopwords are seperated by a hyphen "Know-how"
+                    return None
                 after_split = token.split('-')
                 first_word = after_split[0]
                 second_word = after_split[1]
@@ -530,6 +521,8 @@ class Parser:
         parse_me = ''.join([first_str, ' ', second_str])
         parsed_str_dic = parser.create_tokens([parse_me])
         parsed_list = list(parsed_str_dic.keys())
+        if parsed_list is None or len(parsed_list) == 0:    # None when two stopwords are seperated by '-' "Know-how"
+            return None
         first_str = parsed_list[0]
         if len(parsed_list) <= 1:
             second_str = parsed_list[0]
