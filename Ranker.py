@@ -134,10 +134,12 @@ class Ranker():
         ids_with_scores = {}
         min_bound = min(len(docs_sorted_by_score), x)
 
+        top_docs_entities_dict = {}
         for i in range(0, min_bound):
             ids_with_scores[docs_sorted_by_score[i][0]] = docs_sorted_by_score[i][1]
+            top_docs_entities_dict[docs_sorted_by_score[i][0]] = entities_dict[docs_sorted_by_score[i][0]]
 
-        return ids_with_scores, entities_dict
+        return ids_with_scores, top_docs_entities_dict
 
     def get_entities(self, doc_posting):
         if '<' in doc_posting:
