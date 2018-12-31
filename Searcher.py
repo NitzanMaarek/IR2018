@@ -73,11 +73,12 @@ class Searcher:
         self.doc_count = len(docs_len)
 
     def search(self, query, relevant=None, not_relevant=None, x=50, b_value=0.5, k_value=1.5, city=None):
+        relevant = query
         if not city is None:
-            city_docs = self.get_city_docs(city.upper())  # Work in progress
+            city_docs = self.get_city_docs(city)  # Work in progress
         else:
             city_docs = None
-        doc_list, entities_dict = self.ranker.top_x_bm25_docs_for_query(query, x, b_value, k_value, city_docs_list=city_docs)
+        doc_list, entities_dict = self.ranker.top_x_bm25_docs_for_query(query, x * 2, b_value, k_value, city_docs_list=city_docs)
         bm25_scores = list(doc_list.values())
         max = bm25_scores[0]
         min = bm25_scores[len(bm25_scores) - 1]
@@ -140,27 +141,36 @@ class Searcher:
                 normalized_cosine_not_value = 0
 
             normalized_bm25_value = (doc_list[doc] - min) / (max - min)
-            final_scores[doc] = normalized_cosine_value * 0 + \
-                                normalized_bm25_value * 1 - normalized_cosine_not_value * 0
+            final_scores[doc] = normalized_cosine_value * 0.1 + \
+                                normalized_bm25_value * 0.9 - normalized_cosine_not_value * 0
 
         sorted_query_results = sorted(final_scores.items(), key=operator.itemgetter(1), reverse=True)
 
         results_dict = {}
         # Inserting the values in entities dict to a new dictionary to get a sorted dictionary
+        counter = 0
         for doc_data in sorted_query_results:
             doc_id = doc_data[0]
             results_dict[doc_id] = entities_dict[doc_id]
+            counter += 1
+            if counter == x:
+                break
 
         return results_dict
 
 
     # TODO: check everything below
-    def get_city_docs(self, city):
+    def get_city_docs(self, city_list):
         # Change to dictionary
-        city_posting = self._get_city_data_from_posting(city)
-        return self._get_docs_list_from_term_posting(city_posting)
+        all_city_docs = []
+        for city in city_list:
+            city = city.upper()
+            city_posting = self._get_city_data_from_posting(city)
+            city_docs = list(self._get_docs_dict_from_term_posting(city_posting).keys())
+            all_city_docs = all_city_docs + city_docs
+        return all_city_docs
 
-    def _get_docs_list_from_term_posting(self, city_posting):
+    def _get_docs_dict_from_term_posting(self, city_posting):
         docs = {}
         first_index = city_posting.index('<') + 1
         for i in range(first_index, len(city_posting), 5):
@@ -301,7 +311,13 @@ class Searcher:
         if original_word in self.word2vec_model.wv:
             similar_words = self.word2vec_model.wv.most_similar(original_word)
             for similar_word_tuple in similar_words:
-                similar_word = similar_word_tuple[0].lower()
+                similar_word = similar_word_tuple[0]
+
+                if similar_word.lower() in self.terms_dict:
+                    similar_word = similar_word.lower()
+                elif similar_word.upper() in self.terms_dict:
+                    similar_word = similar_word.upper()
+
                 if similar_word in self.terms_dict:
                     # similarity = self.word2vec_model.wv.similarity(original_word, similar_word)
                     if similar_word_tuple[1] > similarity_threshold and original_word not in similar_word:
@@ -315,6 +331,6 @@ class Searcher:
             new_term = self.get_most_similar_word(term)
             if new_term is not None:
                 new_query.append(new_term)
-            else:
-                new_query.append(term)
-        return new_query
+            # else:
+            #     new_query.append(term)
+        return query + new_query

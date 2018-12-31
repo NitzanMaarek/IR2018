@@ -284,18 +284,20 @@ def create_cities_posting(main_dir, print_countries_num=False, stem=False):
     merged_dict = merge_tokens_dictionaries(cities_dictionaries)
 
     # index_counter = 0
+    cities_dictionary = {}
     for city_name in merged_dict:
         attr = cities_indexer.get_city_attributes(city_name.lower())
         if not attr is None: # Don't save it as a city if its not a real city
             merged_dict[city_name].set_attr(attr)
+            cities_dictionary[city_name] = merged_dict[city_name]
             # cities_index[city_name] = index_counter
             # index_counter += 1
 
-    sorted_terms = sorted(merged_dict, key=lambda k: (k.upper(), k[0].islower()))
+    sorted_terms = sorted(cities_dictionary, key=lambda k: (k.upper(), k[0].islower()))
 
     posting_file_name = main_dir + 'cities\\cities posting'
 
-    create_posting_file(main_dir, sorted_terms, merged_dict, posting_file_name, 'cities dictionary', save_directory='cities')
+    create_posting_file(main_dir, sorted_terms, cities_dictionary, posting_file_name, 'cities dictionary', save_directory='cities')
 
     # save_obj(main_dir, obj=cities_index, name='cities dictionary', directory='cities')
     if print_countries_num:
