@@ -473,10 +473,6 @@ class GUI:
         stopwords_directory = self.corpus_stopwords_entry.get()
         single_query = self.single_query_entry.get()
 
-        # ******* Nitsan should delete the next line
-        # self.display_search_results()
-        # self.insert_search_results_to_table({'135': 'FBIS00123456789', '244': 'FBIS29345672'})
-
         if single_query is None or single_query == '':
             messagebox.showerror('Error Message',
                                  'Cannot retrieve documents without a query.\nPlease insert a query in field "Single query".')
@@ -493,10 +489,12 @@ class GUI:
             if stem_warning_result == 'yes':
                 self.stem = True
             else:
-                self.stem = False
-        # result = list of results that needs to be shown to user
+                return
+
         searcher = Searcher(corpus_path=stopwords_directory, results_path=postings_directory, semantic_flag=bool(self.semantics_flag.get()), stem=self.stem)
-        self.search_results, self.search_semantics_results = searcher.search_single_query(stopwords_directory, postings_directory, single_query, self.stem, bool(self.semantics_flag.get()))
+
+        self.search_results, self.search_semantics_results = searcher.search_single_query(stopwords_directory, postings_directory, single_query, self.stem, bool(self.semantics_flag.get()), city=self.get_cities_from_cities_entry())
+
         if not bool(self.semantics_flag.get()) and not self.search_semantics_results:     #Display only one window
             self.display_search_results()
             self.insert_search_results_to_table(self.search_results)
@@ -505,6 +503,7 @@ class GUI:
             self.insert_search_results_to_table(self.search_results)
             self.display_search_semantics_results()
             self.insert_search_semantics_results_to_table(self.search_semantics_results)
+
     def run_query_file_button_clicked(self):
         """
         Method takes text from file and converts to list of strings, each string is query
@@ -536,14 +535,15 @@ class GUI:
             if stem_warning_result == 'yes':
                 self.stem = True
             else:
-                self.stem = False
+                return
         f = open(query_file, 'r', errors='ignore')
         query_file_content = f.readlines()
         f.close()
 
-        # result = list of results that needs to be shown to user
         searcher = Searcher(corpus_path=stopwords_directory, results_path=postings_directory, semantic_flag=bool(self.semantics_flag.get()), stem=self.stem)
-        self.search_results, self.search_semantics_results = searcher.search_multiple_queries(stopwords_directory, postings_directory, query_file_content, self.stem, bool(self.semantics_flag.get()))
+
+        self.search_results, self.search_semantics_results = searcher.search_multiple_queries(stopwords_directory, postings_directory, query_file_content, self.stem, bool(self.semantics_flag.get()), city=self.get_cities_from_cities_entry())
+
         if not bool(self.semantics_flag.get()) and not self.search_semantics_results:     #Display only one window
             self.display_search_results()
             self.insert_search_results_to_table(self.search_results)
@@ -578,6 +578,18 @@ class GUI:
             cities_in_entry = cities_in_entry + city + ', '
         self.city_selection_entry.delete(0,END)
         self.city_selection_entry.insert(INSERT, cities_in_entry)
+
+    def get_cities_from_cities_entry(self):
+        """
+        Method return city list from city selection entry
+        :return:
+        """
+        cities = self.city_selection_entry.get()
+        if cities is None or len(cities) == 0:
+            return None
+        cities = cities[:-2]
+        cities = cities.split(', ')
+        return cities
 
     def update_city_selection_list(self, list):
         """
