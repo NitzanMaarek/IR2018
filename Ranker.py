@@ -94,6 +94,8 @@ class Ranker():
             if not term in self.terms_dict:
                 if term.lower() in self.terms_dict:
                     term = term.lower()
+                elif term.upper() in self.terms_dict:
+                    term = term.upper()
                 else:
                     continue
             term_idf = math.log(self.doc_count / self.terms_dict[term][2], 2)
@@ -108,8 +110,8 @@ class Ranker():
                 doc_bm25_score, doc_entities_dict = self.bm25_score(term, term_idf, doc, k_value, b_value, doc_term_posting_data)
 
                 # Giving bonus for documents with terms in the title
-                # if doc_term_posting_data[4] == 'True': # TODO: check if this is the right place and if this is the right value
-                #     doc_bm25_score += 2 * doc_bm25_score
+                if doc_term_posting_data[4] == 'True': # TODO: check if this is the right place and if this is the right value
+                    doc_bm25_score += 0.5 * doc_bm25_score
 
                 if doc in doc_scores.keys():
                     doc_scores[doc] = doc_scores[doc] + doc_bm25_score
