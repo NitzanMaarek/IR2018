@@ -161,7 +161,6 @@ class GUI:
             return False
         return True
 
-
     def activate_button_clicked(self):
         """
         Method activates operation on given paths if they exist, otherwise nothing happens
@@ -203,7 +202,6 @@ class GUI:
             remove_files(output_path)
             self.term_dictionary.clear()
             messagebox.showinfo("Reset Results", 'Posting and dictionary files have been deleted successfully')
-
 
     def view_dictionary_button_clicked(self):
         """
@@ -293,7 +291,6 @@ class GUI:
         self.search_results_semantics_tree_view.bind("<Double-1>", self.show_semantics_entities)
         # TODO: Handle results
         # self.insert_search_results_to_table(results)
-
 
     def browse_save_results(self):
         """
@@ -392,6 +389,11 @@ class GUI:
             self.entities_entry.insert(INSERT, 'No entities for doc.')
 
     def show_semantics_entities(self, event):
+        """
+        Method shows entities for selected docuement in semantis results window.
+        :param event:
+        :return:
+        """
         entities = ''
         selected_item = self.search_results_semantics_tree_view.focus()
         doc_no = self.search_results_semantics_tree_view.item(selected_item)['values'][0]
@@ -477,10 +479,10 @@ class GUI:
             messagebox.showerror('Error Message',
                                  'Cannot retrieve documents without a query.\nPlease insert a query in field "Single query".')
             return
-        if postings_directory is None or postings_directory == '':
+        if postings_directory is None or postings_directory == ''or not os.path.exists(postings_directory):
             messagebox.showerror('Error Message', 'Cannot retrieve documents without dictionary and posting files path.\nPlease insert path of dictionary and posting files.')
             return
-        if stopwords_directory is None or stopwords_directory == '':
+        if stopwords_directory is None or stopwords_directory == '' or not os.path.exists(stopwords_directory):
             messagebox.showerror('Error Message', 'Cannot retrieve documents without corpus and stop-words files path.\nPlease insert path of corpus and stop-words file.')
             return
         self.stem = False
@@ -520,11 +522,11 @@ class GUI:
         if not os.path.exists(query_file):
             messagebox.showerror('Error Message', 'Query file does not exist.')
             return
-        if postings_directory is None or postings_directory == '':
+        if postings_directory is None or postings_directory == '' or not os.path.exists(postings_directory):
             messagebox.showerror('Error Message',
                                  'Cannot retrieve documents without dictionary and posting files path.\nPlease insert path of dictionary and posting files.')
             return
-        if stopwords_directory is None or stopwords_directory == '':
+        if stopwords_directory is None or stopwords_directory == '' or not os.path.exists(stopwords_directory):
             messagebox.showerror('Error Message',
                                  'Cannot retrieve documents without corpus and stop-words files path.\nPlease insert path of corpus and stop-words file.')
             return
@@ -552,7 +554,6 @@ class GUI:
             self.insert_search_results_to_table(self.search_results)
             self.display_search_semantics_results()
             self.insert_search_semantics_results_to_table(self.search_semantics_results)
-
 
     def browse_query_file_button_clicked(self):
         """
