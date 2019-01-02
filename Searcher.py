@@ -79,95 +79,77 @@ class Searcher:
         self.average_doc_length = sum(docs_len) / len(docs_len)
         self.doc_count = len(docs_len)
 
-    def search(self, query, relevant=None, not_relevant=None, x=50, b_value=0.5, k_value=1.5, city=None):
-        relevant = query
+    def search(self, query, query_description=None, x=50, b_value=0.5, k_value=1.5, city=None):
+
         if not city is None:
-            city_docs = self.get_city_docs(city)  # Work in progress
+            city_docs = self.get_city_docs(city)
         else:
             city_docs = None
-        doc_list, entities_dict = self.ranker.top_x_bm25_docs_for_query(query, x * 2, b_value, k_value, city_docs_list=city_docs)
+        doc_list, entities_dict = self.ranker.top_x_bm25_docs_for_query(
+            query + query_description, x * 4, b_value, k_value, city_docs_list=city_docs)
         bm25_scores = list(doc_list.values())
         max = bm25_scores[0]
         min = bm25_scores[len(bm25_scores) - 1]
 
         query_vector = self.doc2vec_model.infer_vector(query)
 
-        # if not relevant is None:
-        #     relevant_vector = self.doc2vec_model.infer_vector(relevant)
-        # if not not_relevant is None:
-        #     not_relevant_vector = self.doc2vec_model.infer_vector(not_relevant)
+        if not query_description is None:
+            description_vector = self.doc2vec_model.infer_vector(query_description)
 
         query_max_cosine = None
         query_min_cosine = None
 
-        max_cosine = None
-        min_cosine = None
-        max_cosine_not = None
-        min_cosine_not = None
+        desc_max_cosine = None
+        desc_min_cosine = None
         similarities = {}
-        similarities_not = {}
+        description_similarities = {}
+
         for doc in doc_list:
             best_cosine_value = self.get_best_paragraph_cosine(query_vector, doc)
 
-            if best_cosine_value > 0 and not best_cosine_value == float('-inf'):
-                if query_max_cosine is None or best_cosine_value > query_max_cosine:
-                    query_max_cosine = best_cosine_value
-                if query_min_cosine is None or best_cosine_value < query_min_cosine:
-                    query_min_cosine = best_cosine_value
-                similarities[doc] = best_cosine_value
-            else:
+            if best_cosine_value == float('-inf'):
                 similarities[doc] = 0
+            else:
+                similarities[doc] = best_cosine_value
 
-            # if not self.doc_tags[doc] in self.doc2vec_model.docvecs: # TODO: Need to check why we need this, maybe we to train doc2vec again
-            #     similarities[doc] = 0
+            # if best_cosine_value > 0 and not best_cosine_value == float('-inf'):
+            #     if query_max_cosine is None or best_cosine_value > query_max_cosine:
+            #         query_max_cosine = best_cosine_value
+            #     if query_min_cosine is None or best_cosine_value < query_min_cosine:
+            #         query_min_cosine = best_cosine_value
+            #     similarities[doc] = best_cosine_value
             # else:
-            #     if not relevant is None or not not_relevant is None:
-            #         doc_title = doc + ' title'
-            #         if doc_title in self.doc_tags:
-            #             doc_vector = (self.doc2vec_model.docvecs[self.doc_tags[doc]] \
-            #                           + self.doc2vec_model.docvecs[self.doc_tags[doc_title]]) / 2
-            #         else:
-            #             doc_vector = + self.doc2vec_model.docvecs[self.doc_tags[doc]]
-            #
-            #         if not relevant is None:
-            #             cosine_sim = abs(1 - spatial.distance.cosine(relevant_vector, doc_vector))
-            #             if not cosine_sim == float('-inf'):
-            #                 if max_cosine is None or cosine_sim > max_cosine:
-            #                     max_cosine = cosine_sim
-            #                 if min_cosine is None or cosine_sim < min_cosine:
-            #                     min_cosine = cosine_sim
-            #                 similarities[doc] = cosine_sim
-            #             else:
-            #                 similarities[doc] = 0
-            #
-            #         if not not_relevant is None:
-            #             cosine_sim_not = abs(1 - spatial.distance.cosine(not_relevant_vector, doc_vector))
-            #             if not cosine_sim_not == float('-inf'):
-            #                 if max_cosine_not is None or cosine_sim_not > max_cosine_not:
-            #                     max_cosine_not = cosine_sim_not
-            #                 if min_cosine_not is None or cosine_sim_not < min_cosine_not:
-            #                     min_cosine_not = cosine_sim_not
-            #                 similarities_not[doc] = cosine_sim_not
-            #             else:
-            #                 similarities[doc] = 0
+            #     similarities[doc] = 0
+
+            if not query_description is None:
+                best_cosine_value = self.get_best_paragraph_cosine(description_vector, doc)
+
+                if best_cosine_value == float('-inf'):
+                    description_similarities[doc] = 0
+                else:
+                    description_similarities[doc] = best_cosine_value
+
+                # if not best_cosine_value == float('-inf'):
+                #     if desc_max_cosine is None or best_cosine_value > desc_max_cosine:
+                #         desc_max_cosine = best_cosine_value
+                #     if desc_min_cosine is None or best_cosine_value < desc_min_cosine:
+                #         desc_min_cosine = best_cosine_value
+                #     description_similarities[doc] = best_cosine_value
+                # else:
+                #     description_similarities[doc] = 0
 
         final_scores = {}
         for doc in doc_list:
-            normalized_cosine_value = (similarities[doc] - query_min_cosine) / (query_max_cosine - query_min_cosine)
-
-            #
-            # if not relevant is None:
-            #     normalized_cosine_value = (similarities[doc] - min_cosine) / (max_cosine - min_cosine)
-            # else:
-            #     normalized_cosine_value = 0
-            #
-            # if not not_relevant is None:
-            #     normalized_cosine_not_value = (similarities_not[doc] - min_cosine_not) / (max_cosine_not - min_cosine_not)
-            # else:
-            #     normalized_cosine_not_value = 0
-
             normalized_bm25_value = (doc_list[doc] - min) / (max - min)
-            final_scores[doc] = normalized_cosine_value * 0.1 + normalized_bm25_value * 0.9
+            # normalized_cosine_value = (similarities[doc] - query_min_cosine) / (query_max_cosine - query_min_cosine)
+
+            if not query_description is None:
+                # desc_norm_cosine = (similarities[doc] - desc_min_cosine) / (desc_max_cosine - desc_min_cosine)
+                score = similarities[doc] * 0.1 + normalized_bm25_value * 0.8 + description_similarities[doc] * 0.1
+            else:
+                score = similarities[doc] * 0.2 + normalized_bm25_value * 0.8
+
+            final_scores[doc] = score
 
         sorted_query_results = sorted(final_scores.items(), key=operator.itemgetter(1), reverse=True)
 
@@ -261,23 +243,39 @@ class Searcher:
             title = queries_dict[query_num][0]
             query_terms = parser.parser_pipeline([title], False)
             query_terms_list = parser.get_tokens_after_parse()
+            parser.erase_dictionary()
 
+            desc = queries_dict[query_num][1]
+            parser.parser_pipeline([desc], False)
+            desc_terms_list = parser.get_tokens_after_parse()
+
+            # Running query with semantics
             if semantic_flag:
                 semantic_query = self.get_semantic_altered_query(query_terms_list)
+                semantic_desc = self.get_semantic_altered_query(desc_terms_list)
                 parser.erase_dictionary()
 
                 if stem_flag:
                     parser.parser_pipeline(semantic_query, stem=stem_flag)
                     semantic_query = parser.get_tokens_after_parse()
+                    parser.erase_dictionary()
+                    parser.parser_pipeline([semantic_desc], stem_flag)
+                    semantic_desc = parser.get_tokens_after_parse()
+                    parser.erase_dictionary()
 
-                semantic_search_results = self.search(semantic_query, city=city)
+                semantic_search_results = self.search(semantic_query,
+                                                      query_description=semantic_desc, city=city)
                 semantic_results[query_num] = semantic_search_results
 
-            parser.erase_dictionary()
+            # Applying stem for normal query
             if stem_flag:
                 parser.parser_pipeline(query_terms_list, stem_flag)
                 query_terms_list = parser.get_tokens_after_parse()
-            curr_result = self.search(query_terms_list, city=city)
+                parser.erase_dictionary()
+                parser.parser_pipeline([desc], stem_flag)
+                desc_terms_list = parser.get_tokens_after_parse()
+
+            curr_result = self.search(query_terms_list, query_description=desc_terms_list, city=city)
 
             results[query_num] = curr_result
 
@@ -390,7 +388,8 @@ class Searcher:
                 tag = self.doc_tags[next_paragraph]
                 paragraph_vector = self.doc2vec_model.docvecs[tag]
 
-            cosine_sim = abs(1 - spatial.distance.cosine(query_vector, paragraph_vector))
+            # cosine_sim = abs(1 - spatial.distance.cosine(query_vector, paragraph_vector))
+            cosine_sim = 1 - spatial.distance.cosine(query_vector, paragraph_vector)
             if cosine_sim > max_cosine:
                 max_cosine = cosine_sim
 
@@ -407,7 +406,8 @@ class Searcher:
                 tag = self.doc_tags[title]
                 title_vector = self.doc2vec_model.docvecs[tag]
 
-            cosine_sim = abs(1 - spatial.distance.cosine(query_vector, title_vector))
+            # cosine_sim = abs(1 - spatial.distance.cosine(query_vector, title_vector))
+            cosine_sim = 1 - spatial.distance.cosine(query_vector, title_vector)
             if cosine_sim > max_cosine:
                 max_cosine = cosine_sim
 
