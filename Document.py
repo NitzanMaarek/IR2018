@@ -88,6 +88,7 @@ class Document:
         """
         parser = Parser(stop_words_list)
         self.tokens = parser.parser_pipeline(text, self.stem)
+        self.doc_length = len(parser.get_tokens_after_parse())
         self.max_tf = parser.get_max_tf()
         if self.save_tokens:
             self.raw_tokens = parser.get_tokens_after_parse()
@@ -146,7 +147,7 @@ class Document:
         params.append(str(self.doc_start_line))
         params.append(str(self.doc_finish_line))
         if hasattr(self, 'tokens'):
-            params.append(str(len(self.tokens)))
+            params.append(str(self.doc_length))
         if hasattr(self, 'max_tf'):
             params.append(str(self.max_tf))
         if hasattr(self, 'city'):

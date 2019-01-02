@@ -199,9 +199,9 @@ def create_prefix_posting(main_dir, prefix, file_name_list, directory='pickles',
     posting_file_name = ''.join([main_dir, 'terms posting\\', stem_addition_for_files, 'tp_',
                                  prefix])  # tp_aa or stp_aa for TERM posting or stemmed posting for aa respectively
 
-    create_posting_file(main_dir, sorted_terms, merged_prefix_dictionary, posting_file_name, prefix)
+    create_posting_file(main_dir, sorted_terms, merged_prefix_dictionary, posting_file_name, prefix, stem=stem)
 
-def create_posting_file(main_dir, sorted_terms, merged_dict, posting_file_name, tag, save_directory='dictionary'):
+def create_posting_file(main_dir, sorted_terms, merged_dict, posting_file_name, tag, save_directory='dictionary', stem=False):
     """
     Creates a posting file from sorted list of terms and dictionary with those term's tokens
     :param sorted_terms: list of terms
@@ -215,6 +215,9 @@ def create_posting_file(main_dir, sorted_terms, merged_dict, posting_file_name, 
     seek_offset = 0
     posting_file = []
     last_term = ''
+
+    if stem:
+        posting_file_name = posting_file_name + ' stem'
 
     for term in sorted_terms:
         if not last_term == '' and not last_term[0].isdigit() and term == lower_case_word(last_term):
@@ -297,7 +300,14 @@ def create_cities_posting(main_dir, print_countries_num=False, stem=False):
 
     posting_file_name = main_dir + 'cities\\cities posting'
 
-    create_posting_file(main_dir, sorted_terms, cities_dictionary, posting_file_name, 'cities dictionary', save_directory='cities')
+
+    if stem:
+        cities_dictionary_name = 'stem cities dictionary'
+    else:
+        cities_dictionary_name = 'cities dictionary'
+
+    create_posting_file(main_dir, sorted_terms, cities_dictionary, posting_file_name,
+                        cities_dictionary_name, save_directory='cities', stem=stem)
 
     # save_obj(main_dir, obj=cities_index, name='cities dictionary', directory='cities')
     if print_countries_num:

@@ -84,7 +84,6 @@ class Ranker():
 
         return bm25_terms_values, entities_dict
 
-    # TODO: TEST THIS FUNCTION
     def top_x_bm25_docs_for_query(self, query, x, b_value, k_value, city_docs_list=None):
         # Need to get the ids and posting values of each top docs
         doc_scores = {}
