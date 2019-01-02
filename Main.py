@@ -335,7 +335,8 @@ class GUI:
             rank = 1
             for document in results[query]:
                 query = query.strip()
-                doc = document[0].strip()
+                # doc = document[0].strip()
+                doc = document
                 ans += query + ' 0 ' + doc + ' ' + str(rank) + ' 0 ' + 'mt\n'
                 rank += 1
         return ans
@@ -681,7 +682,8 @@ def read_directory(main_dir, directory, multiprocess, batch_size=20000, stem=Fal
                     jobs.append(job)
                     file_count += 1
                     if file_count == 300:
-                        processed_docs, next_batch_num, partial_language_set = dump_proceesed_docs_to_disk(main_dir, jobs, batch_size, next_batch_num, stem)
+                        processed_docs, next_batch_num, partial_language_set = dump_proceesed_docs_to_disk(main_dir,
+                                                                           jobs, batch_size, next_batch_num, stem)
                         language_set = language_set.union(partial_language_set)
                         next_batch_num += 1
                         total_doc_count += processed_docs
@@ -703,7 +705,7 @@ def read_directory(main_dir, directory, multiprocess, batch_size=20000, stem=Fal
 
     Indexer.save_obj(main_dir, language_set, name='languages', directory='')
 
-    cities_posting = pool.apply_async(Indexer.create_cities_posting, (main_dir, False, ))
+    cities_posting = pool.apply_async(Indexer.create_cities_posting, (main_dir, False, stem, ))
 
     # print('total docs: ' + str(total_doc_count))
     # print('Until merge runtime: ' + str(datetime.datetime.now() - start_time))
@@ -906,7 +908,7 @@ if __name__ == '__main__':
     write_to_disk = False
     parallel = True
 
-    main_dir = 'C:\\Users\\Nitzan\\Desktop\\IR 2018 files desktop\\created files\\'
+    main_dir = 'C:\\Chen\\BGU\\2019\\2018 - Semester A\\3. Information Retrival\\Engine\\test directory\\created files\\'
     # restart_files(main_dir)
 
     manager = mp.Manager()
@@ -915,19 +917,20 @@ if __name__ == '__main__':
 
     gui = GUI()
 
-    # restart_files(main_dir)
-    # # start_time = datetime.datetime.now()
-    #
-    # # gui = GUI()
-    #
+
+    # start_time = datetime.datetime.now()
+
+
     # # Single file debug config
     # if single_file:
     #     # file = ReadFile(r'C:\Users\Nitzan\Desktop\FB396001', parallel, stem, write_to_disk, q, pool)
-    #     read_directory(main_dir, directory=r'C:\Chen\BGU\2019\2018 - Semester A\3. Information Retrival\Engine\test directory\10 files', multiprocess=parallel, batch_size=20000)
+    #     read_directory(main_dir, directory=r'C:\Chen\BGU\2019\2018 - Semester A\3. Information Retrival\Engine\test directory\10 files',
+    #                    multiprocess=parallel, batch_size=20000, stem=False)
     # else:
     #     # All files debug config
     #     # file = ReadFile(r'C:\Users\Nitzan\Desktop\100 file corpus', parallel)
-    #     read_directory(main_dir, directory=r'C:\Chen\BGU\2019\2018 - Semester A\3. Information Retrival\Engine\corpus', multiprocess=parallel)
+    #     read_directory(main_dir, directory=r'C:\Chen\BGU\2019\2018 - Semester A\3. Information Retrival\Engine\corpus',
+    #                    multiprocess=parallel, stem=True)
 
     # finish_time = datetime.datetime.now()
     # print(finish_time - start_time)
