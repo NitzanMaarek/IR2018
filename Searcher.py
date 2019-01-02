@@ -326,9 +326,11 @@ class Searcher:
                 title = line[8:]
             if '<desc>' in line:
                 accumulate_desc = True
+                continue
             if '<narr>' in line:
                 accumulate_desc = False
                 accumulate_narr = True
+                continue
             if accumulate_desc:
                 desc = desc + line
             if accumulate_narr:
