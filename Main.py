@@ -28,7 +28,7 @@ class GUI:
         self.term_dictionary = {}
         self.normal_doc_entities_dictionary = {}
         self.semantics_doc_entities_dictionary = {}
-        # self.searcher = Searcher()
+        self.searcher = None
 
         self.root = Tk()
         self.root.title('IR2018')
@@ -493,9 +493,10 @@ class GUI:
             else:
                 return
 
-        searcher = Searcher(corpus_path=stopwords_directory, results_path=postings_directory, semantic_flag=bool(self.semantics_flag.get()), stem=self.stem)
+        if self.searcher is None:
+            self.searcher = Searcher(corpus_path=stopwords_directory, results_path=postings_directory, semantic_flag=bool(self.semantics_flag.get()), stem=self.stem)
 
-        self.search_results, self.search_semantics_results = searcher.search_single_query(stopwords_directory, postings_directory, single_query, self.stem, bool(self.semantics_flag.get()), city=self.get_cities_from_cities_entry())
+        self.search_results, self.search_semantics_results = self.searcher.search_single_query(stopwords_directory, postings_directory, single_query, self.stem, bool(self.semantics_flag.get()), city=self.get_cities_from_cities_entry())
 
         if not bool(self.semantics_flag.get()) and not self.search_semantics_results:     #Display only one window
             self.display_search_results()
@@ -542,9 +543,10 @@ class GUI:
         query_file_content = f.readlines()
         f.close()
 
-        searcher = Searcher(corpus_path=stopwords_directory, results_path=postings_directory, semantic_flag=bool(self.semantics_flag.get()), stem=self.stem)
+        if self.searcher is None:
+            self.searcher = Searcher(corpus_path=stopwords_directory, results_path=postings_directory, semantic_flag=bool(self.semantics_flag.get()), stem=self.stem)
 
-        self.search_results, self.search_semantics_results = searcher.search_multiple_queries(stopwords_directory, postings_directory, query_file_content, self.stem, bool(self.semantics_flag.get()), city=self.get_cities_from_cities_entry())
+        self.search_results, self.search_semantics_results = self.searcher.search_multiple_queries(stopwords_directory, postings_directory, query_file_content, self.stem, bool(self.semantics_flag.get()), city=self.get_cities_from_cities_entry())
 
         if not bool(self.semantics_flag.get()) and not self.search_semantics_results:     #Display only one window
             self.display_search_results()
