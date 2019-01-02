@@ -496,7 +496,7 @@ class GUI:
 
         if self.searcher is None:
             self.searcher = Searcher(corpus_path=stopwords_directory, results_path=postings_directory, semantic_flag=bool(self.semantics_flag.get()), stem=self.stem)
-
+        self.searcher.set_stop_words(read_stop_words_lines(stopwords_directory))
         self.search_results, self.search_semantics_results = self.searcher.search_single_query(stopwords_directory, postings_directory, single_query, self.stem, bool(self.semantics_flag.get()), city=self.get_cities_from_cities_entry())
 
         if not bool(self.semantics_flag.get()) and not self.search_semantics_results:     #Display only one window
@@ -546,7 +546,7 @@ class GUI:
 
         if self.searcher is None:
             self.searcher = Searcher(corpus_path=stopwords_directory, results_path=postings_directory, semantic_flag=bool(self.semantics_flag.get()), stem=self.stem)
-
+        self.searcher.set_stop_words(read_stop_words_lines(stopwords_directory))
         self.search_results, self.search_semantics_results = self.searcher.search_multiple_queries(stopwords_directory, postings_directory, query_file_content, self.stem, bool(self.semantics_flag.get()), city=self.get_cities_from_cities_entry())
 
         if not bool(self.semantics_flag.get()) and not self.search_semantics_results:     #Display only one window
@@ -616,7 +616,6 @@ class GUI:
             for document_name in query_documents_dict:
                 self.normal_doc_entities_dictionary[document_name] = query_documents_dict[document_name]
                 self.search_results_tree_view.insert('', 'end', text=query, values=document_name)
-        # TODO: Debug insertion
 
     def insert_search_semantics_results_to_table(self, results):
         """
@@ -630,7 +629,6 @@ class GUI:
             for document_name in query_documents_dict:
                 self.semantics_doc_entities_dictionary[document_name] = query_documents_dict[document_name]
                 self.search_results_semantics_tree_view.insert('', 'end', text=query, values=document_name)
-        # TODO: Debug insertion
 
     def load_cities_button_clicked(self):
         """
@@ -864,6 +862,7 @@ def read_stop_words_lines(directory):
             if line.__contains__('\\'):
                 line = line.replace('\\')
             stop_words_list[line] = 1
+            stop_words_list[line.upper()] = 1
         return stop_words_list
     except Exception as e:
         print(e)
